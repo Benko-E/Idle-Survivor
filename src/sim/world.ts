@@ -98,6 +98,16 @@ export interface World {
   /** Total XP banked this run. The level curve arrives in step 5. */
   xp: number
 
+  /**
+   * TEMPORARY. Value collected since his last shop visit, and where the shop
+   * is. Stands in for gold until there is such a thing. See config.shop.
+   */
+  carried: number
+  shopX: number
+  shopY: number
+  shopVisits: number
+  spentAtShop: number
+
   /** Fractional spawns carried between frames, so rates aren't rounded away. */
   spawnCredit: number
   /** Throttle clock for the globe merge pass. */
@@ -115,10 +125,16 @@ export interface World {
 }
 
 export function createWorld(seed: number = config.world.seed): World {
+  const rng = makeRng(seed)
+
+  // Somewhere out there, at a random bearing. Far enough that reaching it is
+  // a journey rather than a detour.
+  const shopAngle = rng() * Math.PI * 2
+
   return {
     time: 0,
     state: 'running',
-    rng: makeRng(seed),
+    rng,
     character: {
       x: 0,
       y: 0,
@@ -146,6 +162,11 @@ export function createWorld(seed: number = config.world.seed): World {
     })),
     modifiers: [],
     xp: 0,
+    carried: 0,
+    shopX: Math.cos(shopAngle) * config.shop.distanceFromStart,
+    shopY: Math.sin(shopAngle) * config.shop.distanceFromStart,
+    shopVisits: 0,
+    spentAtShop: 0,
     spawnCredit: 0,
     mergeCredit: 0,
     nextEnemyId: 1,

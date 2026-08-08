@@ -187,6 +187,36 @@ export class Renderer {
     ctx.globalAlpha = 1
   }
 
+  /**
+   * A marker pinned to the screen edge pointing at something off-camera.
+   *
+   * Without it, a destination 1500 units away is completely invisible and
+   * "why did he suddenly walk off?" is unanswerable by watching.
+   */
+  drawOffscreenMarker(worldX: number, worldY: number, colour: string): void {
+    const sx = this.worldToScreenX(worldX)
+    const sy = this.worldToScreenY(worldY)
+    if (sx >= 0 && sx <= this.viewW && sy >= 0 && sy <= this.viewH) return
+
+    const margin = 18
+    const cx = this.viewW / 2
+    const cy = this.viewH / 2
+    const angle = Math.atan2(sy - cy, sx - cx)
+
+    // Walk out from the centre until we hit the edge box.
+    const halfW = cx - margin
+    const halfH = cy - margin
+    const scale = Math.min(Math.abs(halfW / Math.cos(angle)), Math.abs(halfH / Math.sin(angle)))
+
+    const { ctx } = this
+    ctx.fillStyle = colour
+    ctx.globalAlpha = 0.9
+    ctx.beginPath()
+    ctx.arc(cx + Math.cos(angle) * scale, cy + Math.sin(angle) * scale, 7, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.globalAlpha = 1
+  }
+
   /** Fixed health bar along the bottom of the screen. */
   drawHealthBar(fraction: number): void {
     const { ctx } = this

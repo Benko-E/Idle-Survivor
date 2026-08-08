@@ -29,7 +29,10 @@ function collect(world: World): void {
 
     // Tags come from the globe, so "+50% XP from rare globes" selects on them,
     // and a debuff is { target: 'xpGain', op: 'multiply', value: 0.5 }.
-    world.xp += characterStat(world, 'xpGain', pickupXp(pickup), pickup.def.tags)
+    const gained = characterStat(world, 'xpGain', pickupXp(pickup), pickup.def.tags)
+    world.xp += gained
+    // TEMPORARY: also counts towards the shop trip. Becomes gold later.
+    world.carried += gained
     world.pickupsCollected++
 
     world.pickups[i] = world.pickups[world.pickups.length - 1]

@@ -2,6 +2,7 @@ import { config } from '../config'
 import { InfluenceMap, type LayerSettings } from './influenceMap'
 import { pickupPull } from './pickupTiers'
 import { occupancySaturation } from './occupancy'
+import { distanceToShop, shopEagerness } from './shop'
 import { markFreshness } from './trail'
 import type { World } from './world'
 
@@ -51,10 +52,29 @@ function rebuild(world: World): void {
   //
   // Note what this needed: two config entries and one extra line. No changes
   // to the map, the sampling, or anything that decides where he walks.
-  // Ground he has camped on. Per cell rather than stamped, so it covers an
-  // area uniformly instead of tracing a line he can sidestep off.
+  // Ground he has camped on, and the pull of the shop. Both are per cell
+  // rather than stamped: camping because it must cover an area uniformly
+  // instead of tracing a line he can sidestep off, and the shop because it's
+  // usually well outside the grid, where a stamped kernel would land nowhere.
   const camping = layers.camping.weight
-  influenceMap.addPerCell((x, y) => camping * occupancySaturation(world, x, y))
+
+  // A constant slope towards the shop rather than a blob around it, so the
+  // pull is identical whether it's 200 units away or 3000 — and it never
+  // silently switches off at range. Measured against his own position, which
+  // keeps the numbers small and readable on the heatmap without changing any
+  // difference between cells, and differences are all that steering uses.
+  const shopSlope = (layers.shop.weight * shopEagerness(world)) / config.shop.gradientLength
+  const characterToShop = shopSlope > 0 ? distanceToShop(world) : 0
+
+  influenceMap.addPerCell((x, y) => {
+    let score = camping * occupancySaturation(world, x, y)
+
+    if (shopSlope > 0) {
+      score += shopSlope * (characterToShop - Math.hypot(world.shopX - x, world.shopY - y))
+    }
+
+    return score
+  })
 
   // Ground he has recently stood on, fading as it ages. Strength is the
   // mark's freshness, so a spot he left ten seconds ago barely registers.

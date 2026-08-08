@@ -12,6 +12,7 @@ import { updateCharacterMovement } from './sim/movement'
 import { occupancySaturation, updateOccupancy } from './sim/occupancy'
 import { pickupColour, pickupSize } from './sim/pickupTiers'
 import { updatePickups } from './sim/pickups'
+import { distanceToShop, shopEagerness, updateShop } from './sim/shop'
 import { updateSpawner } from './sim/spawner'
 import { updateTrail } from './sim/trail'
 import { createWorld } from './sim/world'
@@ -86,6 +87,7 @@ function update(dt: number): void {
   // After moving, so both land on where he now is.
   updateTrail(world)
   updateOccupancy(world, dt)
+  updateShop(world)
   updateCombat(world, dt)
   updateContactDamage(world, dt)
 
@@ -158,11 +160,23 @@ function render(): void {
   renderer.beginFrame()
 
   // Under the sprites, so it reads as ground rather than fog.
-  if (showHeatmap) drawHeatmap(renderer)
+  if (showHeatmap) drawHeatmap(renderer, world)
 
   // Reused rather than reallocated: this runs 60+ times a second and would
   // otherwise churn out a few hundred throwaway objects per frame.
   frame.length = 0
+
+  if (config.shop.enabled) {
+    const size = config.shop.drawSize
+    frame.push({
+      x: world.shopX,
+      y: world.shopY,
+      w: size,
+      h: size,
+      // Brightens once he's actually interested in going.
+      colour: shopEagerness(world) > 0 ? '#ffd76b' : '#5c6b78',
+    })
+  }
 
   for (const pickup of world.pickups) {
     const size = pickupSize(pickup)
@@ -206,6 +220,10 @@ function render(): void {
     drawCandidates(renderer, world)
   }
 
+  if (config.shop.enabled) {
+    renderer.drawOffscreenMarker(world.shopX, world.shopY, shopEagerness(world) > 0 ? '#ffd76b' : '#3f4a54')
+  }
+
   renderer.drawHealthBar(world.character.hp / world.character.maxHp)
 
   if (showOverlay) {
@@ -224,6 +242,9 @@ function render(): void {
       `spawn rate   ${spawnsPerSecond(world.time).toFixed(1)}/s`,
       `enemy hp     x${hpMultiplier(world.time).toFixed(2)}`,
       `camped here  ${(occupancySaturation(world, world.character.x, world.character.y) * 100).toFixed(0)}%`,
+      `carrying     ${world.carried.toFixed(0)} / ${config.shop.spendThreshold}`,
+      `shop         ${distanceToShop(world).toFixed(0)} away, ${world.shopVisits} visits`,
+      `wants shop   ${shopEagerness(world) > 0 ? 'yes' : 'no'}`,
       `wraps        ${world.wraps}`,
       `last / best  ${formatTime(lastTime)} / ${formatTime(bestTime)}`,
       `fps          ${stats.fps.toFixed(0)}`,

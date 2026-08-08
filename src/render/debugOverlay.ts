@@ -16,17 +16,34 @@ import type { Renderer } from './renderer'
  */
 
 /**
- * The influence field as a heatmap. Green is somewhere he wants to be, red is
- * somewhere he doesn't, and the brightness is how strongly.
+ * The influence field as a heatmap, drawn *relative to where he is standing*.
+ *
+ * Green means better than here, red means worse than here, and the scale
+ * stretches to fit whatever range is currently on screen.
+ *
+ * It used to draw absolute score against a fixed scale, which was actively
+ * misleading. Every cell climbs as globes accumulate and layers stack, so
+ * after two minutes the whole screen saturated to flat green — which reads as
+ * "everywhere is wonderful" when it actually means "everything is off the top
+ * of the scale". Steering only ever compares cells against each other, so
+ * differences are the only thing worth showing.
  */
-export function drawHeatmap(renderer: Renderer): void {
-  const scale = config.debug.heatmapScale
+export function drawHeatmap(renderer: Renderer, world: World): void {
   const cell = influenceMap.cellSize
+  const here = influenceMap.sample(world.character.x, world.character.y)
+
+  // Auto-scale to the biggest difference in view, floored so a genuinely flat
+  // field doesn't get amplified into dramatic-looking noise.
+  let widest = 0
+  for (let i = 0; i < influenceMap.scores.length; i++) {
+    const deviation = Math.abs(influenceMap.scores[i] - here)
+    if (deviation > widest) widest = deviation
+  }
+  const scale = Math.max(config.debug.heatmapMinScale, widest)
 
   for (let iy = 0; iy < influenceMap.size; iy++) {
     for (let ix = 0; ix < influenceMap.size; ix++) {
-      const score = influenceMap.scores[iy * influenceMap.size + ix]
-      if (score === 0) continue
+      const score = influenceMap.scores[iy * influenceMap.size + ix] - here
 
       const intensity = Math.min(1, Math.abs(score) / scale)
       if (intensity < 0.02) continue

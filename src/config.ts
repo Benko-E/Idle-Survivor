@@ -167,6 +167,19 @@ export const config = {
        * comparison outright instead of nudging it.
        */
       camping: { weight: -12, radius: 0, falloff: 'linear' },
+
+      /**
+       * "You're carrying enough to be worth a trip." Also applied per cell,
+       * because the shop is usually nowhere near him — stamping a blob at a
+       * point 1500 units away would land entirely outside the grid and pull
+       * on nothing at all.
+       *
+       * This is the thing every other attempt was missing: a reason to be
+       * somewhere else. Camping pressure can make where he stands unpleasant,
+       * but it cannot invent a destination, and he was correct to stay put
+       * while all the value in the world sat under his feet.
+       */
+      shop: { weight: 14, radius: 0, falloff: 'linear' },
     },
   },
 
@@ -218,6 +231,62 @@ export const config = {
    * costs him almost nothing.
    */
   /**
+   * TEMPORARY SCAFFOLDING.
+   *
+   * A single square somewhere on the map that he walks to once he's carrying
+   * enough. There is no gold, no shop inventory and nothing to buy — arriving
+   * simply zeroes what he's carrying. It exists to answer one question: does
+   * giving him a destination outside the loot cloud make him travel?
+   *
+   * Every previous attempt failed for the same reason. Camping penalties,
+   * longer sight and stronger weights can all make standing still unpleasant,
+   * but none of them can invent somewhere to go, and he was right to stay
+   * while every scrap of value sat under his feet.
+   *
+   * When gold and real shops exist this becomes a proper system. If the
+   * experiment doesn't work it gets deleted and we do pathfinding instead.
+   */
+  shop: {
+    enabled: true,
+    /** Placed this far from where the run began, at a random angle. */
+    distanceFromStart: 1500,
+    /** How close he must get to count as arrived. */
+    radius: 70,
+    /**
+     * Carried value that makes the trip worth making.
+     *
+     * Has to be reachable well inside a run. At 100 he was on 63 by 1:29 and
+     * dead by 2:35 — he crossed the line with seconds to spare, or never, so
+     * the whole feature sat inert and every measurement of it was measuring
+     * nothing happening.
+     *
+     * Too low is its own failure: at 35 he topped up in seconds and simply
+     * camped next to the shop instead, three visits without ever getting more
+     * than 581 units away. It wants to be far enough that filling up means
+     * farming somewhere other than the doorstep.
+     */
+    spendThreshold: 60,
+    /**
+     * How far he must travel towards the shop to gain `layers.shop.weight`
+     * points of score, at eagerness 1.
+     *
+     * Expressed as a constant slope rather than a blob fading over some
+     * range, because the pull has to feel identical whether the shop is 200
+     * units away or 3000. A ramp spread over a fixed range is inherently
+     * gentle at distance, and gentle loses: measured against the loot glow,
+     * which is worth 14 under his feet and 4 a step away, a polite pull is
+     * simply ignored.
+     */
+    gradientLength: 1000,
+    /**
+     * Cap on eagerness, in multiples of the threshold. Kept low — at high
+     * eagerness he beelines through anything in the way.
+     */
+    maxEagerness: 1.6,
+    drawSize: 46,
+  },
+
+  /**
    * Dwell time per patch of ground, feeding the `camping` layer.
    *
    * The knobs together answer "how long may he loiter, and how long must he
@@ -255,8 +324,14 @@ export const config = {
   pickups: {
     /** Base grab radius. Read through the modifier system, so upgradeable. */
     collectRadius: 30,
-    /** Beyond this he's clearly not coming back for it, so drop it. */
-    forgetDistance: 1400,
+    /**
+     * Beyond this he's clearly not coming back for it, so drop it.
+     *
+     * Has to comfortably exceed the shop distance. At 1400 a trip to a shop
+     * 1500 away quietly deleted every globe he left behind, so there was
+     * nothing to come back for and the return leg never happened.
+     */
+    forgetDistance: 3200,
     /** Safety ceiling on globes lying around. */
     maxAlive: 400,
 
@@ -384,8 +459,12 @@ export const config = {
     showHeatmap: false,
     /** The fan of candidate directions and the chosen one. Toggle with F3. */
     showCandidates: false,
-    /** Score magnitude that saturates a heatmap cell's colour. */
-    heatmapScale: 14,
+    /**
+     * Floor on the heatmap's auto-scale. The overlay stretches to whatever
+     * range is on screen; this stops a genuinely flat field being amplified
+     * into dramatic-looking noise.
+     */
+    heatmapMinScale: 2,
     /**
      * How close he has to come to a globe for leaving it to count as a miss.
      * Purely a measurement — see the "missed" readout in the debug panel.
