@@ -3,7 +3,7 @@
  *
  * Every system-level number in the game lives in this one object. If a number
  * describes *how a system behaves* it belongs here. If it describes *a specific
- * piece of content* (this weapon's damage, that enemy's HP) it belongs in a
+ * piece of content* (this enemy's HP, that weapon's damage) it belongs in a
  * data file under src/data/ instead.
  *
  * The in-game debug panel will eventually read and write these live, so keep
@@ -40,20 +40,55 @@ export const config = {
   world: {
     /** Deterministic world generation, so a tuning run is reproducible. */
     seed: 1337,
-
-    /**
-     * Placeholder scenery for the step-0 visual test only. This exists purely
-     * to prove that Y-sorting and camera follow work, and gets deleted once
-     * real entities arrive.
-     */
-    propCount: 90,
-    propScatterRadius: 1600,
   },
 
   character: {
-    /** World units per second. */
-    moveSpeed: 135,
+    /** World units per second. Should stay comfortably above enemy speeds — */
+    /** if he can't outpace the swarm, no amount of clever positioning helps. */
+    moveSpeed: 110,
     radius: 15,
+    /** Placeholder wander only. Deleted when the danger map takes over. */
+    wanderRange: 600,
+  },
+
+  spawn: {
+    /**
+     * Enemies appear on an ellipse around the character, sized from the
+     * viewport so they're always just out of sight. 1.42 is the minimum that
+     * keeps the diagonals off screen too; above that is breathing room.
+     */
+    margin: 1.5,
+    /** Floor on the spawn ring, so a small window doesn't spawn them in your lap. */
+    minRadius: 700,
+    /** Random outward variation, so the ring never reads as a visible circle. */
+    radiusJitter: 0.25,
+    /** Hard ceiling on simulated enemies, whatever the curve asks for. */
+    maxAlive: 400,
+    /** Multiples of the spawn ring at which stragglers are culled. */
+    despawnMultiplier: 2.2,
+  },
+
+  /** Constants behind the formulas in sim/difficulty.ts. (spec 5.3) */
+  difficulty: {
+    baseSpawnsPerSecond: 1.2,
+    spawnGrowthPerMinute: 1.6,
+    maxSpawnsPerSecond: 25,
+
+    hpGrowthPerMinute: 0.35,
+
+    speedGrowthPerMinute: 0.05,
+    maxSpeedMultiplier: 1.6,
+  },
+
+  enemies: {
+    /** Bucket size for neighbour lookups. Roughly 2x the largest enemy radius. */
+    gridCellSize: 48,
+    /**
+     * How hard overlapping enemies shove each other apart, 0..1.
+     * Low values let the crowd merge into an unreadable blob; 1.0 makes it
+     * twitchy. This is a look-at-it-and-decide number.
+     */
+    separationStrength: 0.6,
   },
 
   debug: {
