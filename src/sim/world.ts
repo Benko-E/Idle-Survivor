@@ -2,7 +2,7 @@ import { config } from '../config'
 import type { Modifier } from '../core/modifiers'
 import { makeRng, type Rng } from '../core/rng'
 import { findWeaponDef } from '../data/weapons'
-import type { EnemyDef, WeaponDef } from '../data/types'
+import type { EnemyDef, PickupDef, WeaponDef } from '../data/types'
 import type { Projectile } from './projectiles'
 import type { StatusEffect } from './statusEffects'
 import type { Vfx } from './vfx'
@@ -48,8 +48,11 @@ export interface Enemy {
 }
 
 export interface Pickup {
+  def: PickupDef
   x: number
   y: number
+  /** Came within near-miss distance at some point. Measurement only. */
+  wasNear: boolean
 }
 
 export interface WeaponInstance {
@@ -77,14 +80,18 @@ export interface World {
    */
   modifiers: Modifier[]
 
+  /** Total XP banked this run. The level curve arrives in step 5. */
+  xp: number
+
   /** Fractional spawns carried between frames, so rates aren't rounded away. */
   spawnCredit: number
-  pickupCredit: number
   nextEnemyId: number
 
   /** Debug readouts. */
   wraps: number
   pickupsCollected: number
+  /** Globes he came within reach of and left behind. */
+  pickupsMissed: number
   incomingDps: number
   kills: number
   damageDealt: number
@@ -117,11 +124,12 @@ export function createWorld(seed: number = config.world.seed): World {
       timesCast: 0,
     })),
     modifiers: [],
+    xp: 0,
     spawnCredit: 0,
-    pickupCredit: 0,
     nextEnemyId: 1,
     wraps: 0,
     pickupsCollected: 0,
+    pickupsMissed: 0,
     incomingDps: 0,
     kills: 0,
     damageDealt: 0,

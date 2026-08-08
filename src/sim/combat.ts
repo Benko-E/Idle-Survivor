@@ -1,9 +1,9 @@
-import { resolveStat } from '../core/modifiers'
 import { BEHAVIOURS } from './behaviours'
 import { updateProjectiles } from './projectiles'
+import { weaponStat } from './stats'
 import { updateStatusEffects } from './statusEffects'
 import { updateVfx } from './vfx'
-import type { World, WeaponInstance } from './world'
+import type { World } from './world'
 
 /**
  * Runs the character's spellbook.
@@ -12,20 +12,6 @@ import type { World, WeaponInstance } from './world'
  * and the dead get swept up. There is no branch on which spell is which —
  * that lookup is a string into the behaviour registry.
  */
-
-/**
- * Reads one of a spell's numbers, resolved through every active modifier and
- * scoped by that spell's tags.
- *
- * Nothing reads `def.stats` directly. Today the modifier list is always empty,
- * so this is a slightly expensive way to return the base value — and that is
- * fine. When the draft starts handing out "+15% to fire spells" in step 6, it
- * works everywhere at once with no changes here.
- */
-export function weaponStat(world: World, weapon: WeaponInstance, key: string): number {
-  const base = weapon.def.stats[key] ?? 0
-  return resolveStat(base, key, world.modifiers, weapon.def.tags)
-}
 
 function castReadySpells(world: World, dt: number): void {
   for (const weapon of world.weapons) {

@@ -21,6 +21,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     dangerWeight: 1,
     spawnWeight: 100,
     unlockAtSeconds: 0,
+    drops: [{ pickupId: 'pickup_xp_minor_01', chance: 0.5 }],
     colour: '#7a4a52',
     drawHeight: 30,
   },
@@ -37,6 +38,10 @@ export const ENEMY_DEFS: EnemyDef[] = [
     dangerWeight: 1.3,
     spawnWeight: 45,
     unlockAtSeconds: 30,
+    drops: [
+      { pickupId: 'pickup_xp_greater_01', chance: 0.1 },
+      { pickupId: 'pickup_xp_minor_01', chance: 0.55 },
+    ],
     // Deliberately not gold — the character is yellow, and a mass of Stalkers
     // was reading as "where did he go?" at a glance.
     colour: '#5f7a4a',
@@ -53,6 +58,12 @@ export const ENEMY_DEFS: EnemyDef[] = [
     dangerWeight: 2.4,
     spawnWeight: 18,
     unlockAtSeconds: 75,
+    // Rare, slow and tanky, so it's worth going out of your way for.
+    drops: [
+      { pickupId: 'pickup_xp_grand_01', chance: 0.14 },
+      { pickupId: 'pickup_xp_greater_01', chance: 0.45 },
+      { pickupId: 'pickup_xp_minor_01', chance: 1 },
+    ],
     colour: '#4f5f7a',
     drawHeight: 46,
   },

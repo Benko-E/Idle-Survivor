@@ -117,7 +117,10 @@ export const config = {
      */
     layers: {
       enemyDanger: { weight: -3, radius: 140, falloff: 'sharp' },
-      pickupValue: { weight: 1.6, radius: 620, falloff: 'linear' },
+      /** "Loot is broadly over there." Long reach, very shallow slope. */
+      pickupWide: { weight: 1.6, radius: 620, falloff: 'linear' },
+      /** "One is right there, take it." Short reach, steep enough to act on. */
+      pickupNear: { weight: 3, radius: 90, falloff: 'sharp' },
     },
   },
 
@@ -144,22 +147,21 @@ export const config = {
     contactScale: 1,
   },
 
-  /**
-   * PLACEHOLDER. Pickups currently appear out of thin air because nothing can
-   * be killed yet; step 4 replaces this with drops from dead enemies. Only the
-   * source is temporary — the value layer that pulls him towards them is real.
-   */
-  pickupScatter: {
-    spawnsPerSecond: 0.7,
-    maxAlive: 25,
-    /** Scatter around a dropping enemy, standing in for a death position. */
-    dropJitter: 40,
-    /** Fallback ring, used only when nothing is alive to drop anything. */
-    minDistance: 160,
-    maxDistance: 620,
-    collectRadius: 26,
+  pickups: {
+    /** Base grab radius. Read through the modifier system, so upgradeable. */
+    collectRadius: 30,
     /** Beyond this he's clearly not coming back for it, so drop it. */
     forgetDistance: 1400,
+    /** Safety ceiling on globes lying around. */
+    maxAlive: 400,
+  },
+
+  drops: {
+    /**
+     * Multiplies every drop chance in every enemy's table at once.
+     * "XP drops too often" is this number, not thirty edits.
+     */
+    chanceScale: 1,
   },
 
   spawn: {
@@ -239,6 +241,11 @@ export const config = {
     showCandidates: false,
     /** Score magnitude that saturates a heatmap cell's colour. */
     heatmapScale: 14,
+    /**
+     * How close he has to come to a globe for leaving it to count as a miss.
+     * Purely a measurement — see the "missed" readout in the debug panel.
+     */
+    nearMissDistance: 70,
     /**
      * Seconds on the death screen before a new run starts by itself. Runs use
      * a fixed seed, so an identical run repeats every time — change one weight

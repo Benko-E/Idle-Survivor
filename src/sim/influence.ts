@@ -34,8 +34,24 @@ function rebuild(world: World): void {
     influenceMap.stamp('enemyDanger', layers.enemyDanger, enemy.x, enemy.y, enemy.def.dangerWeight)
   }
 
+  // Two layers per pickup, saying different things.
+  //
+  // The wide one is "there is loot roughly over that way" — it has to reach
+  // further than he can see, or he never learns there's a reason to move.
+  // But spread thin over hundreds of units and summed across twenty globes,
+  // it's nearly flat where he's standing, so a single nearby globe is a
+  // rounding error in it. He would walk straight past collectable pickups.
+  //
+  // The near one fixes exactly that: a small, steep spike right on the globe,
+  // steep enough to beat the heading bonus that otherwise keeps him going in
+  // a straight line. "Something good is two steps to your left."
+  //
+  // Note what this needed: two config entries and one extra line. No changes
+  // to the map, the sampling, or anything that decides where he walks.
   for (const pickup of world.pickups) {
-    influenceMap.stamp('pickupValue', layers.pickupValue, pickup.x, pickup.y, 1)
+    const pull = pickup.def.influenceWeight
+    influenceMap.stamp('pickupWide', layers.pickupWide, pickup.x, pickup.y, pull)
+    influenceMap.stamp('pickupNear', layers.pickupNear, pickup.x, pickup.y, pull)
   }
 }
 

@@ -74,7 +74,7 @@ function update(dt: number): void {
   // Enemies move first and rebuild the neighbour grid, which spell targeting
   // then shares for the rest of the frame.
   updateEnemies(world, dt)
-  updatePickups(world, dt)
+  updatePickups(world)
 
   // Then the field is built from where everything is now, the character reads
   // it, and finally we find out whether that was a good idea.
@@ -146,7 +146,13 @@ function render(): void {
   frame.length = 0
 
   for (const pickup of world.pickups) {
-    frame.push({ x: pickup.x, y: pickup.y, w: 9, h: 9, colour: '#4fd6e8' })
+    frame.push({
+      x: pickup.x,
+      y: pickup.y,
+      w: pickup.def.size,
+      h: pickup.def.size,
+      colour: pickup.def.colour,
+    })
   }
 
   for (const enemy of world.enemies) {
@@ -194,8 +200,9 @@ function render(): void {
       `enemies      ${world.enemies.length}`,
       `kills        ${world.kills}`,
       `dealing      ${(world.damageDealt / elapsed).toFixed(0)} dps`,
-      `projectiles  ${world.projectiles.length}`,
-      `pickups      ${world.pickups.length} / ${world.pickupsCollected} taken`,
+      `xp           ${world.xp.toFixed(0)}`,
+      `pickups      ${world.pickups.length} down, ${world.pickupsCollected} taken`,
+      `missed       ${world.pickupsMissed}`,
       `spawn rate   ${spawnsPerSecond(world.time).toFixed(1)}/s`,
       `enemy hp     x${hpMultiplier(world.time).toFixed(2)}`,
       `wraps        ${world.wraps}`,
@@ -210,7 +217,7 @@ function render(): void {
 
   if (world.state === 'dead') {
     renderer.drawBanner(`Died at ${formatTime(world.time)}`, [
-      `${world.kills} kills, ${world.pickupsCollected} pickups`,
+      `${world.kills} kills, ${world.xp.toFixed(0)} xp`,
       `best so far ${formatTime(bestTime)}`,
       'click or press R to restart',
     ])

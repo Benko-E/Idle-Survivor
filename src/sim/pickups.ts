@@ -1,59 +1,21 @@
 import { config } from '../config'
+import { characterStat } from './stats'
 import type { World } from './world'
 
 /**
- * Pickups on the ground, and collecting them.
+ * Collecting what's on the ground, and forgetting what he's clearly abandoned.
  *
- * PLACEHOLDER SOURCE. Right now these simply appear near the character at a
- * fixed rate, because nothing can be killed yet. In step 4 the scatter below
- * is deleted and drops come from dying enemies instead.
- *
- * What is *not* placeholder is everything downstream: the value layer in the
- * influence map, the pull it exerts, and the collection radius. Swapping the
- * source changes nothing else.
- *
- * Why they have to exist now: with only a danger layer the best possible move
- * is always "walk away from everything", so the character runs in a straight
- * line forever and never dies. That's the failure mode the spec calls out —
- * the watchable behaviour only appears when something is worth risking a trip
- * into the swarm for.
+ * Nothing here spawns anything any more — the placeholder scatter is gone and
+ * drops come from dying enemies (see drops.ts). That changes what the value
+ * layer rewards in a way worth noticing: pickups now only exist where he has
+ * *already won*, so the field pulls him towards ground he has cleared rather
+ * than towards a live horde.
  */
-
-/**
- * Drop a pickup on top of a randomly chosen enemy.
- *
- * This is what makes the placeholder worth having. Scattering them at a random
- * angle around the character instead put nearly all of them in open ground —
- * the horde is always bunched on one side, so he could collect indefinitely
- * without ever going near anything, and the interesting behaviour never
- * appeared. Real drops come from enemies dying, which means they land exactly
- * where the danger is, and that's the situation the movement AI has to solve.
- *
- * Falls back to scattering around the character when nothing is alive.
- */
-function scatterOne(world: World): void {
-  if (world.enemies.length > 0) {
-    const host = world.enemies[Math.floor(world.rng() * world.enemies.length)]
-    const jitter = config.pickupScatter.dropJitter
-    world.pickups.push({
-      x: host.x + (world.rng() * 2 - 1) * jitter,
-      y: host.y + (world.rng() * 2 - 1) * jitter,
-    })
-    return
-  }
-
-  const { minDistance, maxDistance } = config.pickupScatter
-  const angle = world.rng() * Math.PI * 2
-  const distance = minDistance + world.rng() * (maxDistance - minDistance)
-
-  world.pickups.push({
-    x: world.character.x + Math.cos(angle) * distance,
-    y: world.character.y + Math.sin(angle) * distance,
-  })
-}
 
 function collect(world: World): void {
-  const radius = config.pickupScatter.collectRadius
+  // Read through the modifier system so a future "+40% pickup radius" upgrade
+  // needs no changes here.
+  const radius = characterStat(world, 'pickupRadius', config.pickups.collectRadius)
   const radiusSquared = radius * radius
   const { x: cx, y: cy } = world.character
 
@@ -63,15 +25,40 @@ function collect(world: World): void {
     const dy = pickup.y - cy
     if (dx * dx + dy * dy > radiusSquared) continue
 
+    // Tags come from the globe, so "+50% XP from rare globes" selects on them,
+    // and a debuff is { target: 'xpGain', op: 'multiply', value: 0.5 }.
+    world.xp += characterStat(world, 'xpGain', pickup.def.xp, pickup.def.tags)
+    world.pickupsCollected++
+
     world.pickups[i] = world.pickups[world.pickups.length - 1]
     world.pickups.pop()
-    world.pickupsCollected++
+  }
+}
+
+/**
+ * Track anything he came close to but didn't take.
+ *
+ * This is a measurement rather than a mechanic. He was visibly walking past
+ * collectable globes, and "did that get better?" is not a question two people
+ * squinting at a screen can answer honestly.
+ */
+function trackNearMisses(world: World): void {
+  const distance = config.debug.nearMissDistance
+  const distanceSquared = distance * distance
+  const { x: cx, y: cy } = world.character
+
+  for (const pickup of world.pickups) {
+    if (pickup.wasNear) continue
+    const dx = pickup.x - cx
+    const dy = pickup.y - cy
+    if (dx * dx + dy * dy > distanceSquared) continue
+    pickup.wasNear = true
   }
 }
 
 /** Drop anything he has walked far enough away from to have clearly given up on. */
 function cullDistant(world: World): void {
-  const limit = config.pickupScatter.forgetDistance
+  const limit = config.pickups.forgetDistance
   const limitSquared = limit * limit
   const { x: cx, y: cy } = world.character
 
@@ -81,22 +68,17 @@ function cullDistant(world: World): void {
     const dy = pickup.y - cy
     if (dx * dx + dy * dy <= limitSquared) continue
 
+    // It got within grabbing distance at some point and he left it. That's the
+    // failure this counter exists to catch.
+    if (pickup.wasNear) world.pickupsMissed++
+
     world.pickups[i] = world.pickups[world.pickups.length - 1]
     world.pickups.pop()
   }
 }
 
-export function updatePickups(world: World, dt: number): void {
+export function updatePickups(world: World): void {
   collect(world)
+  trackNearMisses(world)
   cullDistant(world)
-
-  world.pickupCredit += config.pickupScatter.spawnsPerSecond * dt
-  while (world.pickupCredit >= 1) {
-    world.pickupCredit -= 1
-    if (world.pickups.length >= config.pickupScatter.maxAlive) {
-      world.pickupCredit = 0
-      break
-    }
-    scatterOne(world)
-  }
 }

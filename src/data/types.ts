@@ -48,9 +48,46 @@ export interface EnemyDef {
   spawnWeight: number
   unlockAtSeconds: number
 
+  /**
+   * What this enemy leaves behind when it dies.
+   *
+   * Evaluated in order, and the *first* success wins — so list the good stuff
+   * first and the consolation prize last. At most one drop per kill, which
+   * keeps "how often does this mob give me something" a number you can reason
+   * about instead of a probability puzzle.
+   */
+  drops: DropEntry[]
+
   /** Placeholder art. Replaced by a sprite reference later. */
   colour: string
   drawHeight: number
+}
+
+export interface DropEntry {
+  pickupId: string
+  /** 0..1, before the global scale in the config is applied. */
+  chance: number
+}
+
+export interface PickupDef {
+  id: string
+  displayName: string
+  tags: Tag[]
+
+  /** Granted on collection, before any xpGain modifiers. */
+  xp: number
+
+  /**
+   * How hard this tugs on the movement AI, deliberately separate from its XP
+   * value. They are different questions: a grand globe should be worth a
+   * detour without being worth walking into a pack for, and that trade-off is
+   * a number here rather than a rule anywhere.
+   */
+  influenceWeight: number
+
+  /** Placeholder art. */
+  colour: string
+  size: number
 }
 
 export interface WeaponDef {

@@ -87,7 +87,7 @@ Each step is tagged, so `git checkout step-2` gets you exactly that state back.
 - [x] **1 — enemies.** Travelling spawn ring, difficulty formulas, crowd separation.
 - [x] **2 — the danger map.** Influence layers, steering, contact damage, death.
 - [x] **3 — spells.** Behaviour registry, modifier system, status effects, kills.
-- [ ] 4 — XP pickups
+- [x] **4 — XP drops.** Per-mob drop tables, globe tiers, two-layer pickup pull.
 - [ ] 5 — levelling
 - [ ] 6 — the upgrade draft
 - [ ] 7 — tuning panel
