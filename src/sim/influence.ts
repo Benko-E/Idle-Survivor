@@ -1,5 +1,6 @@
 import { config } from '../config'
 import { InfluenceMap, type LayerSettings } from './influenceMap'
+import { pickupPull } from './pickupTiers'
 import type { World } from './world'
 
 /**
@@ -49,7 +50,7 @@ function rebuild(world: World): void {
   // Note what this needed: two config entries and one extra line. No changes
   // to the map, the sampling, or anything that decides where he walks.
   for (const pickup of world.pickups) {
-    const pull = pickup.def.influenceWeight
+    const pull = pickupPull(pickup)
     influenceMap.stamp('pickupWide', layers.pickupWide, pickup.x, pickup.y, pull)
     influenceMap.stamp('pickupNear', layers.pickupNear, pickup.x, pickup.y, pull)
   }

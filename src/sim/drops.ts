@@ -21,6 +21,7 @@ export function rollDrops(world: World, enemy: Enemy): void {
 
     world.pickups.push({
       def: findPickupDef(entry.pickupId),
+      tier: entry.tier ?? 0,
       x: enemy.x,
       y: enemy.y,
       wasNear: false,

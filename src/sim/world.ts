@@ -49,6 +49,11 @@ export interface Enemy {
 
 export interface Pickup {
   def: PickupDef
+  /**
+   * Magnitude. Everything it's worth and how loudly it calls to the character
+   * is a formula over this number — see sim/pickupTiers.ts.
+   */
+  tier: number
   x: number
   y: number
   /** Came within near-miss distance at some point. Measurement only. */
@@ -85,6 +90,8 @@ export interface World {
 
   /** Fractional spawns carried between frames, so rates aren't rounded away. */
   spawnCredit: number
+  /** Throttle clock for the globe merge pass. */
+  mergeCredit: number
   nextEnemyId: number
 
   /** Debug readouts. */
@@ -126,6 +133,7 @@ export function createWorld(seed: number = config.world.seed): World {
     modifiers: [],
     xp: 0,
     spawnCredit: 0,
+    mergeCredit: 0,
     nextEnemyId: 1,
     wraps: 0,
     pickupsCollected: 0,

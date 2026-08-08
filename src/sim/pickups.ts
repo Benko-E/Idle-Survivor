@@ -1,4 +1,6 @@
 import { config } from '../config'
+import { updatePickupMerging } from './pickupMerge'
+import { pickupXp } from './pickupTiers'
 import { characterStat } from './stats'
 import type { World } from './world'
 
@@ -27,7 +29,7 @@ function collect(world: World): void {
 
     // Tags come from the globe, so "+50% XP from rare globes" selects on them,
     // and a debuff is { target: 'xpGain', op: 'multiply', value: 0.5 }.
-    world.xp += characterStat(world, 'xpGain', pickup.def.xp, pickup.def.tags)
+    world.xp += characterStat(world, 'xpGain', pickupXp(pickup), pickup.def.tags)
     world.pickupsCollected++
 
     world.pickups[i] = world.pickups[world.pickups.length - 1]
@@ -77,8 +79,9 @@ function cullDistant(world: World): void {
   }
 }
 
-export function updatePickups(world: World): void {
+export function updatePickups(world: World, dt: number): void {
   collect(world)
+  updatePickupMerging(world, dt)
   trackNearMisses(world)
   cullDistant(world)
 }

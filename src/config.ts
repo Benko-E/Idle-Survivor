@@ -154,6 +154,46 @@ export const config = {
     forgetDistance: 1400,
     /** Safety ceiling on globes lying around. */
     maxAlive: 400,
+
+    /**
+     * Globes piling up combine into bigger ones.
+     *
+     * This is a fix for the movement AI, not a reward mechanic. Thirty loose
+     * globes scattered around the character each pull a little, in thirty
+     * directions that cancel, and the centre of the pile becomes the
+     * highest-scoring place to stand — so he stops, which is correct by his
+     * rules and useless to watch. Merging collapses that into two or three
+     * strong attractors that actually point somewhere.
+     */
+    merge: {
+      /** How many combine into one of the next tier up. */
+      count: 5,
+      /** How close they have to be. The merged globe lands at their centroid. */
+      radius: 120,
+      /** Merge checks per second. Nothing here needs to run at frame rate. */
+      hz: 4,
+
+      /**
+       * XP multiplier per tier. Equal to `count` conserves value exactly, so
+       * merging is neither a bonus nor a tax — five globes are worth what the
+       * five were worth. Raise it above `count` if you want piles to reward
+       * patience.
+       */
+      xpPerTier: 5,
+
+      /**
+       * Pull multiplier per tier. Deliberately far below xpPerTier: a tier 2
+       * globe is worth 25x a Spark but only shouts about 5x as loud. Raise
+       * this and he'll cross the map through anything to reach one.
+       */
+      pullPerTier: 2.2,
+
+      /** Draw size multiplier per tier. Cosmetic. */
+      sizePerTier: 1.3,
+
+      /** Backstop against a runaway tier ladder. */
+      maxTier: 10,
+    },
   },
 
   drops: {

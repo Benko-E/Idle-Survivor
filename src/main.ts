@@ -9,6 +9,7 @@ import { hpMultiplier, spawnsPerSecond } from './sim/difficulty'
 import { updateEnemies } from './sim/enemyMovement'
 import { resetInfluenceClock, updateInfluence } from './sim/influence'
 import { updateCharacterMovement } from './sim/movement'
+import { pickupColour, pickupSize } from './sim/pickupTiers'
 import { updatePickups } from './sim/pickups'
 import { updateSpawner } from './sim/spawner'
 import { createWorld } from './sim/world'
@@ -74,7 +75,7 @@ function update(dt: number): void {
   // Enemies move first and rebuild the neighbour grid, which spell targeting
   // then shares for the rest of the frame.
   updateEnemies(world, dt)
-  updatePickups(world)
+  updatePickups(world, dt)
 
   // Then the field is built from where everything is now, the character reads
   // it, and finally we find out whether that was a good idea.
@@ -133,6 +134,16 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
+/** "12/3/1" — how many globes of each tier are lying around. */
+function tierHistogram(): string {
+  const counts: number[] = []
+  for (const pickup of world.pickups) {
+    counts[pickup.tier] = (counts[pickup.tier] ?? 0) + 1
+  }
+  if (counts.length === 0) return '-'
+  return Array.from(counts, (n) => n ?? 0).join('/')
+}
+
 const frame: Drawable[] = []
 
 function render(): void {
@@ -146,13 +157,8 @@ function render(): void {
   frame.length = 0
 
   for (const pickup of world.pickups) {
-    frame.push({
-      x: pickup.x,
-      y: pickup.y,
-      w: pickup.def.size,
-      h: pickup.def.size,
-      colour: pickup.def.colour,
-    })
+    const size = pickupSize(pickup)
+    frame.push({ x: pickup.x, y: pickup.y, w: size, h: size, colour: pickupColour(pickup) })
   }
 
   for (const enemy of world.enemies) {
@@ -202,6 +208,7 @@ function render(): void {
       `dealing      ${(world.damageDealt / elapsed).toFixed(0)} dps`,
       `xp           ${world.xp.toFixed(0)}`,
       `pickups      ${world.pickups.length} down, ${world.pickupsCollected} taken`,
+      `by tier      ${tierHistogram()}`,
       `missed       ${world.pickupsMissed}`,
       `spawn rate   ${spawnsPerSecond(world.time).toFixed(1)}/s`,
       `enemy hp     x${hpMultiplier(world.time).toFixed(2)}`,

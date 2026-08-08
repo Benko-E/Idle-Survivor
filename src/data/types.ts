@@ -67,27 +67,50 @@ export interface DropEntry {
   pickupId: string
   /** 0..1, before the global scale in the config is applied. */
   chance: number
+  /** Drop it already merged. Omit for an ordinary tier 0 globe. */
+  tier?: number
 }
 
+/**
+ * A *kind* of pickup, not a size of one.
+ *
+ * There are no separate entries for small, medium and large globes. Magnitude
+ * is a tier number on each instance and everything about it — XP, pull, size,
+ * colour, name — comes from a formula over that tier, so the ladder extends
+ * upwards forever without anyone defining a rung. (spec 5.3)
+ *
+ * What stays data is the kind: an XP globe, a future gold pile, a health
+ * potion. Those genuinely differ — different tags for modifiers to select on,
+ * and different rules about whether they combine at all.
+ */
 export interface PickupDef {
   id: string
-  displayName: string
   tags: Tag[]
 
-  /** Granted on collection, before any xpGain modifiers. */
-  xp: number
+  /** XP at tier 0, before tier scaling and before any xpGain modifiers. */
+  baseXp: number
 
   /**
-   * How hard this tugs on the movement AI, deliberately separate from its XP
-   * value. They are different questions: a grand globe should be worth a
-   * detour without being worth walking into a pack for, and that trade-off is
-   * a number here rather than a rule anywhere.
+   * Pull on the movement AI at tier 0, deliberately separate from XP value.
+   * They are different questions: a big globe should be worth a detour
+   * without being worth walking into a pack for, and the config scales the
+   * two at different rates for exactly that reason.
    */
-  influenceWeight: number
+  basePull: number
 
-  /** Placeholder art. */
-  colour: string
-  size: number
+  /**
+   * Whether piles of these combine into a bigger one. A health potion
+   * probably shouldn't; XP globes very much should, because thirty of them
+   * scattered around the character pull in thirty directions that cancel out
+   * and leave him standing still in the middle.
+   */
+  merges: boolean
+
+  /** Placeholder art. Size scales with tier; colour steps through this ramp. */
+  baseSize: number
+  tierColours: string[]
+  /** Display names by tier, last entry reused for anything higher. */
+  tierNames: string[]
 }
 
 export interface WeaponDef {
