@@ -88,6 +88,35 @@ Note also that straight-line probes cannot represent going *around* something,
 however far they reach. Routing through a thin sector needs a diffusion pass
 over the grid so value flows around danger rather than through it.
 
+## Known: the shop's pull is weakest at the door
+
+He sometimes walks straight past a shop he wants. Not a targeting bug — the
+shop field is a cone with its peak at the shop, and his probes reach 560 units,
+so when the shop is ~100 away three of the four land *past* it where the value
+is lower again.
+
+Worked from a live frame at 103 units out: toward the shop scores −1.0,
+perpendicular −3.2, away −5.5. The shop still wins, but by about 2 points; at
+2000 units out that gap is around 18. Any decent globe cluster outbids the last
+hundred units.
+
+Cheap mitigation: raise `shop.radius` so he counts as arrived from further out.
+Real fix: a flow field, which follows a local gradient rather than sampling far
+ahead, so there is nothing to overshoot.
+
+## Known: the sprite is a billboard, the collision is a circle at its feet
+
+Contact damage uses a radius-15 circle at the character's **feet**, and pickups
+use radius 30 from the same point. Everything above the base of the drawn
+rectangle is "behind him" in world terms and occupies no ground — so enemies
+appear to touch him without hurting him, and globes appear to pass under him
+uncollected.
+
+Correct for a Y-sorted top-down game, and it will read naturally once sprites
+replace coloured boxes. Until then the shadow ellipse is the only honest
+indicator of where he actually is. Worth drawing the collision and pickup radii
+as debug rings.
+
 ## How this is put together
 
 The architecture matters more than the content here — nearly everything will be
