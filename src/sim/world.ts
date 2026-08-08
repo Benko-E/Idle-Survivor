@@ -44,6 +44,8 @@ export interface World {
   enemies: Enemy[]
   /** Fractional spawns carried between frames, so the rate isn't rounded away. */
   spawnCredit: number
+  /** Running total of enemies recycled to the far side. Debug readout only. */
+  wraps: number
 }
 
 export function createWorld(seed: number = config.world.seed): World {
@@ -60,5 +62,6 @@ export function createWorld(seed: number = config.world.seed): World {
     },
     enemies: [],
     spawnCredit: 0,
+    wraps: 0,
   }
 }

@@ -118,6 +118,7 @@ function render(): void {
       `enemies      ${world.enemies.length}`,
       `spawn rate   ${spawnsPerSecond(world.time).toFixed(1)}/s`,
       `enemy hp     x${hpMultiplier(world.time).toFixed(2)}`,
+      `wraps        ${world.wraps}`,
       `fps          ${stats.fps.toFixed(0)}`,
       `F1           toggle this panel`,
     ])

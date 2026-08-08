@@ -64,8 +64,30 @@ export const config = {
     radiusJitter: 0.25,
     /** Hard ceiling on simulated enemies, whatever the curve asks for. */
     maxAlive: 400,
-    /** Multiples of the spawn ring at which stragglers are culled. */
-    despawnMultiplier: 2.2,
+
+    /**
+     * What happens to enemies the character has left far behind.
+     *
+     * true  — they wrap to the far side and come at him again, so the horde
+     *         keeps surrounding him instead of trailing in one long clump.
+     * false — they're deleted. Flip this to compare the two; everything else
+     *         about spawning stays identical either way.
+     */
+    wrapAround: true,
+
+    /**
+     * Multiples of the spawn ring at which an enemy counts as left behind.
+     * Must stay above 1 + radiusJitter, or freshly spawned enemies qualify
+     * as stragglers the instant they appear.
+     */
+    recycleMultiplier: 1.4,
+
+    /**
+     * Sideways scatter applied when an enemy wraps, as a fraction of the
+     * spawn ring. Without it a clump that wraps together stays a clump and
+     * arrives as a solid wall.
+     */
+    wrapJitter: 0.3,
   },
 
   /** Constants behind the formulas in sim/difficulty.ts. (spec 5.3) */
