@@ -155,6 +155,25 @@ export class InfluenceMap {
   }
 
   /**
+   * Add a layer that is defined per cell rather than stamped from sources.
+   *
+   * Needed for anything whose influence is a property of the *ground* — how
+   * long he's camped there, terrain, a future zone effect. Stamping those with
+   * a kernel would double-count badly, because overlapping cells each
+   * contribute a full blob and twenty of them sum to twenty times too much.
+   * Here each cell is asked once and answers for itself.
+   */
+  addPerCell(contribution: (worldX: number, worldY: number) => number): void {
+    for (let iy = 0; iy < this.size; iy++) {
+      const worldY = this.cellCentreY(iy)
+      const row = iy * this.size
+      for (let ix = 0; ix < this.size; ix++) {
+        this.scores[row + ix] += contribution(this.cellCentreX(ix), worldY)
+      }
+    }
+  }
+
+  /**
    * Read the field at an arbitrary world position, interpolating between the
    * four surrounding cells.
    *

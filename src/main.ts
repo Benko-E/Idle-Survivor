@@ -9,6 +9,7 @@ import { hpMultiplier, spawnsPerSecond } from './sim/difficulty'
 import { updateEnemies } from './sim/enemyMovement'
 import { resetInfluenceClock, updateInfluence } from './sim/influence'
 import { updateCharacterMovement } from './sim/movement'
+import { occupancySaturation, updateOccupancy } from './sim/occupancy'
 import { pickupColour, pickupSize } from './sim/pickupTiers'
 import { updatePickups } from './sim/pickups'
 import { updateSpawner } from './sim/spawner'
@@ -82,8 +83,9 @@ function update(dt: number): void {
   // it, and finally we find out whether that was a good idea.
   updateInfluence(world, dt)
   updateCharacterMovement(world, dt)
-  // After moving, so the mark lands where he now is.
+  // After moving, so both land on where he now is.
   updateTrail(world)
+  updateOccupancy(world, dt)
   updateCombat(world, dt)
   updateContactDamage(world, dt)
 
@@ -125,9 +127,12 @@ canvas.addEventListener('pointerdown', () => {
   if (world.state === 'dead') restart()
 })
 
-// Dev aid: `world()` in the browser console returns live game state. A getter
-// rather than a reference, because restarting replaces the whole object.
-;(window as unknown as Record<string, unknown>).world = () => world
+// Dev aids. `world()` returns live game state — a getter rather than a
+// reference, because restarting replaces the whole object. `config` is the
+// live tuning object, so console edits take effect on the next frame.
+const devGlobals = window as unknown as Record<string, unknown>
+devGlobals.world = () => world
+devGlobals.config = config
 
 // --- rendering ---------------------------------------------------------------
 
@@ -218,6 +223,7 @@ function render(): void {
       `missed       ${world.pickupsMissed}`,
       `spawn rate   ${spawnsPerSecond(world.time).toFixed(1)}/s`,
       `enemy hp     x${hpMultiplier(world.time).toFixed(2)}`,
+      `camped here  ${(occupancySaturation(world, world.character.x, world.character.y) * 100).toFixed(0)}%`,
       `wraps        ${world.wraps}`,
       `last / best  ${formatTime(lastTime)} / ${formatTime(bestTime)}`,
       `fps          ${stats.fps.toFixed(0)}`,

@@ -33,7 +33,8 @@ export const movementDebug: MovementDebug = { bestX: 1, bestY: 0, bestScore: 0, 
 
 export function updateCharacterMovement(world: World, dt: number): void {
   const character = world.character
-  const { sampleDirections, lookAheadDistances, headingBonus, turnRateRadPerSec } = config.movement
+  const { sampleDirections, lookAheadDistances, lookAheadWeights, headingBonus, turnRateRadPerSec } =
+    config.movement
 
   let bestScore = -Infinity
   let bestX = character.facingX
@@ -51,11 +52,17 @@ export function updateCharacterMovement(world: World, dt: number): void {
     // can't tell "clear ahead" from "clear for one step, then a wall of
     // enemies" — and walking into the second one is what makes an AI look
     // stupid rather than unlucky.
+    // Weighted rather than a flat average: near probes decide whether he's
+    // about to walk into something, far probes only suggest where to head.
     let score = 0
-    for (const distance of lookAheadDistances) {
-      score += influenceMap.sample(character.x + dx * distance, character.y + dy * distance)
+    let totalWeight = 0
+    for (let probe = 0; probe < lookAheadDistances.length; probe++) {
+      const distance = lookAheadDistances[probe]
+      const weight = lookAheadWeights[probe] ?? 1
+      score += weight * influenceMap.sample(character.x + dx * distance, character.y + dy * distance)
+      totalWeight += weight
     }
-    score /= lookAheadDistances.length
+    score /= totalWeight || 1
 
     // A nudge in favour of carrying on the way he's already going. Two
     // near-identical options with no tiebreaker is how an AI ends up

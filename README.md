@@ -48,36 +48,45 @@ faster than squinting at the screen:
 world().weapons.map(w => [w.def.displayName, w.timesCast])
 ```
 
-## Known: he settles into small circles late in a run
+## Partly solved: he used to settle into small circles
 
-He roams well early and then, once the horde has closed around him, orbits a
-small area killing what comes until he's overwhelmed. Measured: over 15 seconds
-he travels ~1600 units and ends ~100 from where he started.
+Late in a run he would orbit one small area until overwhelmed. Measured by
+*roam efficiency* — net displacement divided by distance travelled, over 15
+seconds. Circling in place is near 0; walking a straight line is 1.
 
-It is not a bug in his reasoning, and three plausible fixes have been measured
-and ruled out:
+| | Roam efficiency |
+| --- | --- |
+| Baseline | 0.06 |
+| Breadcrumb staleness layer | 0.07–0.09 |
+| Camping layer alone | 0.07 |
+| Camping **and** extended sight | **0.18** |
 
-- **Longer sight.** The 24 candidate directions are straight-line samples, not
-  vision. A longer ray toward a distant target still averages in the horde
-  sitting between. Straight rays cannot represent going *around* something.
-- **A staleness penalty on ground he's already walked.** Built, and it doesn't
-  work: penalising his path pushes him perpendicular to it, and inward is safe
-  and empty while outward is the horde, so it tightens the loop instead of
-  breaking it. 0.55 and 1.5 both left roam efficiency at 0.06–0.09.
-- **Turning weights up in general.** The field isn't mistuned.
+Two fixes were needed together, and either one alone did nothing:
 
-The actual cause is two things at once, confirmed by instrumenting a live run:
+**A camping penalty over an *area*.** The first attempt penalised his
+breadcrumb trail, which marks a *line*. Circling wraps the line around a loop
+and leaves the middle clean, so a short sideways hop escapes it — it tightened
+his loop rather than breaking it. Dwell time accumulated per patch of ground
+sours the whole region instead, and there is no short hop out of that.
 
-1. He is genuinely encircled — at 2:31, all twelve 30° sectors around him had
-   enemies within 500 units. There are thin sectors, but no clear one.
-2. **There is nothing outside the ring that he wants.** Globes drop where
-   enemies die, enemies die where he is, so all the value in the world is
-   underneath him. Breaking out means crossing damage to reach empty ground.
+**Sight that out-reaches the soured region.** With look-ahead stopping at 260
+units and the camped zone 315 across, every direction he could see was equally
+stale. A uniform penalty is a constant, and a constant added to every candidate
+changes nothing — he could feel that where he stood was bad and had no way to
+see anywhere better.
 
-Staying is therefore the correct answer to the field as it stands. Fixing it
-means changing the field, not the tuning — either a diffusion pass so value
-flows *around* danger and reveals a route through a thin sector, or a
-long-range attractor that gives him somewhere to actually be.
+Still not fully solved: 0.18 is better than 0.06 but a long way from roaming.
+Two things measured during the investigation explain the remainder, and neither
+is a tuning problem:
+
+1. He is genuinely encircled — at 2:31 all twelve 30° sectors had enemies
+   within 500 units. Thin sectors exist, but no clear one.
+2. **Nothing outside the ring is worth having.** Globes drop where enemies die,
+   enemies die where he is, so every scrap of value is underneath him.
+
+Note also that straight-line probes cannot represent going *around* something,
+however far they reach. Routing through a thin sector needs a diffusion pass
+over the grid so value flows around danger rather than through it.
 
 ## How this is put together
 

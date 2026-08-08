@@ -1,6 +1,7 @@
 import { config } from '../config'
 import { InfluenceMap, type LayerSettings } from './influenceMap'
 import { pickupPull } from './pickupTiers'
+import { occupancySaturation } from './occupancy'
 import { markFreshness } from './trail'
 import type { World } from './world'
 
@@ -50,6 +51,11 @@ function rebuild(world: World): void {
   //
   // Note what this needed: two config entries and one extra line. No changes
   // to the map, the sampling, or anything that decides where he walks.
+  // Ground he has camped on. Per cell rather than stamped, so it covers an
+  // area uniformly instead of tracing a line he can sidestep off.
+  const camping = layers.camping.weight
+  influenceMap.addPerCell((x, y) => camping * occupancySaturation(world, x, y))
+
   // Ground he has recently stood on, fading as it ages. Strength is the
   // mark's freshness, so a spot he left ten seconds ago barely registers.
   for (const mark of world.trail) {

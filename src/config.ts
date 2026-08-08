@@ -83,8 +83,16 @@ export const config = {
   influence: {
     /** Grid resolution. Smaller = finer detail, more cells to fill. */
     cellSize: 30,
-    /** Grid is (2n+1) squared, centred on the character. 22 -> 45x45. */
-    gridRadiusCells: 22,
+    /**
+     * Grid is (2n+1) squared, centred on the character. 30 -> 61x61, which is
+     * 900 world units in every direction.
+     *
+     * This has to comfortably exceed the furthest look-ahead distance. Outside
+     * the grid every read returns a neutral zero, and zero looks *attractive*
+     * next to a soured camping zone — so a character who can see past the edge
+     * of his own map will run at it forever, chasing an artefact.
+     */
+    gridRadiusCells: 30,
     /**
      * Rebuilds per second. Below about 15 he starts reacting to where the
      * swarm used to be. Raise this first if he looks careless.
@@ -147,6 +155,18 @@ export const config = {
        * README.
        */
       staleness: { weight: -0.8, radius: 135, falloff: 'smooth' },
+
+      /**
+       * "You have been standing here far too long." Applied per cell from the
+       * occupancy grid rather than stamped, so radius and falloff don't apply.
+       *
+       * Sized from measurement, not taste. Standing in the middle of his loop
+       * scored +4.5 while open ground 400 away scored +2 to +5 — a coin flip,
+       * which is exactly why he never left. This has to be large enough to
+       * turn a thoroughly camped patch decisively negative, so it wins the
+       * comparison outright instead of nudging it.
+       */
+      camping: { weight: -12, radius: 0, falloff: 'linear' },
     },
   },
 
@@ -156,8 +176,24 @@ export const config = {
     /**
      * How far along each candidate the map is read. Multiple probes so he can
      * tell "clear ahead" from "clear for one step, then a wall".
+     *
+     * The furthest probe must out-reach the area he camps in. When his sight
+     * stopped at 260 and his soured zone was 315 across, every direction he
+     * could see was equally stale — a uniform penalty is a constant, and a
+     * constant added to every candidate changes nothing. He could feel that
+     * where he stood was bad and had no way to see anywhere better.
      */
-    lookAheadDistances: [40, 130, 260],
+    lookAheadDistances: [40, 140, 320, 560],
+
+    /**
+     * Importance of each probe, matched by position to the distances above.
+     *
+     * Near probes count for more. The far ones exist to answer "is there any
+     * reason to go that way", and letting them weigh as much as the near ones
+     * would dilute the close-range detail he dodges with — which is the real
+     * cost of longer sight, and the reason to weight rather than just extend.
+     */
+    lookAheadWeights: [1, 0.85, 0.6, 0.45],
     /**
      * Bonus for continuing the way he's already going. This is the main
      * anti-dithering control — too low and he vibrates between equally good
@@ -181,6 +217,28 @@ export const config = {
    * spot and makes it genuinely unpleasant; roaming spreads them thin and
    * costs him almost nothing.
    */
+  /**
+   * Dwell time per patch of ground, feeding the `camping` layer.
+   *
+   * The knobs together answer "how long may he loiter, and how long must he
+   * stay away before it's forgiven".
+   */
+  occupancy: {
+    /** Size of a patch. Roughly how precisely "here" is defined. */
+    cellSize: 60,
+    /** Seconds of dwell in one patch before it's as bad as it gets. */
+    saturationSeconds: 4,
+    /**
+     * Seconds for a patch to forget half of what it remembers. This is what
+     * lets him come back later — which he needs to, because globes keep
+     * dropping on ground he abandoned.
+     */
+    halfLifeSeconds: 20,
+    /** Cells below this many remembered seconds get dropped. */
+    pruneBelow: 0.05,
+    maxCells: 800,
+  },
+
   trail: {
     /** How far he must travel before dropping the next mark. */
     spacing: 45,

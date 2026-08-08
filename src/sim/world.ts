@@ -82,6 +82,11 @@ export interface World {
   trail: VisitMark[]
   lastMarkX: number
   lastMarkY: number
+  /**
+   * Dwell time per patch of ground, keyed by packed cell coordinates. On the
+   * world rather than at module level so restarting a run clears it for free.
+   */
+  occupancy: Map<number, { amount: number; updated: number }>
 
   weapons: WeaponInstance[]
   /**
@@ -131,6 +136,7 @@ export function createWorld(seed: number = config.world.seed): World {
     trail: [],
     lastMarkX: 0,
     lastMarkY: 0,
+    occupancy: new Map(),
     weapons: config.character.startingWeaponIds.map((id) => ({
       def: findWeaponDef(id),
       // Staggered rather than all firing on frame one, which otherwise puts
