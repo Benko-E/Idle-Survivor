@@ -5,6 +5,7 @@ import { findWeaponDef } from '../data/weapons'
 import type { EnemyDef, PickupDef, WeaponDef } from '../data/types'
 import type { Projectile } from './projectiles'
 import type { StatusEffect } from './statusEffects'
+import type { VisitMark } from './trail'
 import type { Vfx } from './vfx'
 
 /**
@@ -77,6 +78,10 @@ export interface World {
   pickups: Pickup[]
   projectiles: Projectile[]
   vfx: Vfx[]
+  /** Where he's recently been. Oldest first. */
+  trail: VisitMark[]
+  lastMarkX: number
+  lastMarkY: number
 
   weapons: WeaponInstance[]
   /**
@@ -123,6 +128,9 @@ export function createWorld(seed: number = config.world.seed): World {
     pickups: [],
     projectiles: [],
     vfx: [],
+    trail: [],
+    lastMarkX: 0,
+    lastMarkY: 0,
     weapons: config.character.startingWeaponIds.map((id) => ({
       def: findWeaponDef(id),
       // Staggered rather than all firing on frame one, which otherwise puts

@@ -48,6 +48,37 @@ faster than squinting at the screen:
 world().weapons.map(w => [w.def.displayName, w.timesCast])
 ```
 
+## Known: he settles into small circles late in a run
+
+He roams well early and then, once the horde has closed around him, orbits a
+small area killing what comes until he's overwhelmed. Measured: over 15 seconds
+he travels ~1600 units and ends ~100 from where he started.
+
+It is not a bug in his reasoning, and three plausible fixes have been measured
+and ruled out:
+
+- **Longer sight.** The 24 candidate directions are straight-line samples, not
+  vision. A longer ray toward a distant target still averages in the horde
+  sitting between. Straight rays cannot represent going *around* something.
+- **A staleness penalty on ground he's already walked.** Built, and it doesn't
+  work: penalising his path pushes him perpendicular to it, and inward is safe
+  and empty while outward is the horde, so it tightens the loop instead of
+  breaking it. 0.55 and 1.5 both left roam efficiency at 0.06–0.09.
+- **Turning weights up in general.** The field isn't mistuned.
+
+The actual cause is two things at once, confirmed by instrumenting a live run:
+
+1. He is genuinely encircled — at 2:31, all twelve 30° sectors around him had
+   enemies within 500 units. There are thin sectors, but no clear one.
+2. **There is nothing outside the ring that he wants.** Globes drop where
+   enemies die, enemies die where he is, so all the value in the world is
+   underneath him. Breaking out means crossing damage to reach empty ground.
+
+Staying is therefore the correct answer to the field as it stands. Fixing it
+means changing the field, not the tuning — either a diffusion pass so value
+flows *around* danger and reveals a route through a thin sector, or a
+long-range attractor that gives him somewhere to actually be.
+
 ## How this is put together
 
 The architecture matters more than the content here — nearly everything will be

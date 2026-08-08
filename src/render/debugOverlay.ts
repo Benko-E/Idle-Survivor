@@ -1,6 +1,7 @@
 import { config } from '../config'
 import { influenceMap } from '../sim/influence'
 import { movementDebug } from '../sim/movement'
+import { markFreshness } from '../sim/trail'
 import type { World } from '../sim/world'
 import type { Renderer } from './renderer'
 
@@ -39,6 +40,21 @@ export function drawHeatmap(renderer: Renderer): void {
         intensity * 0.5,
       )
     }
+  }
+}
+
+/**
+ * The breadcrumb trail feeding the staleness layer.
+ *
+ * Worth drawing separately because on the heatmap his own trail is red, the
+ * same as enemies — and "he's avoiding that because he was just there" looks
+ * identical to "he's avoiding that because it will kill him" otherwise.
+ */
+export function drawTrail(renderer: Renderer, world: World): void {
+  for (const mark of world.trail) {
+    const freshness = markFreshness(world, mark)
+    if (freshness <= 0.02) continue
+    renderer.fillWorldRect(mark.x, mark.y, 5, 5, '#ff9ecb', freshness * 0.8)
   }
 }
 

@@ -1,6 +1,7 @@
 import { config } from '../config'
 import { InfluenceMap, type LayerSettings } from './influenceMap'
 import { pickupPull } from './pickupTiers'
+import { markFreshness } from './trail'
 import type { World } from './world'
 
 /**
@@ -49,6 +50,12 @@ function rebuild(world: World): void {
   //
   // Note what this needed: two config entries and one extra line. No changes
   // to the map, the sampling, or anything that decides where he walks.
+  // Ground he has recently stood on, fading as it ages. Strength is the
+  // mark's freshness, so a spot he left ten seconds ago barely registers.
+  for (const mark of world.trail) {
+    influenceMap.stamp('staleness', layers.staleness, mark.x, mark.y, markFreshness(world, mark))
+  }
+
   for (const pickup of world.pickups) {
     const pull = pickupPull(pickup)
     influenceMap.stamp('pickupWide', layers.pickupWide, pickup.x, pickup.y, pull)

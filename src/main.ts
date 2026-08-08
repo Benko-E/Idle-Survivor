@@ -1,6 +1,6 @@
 import { config } from './config'
 import { startLoop, stats } from './core/loop'
-import { drawCandidates, drawHeatmap } from './render/debugOverlay'
+import { drawCandidates, drawHeatmap, drawTrail } from './render/debugOverlay'
 import { drawEffects } from './render/effects'
 import { Renderer, type Drawable } from './render/renderer'
 import { updateCombat } from './sim/combat'
@@ -12,6 +12,7 @@ import { updateCharacterMovement } from './sim/movement'
 import { pickupColour, pickupSize } from './sim/pickupTiers'
 import { updatePickups } from './sim/pickups'
 import { updateSpawner } from './sim/spawner'
+import { updateTrail } from './sim/trail'
 import { createWorld } from './sim/world'
 
 /**
@@ -81,6 +82,8 @@ function update(dt: number): void {
   // it, and finally we find out whether that was a good idea.
   updateInfluence(world, dt)
   updateCharacterMovement(world, dt)
+  // After moving, so the mark lands where he now is.
+  updateTrail(world)
   updateCombat(world, dt)
   updateContactDamage(world, dt)
 
@@ -193,7 +196,10 @@ function render(): void {
 
   drawEffects(renderer, world)
 
-  if (showCandidates) drawCandidates(renderer, world)
+  if (showCandidates) {
+    drawTrail(renderer, world)
+    drawCandidates(renderer, world)
+  }
 
   renderer.drawHealthBar(world.character.hp / world.character.maxHp)
 

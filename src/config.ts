@@ -121,6 +121,32 @@ export const config = {
       pickupWide: { weight: 1.6, radius: 620, falloff: 'linear' },
       /** "One is right there, take it." Short reach, steep enough to act on. */
       pickupNear: { weight: 3, radius: 90, falloff: 'sharp' },
+      /**
+       * "You've just been here." Ground he recently stood on, going sour.
+       *
+       * This is what stops him settling into a small circle in the middle of
+       * the field. Standing still is otherwise a genuine local maximum —
+       * everything nearby is equally good, so there's no reason to leave —
+       * and no amount of tuning the *other* layers fixes that, because the
+       * problem isn't that anywhere is bad, it's that nowhere is better.
+       *
+       * Note that it devalues the ground, never the globes. A pickup sitting
+       * on stale dirt is worth exactly what it was worth.
+       *
+       * Flip this weight positive and it becomes the "focus on exploring"
+       * layer from the spec, with no other changes.
+       *
+       * MEASURED: this does not fix late-run circling, and turning it up
+       * doesn't either — 0.55 and 1.5 both left roam efficiency at 0.06-0.09.
+       * The reason is geometric. Penalising the path he is on pushes him
+       * *perpendicular* to it, and of the two perpendiculars, inward is
+       * empty and safe while outward is the horde. So it tightens his loop
+       * rather than breaking it. Kept at a modest weight because it does add
+       * some liveliness and it is the groundwork for the explore layer, but
+       * it is not the fix for encirclement. See the note on that in the
+       * README.
+       */
+      staleness: { weight: -0.8, radius: 135, falloff: 'smooth' },
     },
   },
 
@@ -145,6 +171,27 @@ export const config = {
   damage: {
     /** Global multiplier over every enemy's contactDamage. */
     contactScale: 1,
+  },
+
+  /**
+   * The breadcrumb trail behind him, which feeds the staleness layer.
+   *
+   * Spacing and memory together decide how big a loop he has to make before
+   * it stops feeling stale. Tight circling piles overlapping marks into one
+   * spot and makes it genuinely unpleasant; roaming spreads them thin and
+   * costs him almost nothing.
+   */
+  trail: {
+    /** How far he must travel before dropping the next mark. */
+    spacing: 45,
+    /**
+     * Seconds until a mark has faded to nothing. Long enough that a full lap
+     * of a small circle is still remembered when he comes back round — at 12
+     * seconds he outran his own memory and the loop felt fresh again.
+     */
+    memorySeconds: 20,
+    /** Safety ceiling. spacing x this is the longest trail he can lay. */
+    maxMarks: 400,
   },
 
   pickups: {
