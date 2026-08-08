@@ -47,8 +47,90 @@ export const config = {
     /** if he can't outpace the swarm, no amount of clever positioning helps. */
     moveSpeed: 110,
     radius: 15,
-    /** Placeholder wander only. Deleted when the danger map takes over. */
-    wanderRange: 600,
+    maxHp: 100,
+  },
+
+  /**
+   * The influence map. (spec 3)
+   *
+   * These are the numbers we will be adjusting constantly, and they are the
+   * whole personality of the character. Nothing here names a behaviour —
+   * "cautious" and "greedy" are things you get by moving these, not by
+   * writing new code.
+   */
+  influence: {
+    /** Grid resolution. Smaller = finer detail, more cells to fill. */
+    cellSize: 30,
+    /** Grid is (2n+1) squared, centred on the character. 22 -> 45x45. */
+    gridRadiusCells: 22,
+    /**
+     * Rebuilds per second. Below about 15 he starts reacting to where the
+     * swarm used to be. Raise this first if he looks careless.
+     */
+    updateHz: 30,
+
+    /**
+     * Each layer is weight + how far it reaches + the shape of its falloff.
+     * Weight is signed: negative repels, positive attracts. Danger is not a
+     * special case in the code, it's just a layer with a negative weight.
+     *
+     * Adding "gold", "health" or "hazard" later means adding an entry here.
+     * The runtime focus buttons from the spec are writes to these weights.
+     *
+     * Falloff shapes: 'sharp' | 'linear' | 'smooth' | 'wide'.
+     *
+     * Balancing these two against each other is the whole job. Weight alone
+     * isn't enough — reach matters just as much. A value layer with a large
+     * radius and a slow falloff floods every cell with roughly the same
+     * positive number, and a uniform field has no gradient to climb, so the
+     * danger dips stop mattering and he walks straight into the swarm. Keep
+     * value tight enough to point at individual pickups.
+     */
+    layers: {
+      enemyDanger: { weight: -3, radius: 140, falloff: 'sharp' },
+      pickupValue: { weight: 2, radius: 240, falloff: 'smooth' },
+    },
+  },
+
+  movement: {
+    /** Candidate headings tested each frame, evenly spread around him. */
+    sampleDirections: 24,
+    /**
+     * How far along each candidate the map is read. Multiple probes so he can
+     * tell "clear ahead" from "clear for one step, then a wall".
+     */
+    lookAheadDistances: [30, 90, 170],
+    /**
+     * Bonus for continuing the way he's already going. This is the main
+     * anti-dithering control — too low and he vibrates between equally good
+     * options, too high and he ploughs on into things he should dodge.
+     */
+    headingBonus: 0.35,
+    /** Radians per second. Lower = wider, more committed turns. */
+    turnRateRadPerSec: 7,
+  },
+
+  damage: {
+    /** Global multiplier over every enemy's contactDamage. */
+    contactScale: 1,
+  },
+
+  /**
+   * PLACEHOLDER. Pickups currently appear out of thin air because nothing can
+   * be killed yet; step 4 replaces this with drops from dead enemies. Only the
+   * source is temporary — the value layer that pulls him towards them is real.
+   */
+  pickupScatter: {
+    spawnsPerSecond: 0.7,
+    maxAlive: 25,
+    /** Scatter around a dropping enemy, standing in for a death position. */
+    dropJitter: 40,
+    /** Fallback ring, used only when nothing is alive to drop anything. */
+    minDistance: 160,
+    maxDistance: 620,
+    collectRadius: 26,
+    /** Beyond this he's clearly not coming back for it, so drop it. */
+    forgetDistance: 1400,
   },
 
   spawn: {
@@ -62,8 +144,15 @@ export const config = {
     minRadius: 700,
     /** Random outward variation, so the ring never reads as a visible circle. */
     radiusJitter: 0.25,
-    /** Hard ceiling on simulated enemies, whatever the curve asks for. */
-    maxAlive: 400,
+    /**
+     * Hard ceiling on simulated enemies, whatever the curve asks for.
+     *
+     * Temporarily 200 rather than 400: until weapons exist nothing ever
+     * removes an enemy, so the population climbs to this number and stays
+     * pegged there, and a solid wall of sprites makes the danger map
+     * impossible to read. Put this back up once step 3 lands.
+     */
+    maxAlive: 200,
 
     /**
      * What happens to enemies the character has left far behind.
@@ -116,5 +205,18 @@ export const config = {
   debug: {
     /** Toggle at runtime with F1. */
     showOverlay: true,
+    /** The influence map, drawn as a heatmap. Toggle with F2. */
+    showHeatmap: false,
+    /** The fan of candidate directions and the chosen one. Toggle with F3. */
+    showCandidates: false,
+    /** Score magnitude that saturates a heatmap cell's colour. */
+    heatmapScale: 14,
+    /**
+     * Seconds on the death screen before a new run starts by itself. Runs use
+     * a fixed seed, so an identical run repeats every time — change one weight
+     * and the survival time is a real before/after measurement rather than a
+     * guess. Set to 0 to require a click.
+     */
+    autoRestartSeconds: 4,
   },
 }

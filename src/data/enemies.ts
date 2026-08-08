@@ -18,6 +18,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     baseSpeed: 46,
     contactDamage: 6,
     radius: 11,
+    dangerWeight: 1,
     spawnWeight: 100,
     unlockAtSeconds: 0,
     colour: '#7a4a52',
@@ -31,6 +32,9 @@ export const ENEMY_DEFS: EnemyDef[] = [
     baseSpeed: 78,
     contactDamage: 4,
     radius: 9,
+    // Rated above its damage: it closes fast, so the room it takes away is
+    // worth more than the hit it lands.
+    dangerWeight: 1.3,
     spawnWeight: 45,
     unlockAtSeconds: 30,
     // Deliberately not gold — the character is yellow, and a mass of Stalkers
@@ -46,6 +50,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     baseSpeed: 30,
     contactDamage: 16,
     radius: 18,
+    dangerWeight: 2.4,
     spawnWeight: 18,
     unlockAtSeconds: 75,
     colour: '#4f5f7a',

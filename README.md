@@ -29,6 +29,18 @@ inside it. Double-click it to play, or send it to someone and it works on their
 machine with nothing installed. The same file is what gets published to the link
 above, automatically, on every push to `main`.
 
+## Debug keys
+
+| Key | What it shows |
+| --- | --- |
+| `F1` | Stats panel |
+| `F2` | The influence map as a heatmap — green attracts, red repels |
+| `F3` | The fan of candidate directions, with the chosen one in yellow |
+| `R` | Restart the run |
+
+Runs use a fixed seed, so the same run repeats exactly. Change one weight in
+`config.ts` and the survival time is a real before/after measurement.
+
 ## How this is put together
 
 The architecture matters more than the content here — nearly everything will be
@@ -66,7 +78,7 @@ Each step is tagged, so `git checkout step-2` gets you exactly that state back.
 
 - [x] **0 — skeleton.** Loop, camera, Y-sorted rendering, endless world.
 - [x] **1 — enemies.** Travelling spawn ring, difficulty formulas, crowd separation.
-- [ ] 2 — the danger map and movement AI
+- [x] **2 — the danger map.** Influence layers, steering, contact damage, death.
 - [ ] 3 — weapons and combat
 - [ ] 4 — XP pickups
 - [ ] 5 — levelling

@@ -134,6 +134,93 @@ export class Renderer {
     }
   }
 
+  /**
+   * Generic world-space primitives, used by the debug overlays.
+   *
+   * They exist so debug drawing can live in its own file without reaching in
+   * for the raw canvas context. The renderer stays ignorant of what's being
+   * drawn and why.
+   */
+  fillWorldRect(worldX: number, worldY: number, worldW: number, worldH: number, colour: string, alpha = 1): void {
+    const sx = this.worldToScreenX(worldX)
+    const sy = this.worldToScreenY(worldY)
+    const h = worldH * config.render.yScale
+    if (sx + worldW < 0 || sx - worldW > this.viewW) return
+    if (sy + h < 0 || sy - h > this.viewH) return
+
+    const { ctx } = this
+    ctx.globalAlpha = alpha
+    ctx.fillStyle = colour
+    ctx.fillRect(sx - worldW / 2, sy - h / 2, worldW, h)
+    ctx.globalAlpha = 1
+  }
+
+  strokeWorldLine(x1: number, y1: number, x2: number, y2: number, colour: string, width = 1, alpha = 1): void {
+    const { ctx } = this
+    ctx.globalAlpha = alpha
+    ctx.strokeStyle = colour
+    ctx.lineWidth = width
+    ctx.beginPath()
+    ctx.moveTo(this.worldToScreenX(x1), this.worldToScreenY(y1))
+    ctx.lineTo(this.worldToScreenX(x2), this.worldToScreenY(y2))
+    ctx.stroke()
+    ctx.globalAlpha = 1
+  }
+
+  /** Fixed health bar along the bottom of the screen. */
+  drawHealthBar(fraction: number): void {
+    const { ctx } = this
+    const w = Math.min(420, this.viewW - 80)
+    const h = 10
+    const x = (this.viewW - w) / 2
+    const y = this.viewH - 34
+
+    ctx.globalAlpha = 0.5
+    ctx.fillStyle = '#000000'
+    ctx.fillRect(x, y, w, h)
+    ctx.globalAlpha = 1
+
+    const clamped = Math.max(0, Math.min(1, fraction))
+    ctx.fillStyle = clamped > 0.5 ? '#3ddc84' : clamped > 0.2 ? '#e8c468' : '#ff4d5e'
+    ctx.fillRect(x, y, w * clamped, h)
+
+    ctx.strokeStyle = '#3a4a58'
+    ctx.lineWidth = 1
+    ctx.strokeRect(x + 0.5, y + 0.5, w, h)
+  }
+
+  /** Centred panel, for the death screen. */
+  drawBanner(title: string, lines: string[]): void {
+    const { ctx } = this
+    const boxW = 340
+    const boxH = 60 + lines.length * 22
+    const x = (this.viewW - boxW) / 2
+    const y = (this.viewH - boxH) / 2
+
+    ctx.globalAlpha = 0.82
+    ctx.fillStyle = '#0b0f13'
+    ctx.fillRect(x, y, boxW, boxH)
+    ctx.globalAlpha = 1
+    ctx.strokeStyle = '#3a4a58'
+    ctx.lineWidth = 1
+    ctx.strokeRect(x + 0.5, y + 0.5, boxW, boxH)
+
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'top'
+
+    ctx.fillStyle = '#e8c468'
+    ctx.font = '20px ui-monospace, Consolas, monospace'
+    ctx.fillText(title, x + boxW / 2, y + 20)
+
+    ctx.fillStyle = '#9fb3c2'
+    ctx.font = '13px ui-monospace, Consolas, monospace'
+    lines.forEach((line, i) => {
+      ctx.fillText(line, x + boxW / 2, y + 54 + i * 22)
+    })
+
+    ctx.textAlign = 'left'
+  }
+
   /** Debug text, drawn in screen space on top of everything. */
   drawOverlay(lines: string[]): void {
     const { ctx } = this

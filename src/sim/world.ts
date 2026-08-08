@@ -7,18 +7,21 @@ import type { EnemyDef } from '../data/types'
  *
  * Nothing lives in module-level variables. That's what makes "he died, start a
  * new run" a matter of calling createWorld() again rather than hunting down
- * every piece of state scattered across the codebase — and death is a real
- * mechanic here, so that restart is coming.
+ * every piece of state scattered across the codebase.
  */
+
+export type RunState = 'running' | 'dead'
 
 export interface Character {
   x: number
   y: number
   radius: number
   speed: number
-  /** Placeholder wander target. Replaced by the danger map in step 2. */
-  targetX: number
-  targetY: number
+  hp: number
+  maxHp: number
+  /** Unit vector. Movement steers this rather than setting it outright. */
+  facingX: number
+  facingY: number
 }
 
 export interface Enemy {
@@ -36,32 +39,52 @@ export interface Enemy {
   speed: number
 }
 
+export interface Pickup {
+  x: number
+  y: number
+}
+
 export interface World {
   /** Seconds since the run started. Every difficulty formula reads this. */
   time: number
+  state: RunState
   rng: Rng
+
   character: Character
   enemies: Enemy[]
-  /** Fractional spawns carried between frames, so the rate isn't rounded away. */
+  pickups: Pickup[]
+
+  /** Fractional spawns carried between frames, so rates aren't rounded away. */
   spawnCredit: number
-  /** Running total of enemies recycled to the far side. Debug readout only. */
+  pickupCredit: number
+
+  /** Debug readouts. */
   wraps: number
+  pickupsCollected: number
+  incomingDps: number
 }
 
 export function createWorld(seed: number = config.world.seed): World {
   return {
     time: 0,
+    state: 'running',
     rng: makeRng(seed),
     character: {
       x: 0,
       y: 0,
       radius: config.character.radius,
       speed: config.character.moveSpeed,
-      targetX: 0,
-      targetY: 0,
+      hp: config.character.maxHp,
+      maxHp: config.character.maxHp,
+      facingX: 1,
+      facingY: 0,
     },
     enemies: [],
+    pickups: [],
     spawnCredit: 0,
+    pickupCredit: 0,
     wraps: 0,
+    pickupsCollected: 0,
+    incomingDps: 0,
   }
 }

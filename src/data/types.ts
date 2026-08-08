@@ -33,6 +33,15 @@ export interface EnemyDef {
   radius: number
 
   /**
+   * How frightening this enemy is to the movement AI, as a multiplier on the
+   * danger layer. Separate from contactDamage on purpose: how much something
+   * hurts and how much it should be avoided are different questions, and
+   * keeping them apart is what lets a harmless-but-obstructive enemy exist
+   * later without any new code.
+   */
+  dangerWeight: number
+
+  /**
    * Relative likelihood of being chosen when a spawn happens, and the earliest
    * run time (in seconds) at which it becomes eligible at all.
    */
