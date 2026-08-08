@@ -167,6 +167,26 @@ export class Renderer {
     ctx.globalAlpha = 1
   }
 
+  /** Squashed by yScale, so it reads as a circle lying on the ground. */
+  strokeWorldCircle(worldX: number, worldY: number, radius: number, colour: string, width = 2, alpha = 1): void {
+    const { ctx } = this
+    ctx.globalAlpha = alpha
+    ctx.strokeStyle = colour
+    ctx.lineWidth = width
+    ctx.beginPath()
+    ctx.ellipse(
+      this.worldToScreenX(worldX),
+      this.worldToScreenY(worldY),
+      radius,
+      radius * config.render.yScale,
+      0,
+      0,
+      Math.PI * 2,
+    )
+    ctx.stroke()
+    ctx.globalAlpha = 1
+  }
+
   /** Fixed health bar along the bottom of the screen. */
   drawHealthBar(fraction: number): void {
     const { ctx } = this

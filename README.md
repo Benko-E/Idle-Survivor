@@ -41,6 +41,13 @@ above, automatically, on every push to `main`.
 Runs use a fixed seed, so the same run repeats exactly. Change one weight in
 `config.ts` and the survival time is a real before/after measurement.
 
+`world()` in the browser console returns live game state, which is usually
+faster than squinting at the screen:
+
+```js
+world().weapons.map(w => [w.def.displayName, w.timesCast])
+```
+
 ## How this is put together
 
 The architecture matters more than the content here — nearly everything will be
@@ -79,7 +86,7 @@ Each step is tagged, so `git checkout step-2` gets you exactly that state back.
 - [x] **0 — skeleton.** Loop, camera, Y-sorted rendering, endless world.
 - [x] **1 — enemies.** Travelling spawn ring, difficulty formulas, crowd separation.
 - [x] **2 — the danger map.** Influence layers, steering, contact damage, death.
-- [ ] 3 — weapons and combat
+- [x] **3 — spells.** Behaviour registry, modifier system, status effects, kills.
 - [ ] 4 — XP pickups
 - [ ] 5 — levelling
 - [ ] 6 — the upgrade draft

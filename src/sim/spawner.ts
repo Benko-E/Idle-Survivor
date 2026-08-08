@@ -53,12 +53,14 @@ function spawnOne(world: World, halfViewWidth: number, halfViewHeight: number): 
   const hp = def.baseHp * hpMultiplier(world.time)
 
   world.enemies.push({
+    id: world.nextEnemyId++,
     def,
     x: world.character.x + Math.cos(angle) * rx * jitter,
     y: world.character.y + Math.sin(angle) * ry * jitter,
     hp,
     maxHp: hp,
     speed: def.baseSpeed * speedMultiplier(world.time),
+    effects: [],
   })
 }
 

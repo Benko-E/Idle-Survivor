@@ -1,7 +1,9 @@
 import { config } from './config'
 import { startLoop, stats } from './core/loop'
 import { drawCandidates, drawHeatmap } from './render/debugOverlay'
+import { drawEffects } from './render/effects'
 import { Renderer, type Drawable } from './render/renderer'
+import { updateCombat } from './sim/combat'
 import { updateContactDamage } from './sim/damage'
 import { hpMultiplier, spawnsPerSecond } from './sim/difficulty'
 import { updateEnemies } from './sim/enemyMovement'
@@ -12,17 +14,16 @@ import { updateSpawner } from './sim/spawner'
 import { createWorld } from './sim/world'
 
 /**
- * STEP 2 — the danger map, the movement AI, damage and death.
+ * STEP 3 — spells and combat.
  *
- * The character now decides where to go entirely on his own, from one rule:
- * read the influence field around him and walk uphill. Enemies push the field
- * down, pickups pull it up, and everything you see him do — threading gaps,
- * backing off, committing to a run — comes out of that one comparison. There
- * is no code anywhere that says "flee" or "collect".
+ * He now casts on his own from a spellbook defined entirely in data. Four
+ * behaviours cover four shapes of spell: a thrown bolt, a burst around
+ * himself, a chain that leaps between targets, and a curse that damages over
+ * time. Nothing in the engine names any of them.
  *
- * He can die now. Runs use a fixed seed, so the same run repeats exactly:
- * change a weight, watch the survival time move, and you have a real
- * measurement instead of an impression.
+ * Every number a spell uses is resolved through the modifier system, even
+ * though nothing modifies anything yet. That's the point — step 6 hands out
+ * "+15% to fire spells" and it works everywhere with no further changes.
  */
 
 const canvas = document.getElementById('game')
@@ -69,13 +70,17 @@ function update(dt: number): void {
   // enemies just outside it. Passed as plain numbers — nothing under sim/ ever
   // imports the renderer.
   updateSpawner(world, dt, renderer.width / 2, renderer.height / 2)
+
+  // Enemies move first and rebuild the neighbour grid, which spell targeting
+  // then shares for the rest of the frame.
   updateEnemies(world, dt)
   updatePickups(world, dt)
 
-  // Order matters: the field is built from where things are *now*, then the
-  // character reads it, then we find out whether that was a good idea.
+  // Then the field is built from where everything is now, the character reads
+  // it, and finally we find out whether that was a good idea.
   updateInfluence(world, dt)
   updateCharacterMovement(world, dt)
+  updateCombat(world, dt)
   updateContactDamage(world, dt)
 
   recordDeathIfNeeded()
@@ -116,6 +121,10 @@ canvas.addEventListener('pointerdown', () => {
   if (world.state === 'dead') restart()
 })
 
+// Dev aid: `world()` in the browser console returns live game state. A getter
+// rather than a reference, because restarting replaces the whole object.
+;(window as unknown as Record<string, unknown>).world = () => world
+
 // --- rendering ---------------------------------------------------------------
 
 function formatTime(seconds: number): string {
@@ -150,6 +159,16 @@ function render(): void {
     })
   }
 
+  for (const projectile of world.projectiles) {
+    frame.push({
+      x: projectile.x,
+      y: projectile.y,
+      w: projectile.radius * 2,
+      h: projectile.radius * 2,
+      colour: projectile.colour,
+    })
+  }
+
   frame.push({
     x: world.character.x,
     y: world.character.y,
@@ -160,30 +179,38 @@ function render(): void {
 
   renderer.drawScene(frame)
 
+  drawEffects(renderer, world)
+
   if (showCandidates) drawCandidates(renderer, world)
 
   renderer.drawHealthBar(world.character.hp / world.character.maxHp)
 
   if (showOverlay) {
+    const elapsed = Math.max(world.time, 0.001)
     renderer.drawOverlay([
       `time         ${formatTime(world.time)}`,
       `hp           ${world.character.hp.toFixed(0)} / ${world.character.maxHp}`,
       `taking       ${world.incomingDps.toFixed(0)} dps`,
       `enemies      ${world.enemies.length}`,
-      `pickups      ${world.pickups.length} on ground`,
-      `collected    ${world.pickupsCollected}`,
+      `kills        ${world.kills}`,
+      `dealing      ${(world.damageDealt / elapsed).toFixed(0)} dps`,
+      `projectiles  ${world.projectiles.length}`,
+      `pickups      ${world.pickups.length} / ${world.pickupsCollected} taken`,
       `spawn rate   ${spawnsPerSecond(world.time).toFixed(1)}/s`,
       `enemy hp     x${hpMultiplier(world.time).toFixed(2)}`,
       `wraps        ${world.wraps}`,
       `last / best  ${formatTime(lastTime)} / ${formatTime(bestTime)}`,
       `fps          ${stats.fps.toFixed(0)}`,
+      // Which spells are actually pulling their weight, and whether one is
+      // silently never finding a target.
+      ...world.weapons.map((weapon) => `  ${weapon.def.displayName.padEnd(11)}${weapon.timesCast}`),
       `F1 F2 F3     panel / heatmap / fan`,
     ])
   }
 
   if (world.state === 'dead') {
     renderer.drawBanner(`Died at ${formatTime(world.time)}`, [
-      `collected ${world.pickupsCollected} pickups`,
+      `${world.kills} kills, ${world.pickupsCollected} pickups`,
       `best so far ${formatTime(bestTime)}`,
       'click or press R to restart',
     ])

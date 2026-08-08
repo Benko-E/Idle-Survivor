@@ -1,21 +1,18 @@
 import { config } from '../config'
 import { ENEMY_DEFS } from '../data/enemies'
-import { SpatialGrid } from './spatialGrid'
+import { forEachEnemyNear, rebuildEnemyGrid } from './enemyGrid'
+import { slowMultiplier } from './statusEffects'
 import type { World } from './world'
 
 /**
  * Enemy movement: walk at the character, and don't stand inside each other.
  *
  * That's the whole behaviour, deliberately. The interesting movement in this
- * game belongs to the character (step 2) — enemies are the pressure he has to
- * read, and pressure is easier to read when it's predictable.
+ * game belongs to the character — enemies are the pressure he has to read, and
+ * pressure is easier to read when it's predictable.
  */
 
 const LARGEST_RADIUS = Math.max(...ENEMY_DEFS.map((def) => def.radius))
-
-// A scratch buffer rebuilt from scratch every frame, not game state — which is
-// why it can live at module level while everything in world.ts cannot.
-const grid = new SpatialGrid(config.enemies.gridCellSize)
 
 function seekCharacter(world: World, dt: number): void {
   const { x: cx, y: cy } = world.character
@@ -26,7 +23,10 @@ function seekCharacter(world: World, dt: number): void {
     const distance = Math.hypot(dx, dy)
     if (distance < 0.001) continue
 
-    const step = enemy.speed * dt
+    // Chills and other slows are applied here rather than baked into
+    // enemy.speed, so an effect wearing off restores the original value with
+    // no bookkeeping.
+    const step = enemy.speed * slowMultiplier(enemy) * dt
     enemy.x += (dx / distance) * step
     enemy.y += (dy / distance) * step
   }
@@ -36,9 +36,9 @@ function seekCharacter(world: World, dt: number): void {
  * Push apart anything that ended up overlapping.
  *
  * Without this a crowd converging on one point collapses into a single blob
- * and you cannot tell twenty enemies from three. It's also what will make the
- * danger map readable later: a spread-out swarm produces a spread-out threat
- * field with actual gaps in it to dive through.
+ * and you cannot tell twenty enemies from three. It also keeps the danger map
+ * readable: a spread-out swarm produces a threat field with actual gaps in it
+ * to dive through.
  *
  * This nudges positions directly rather than applying forces. Forces overshoot
  * and oscillate; a direct correction just resolves and stays resolved.
@@ -47,20 +47,14 @@ function resolveOverlaps(world: World): void {
   const enemies = world.enemies
   const strength = config.enemies.separationStrength
 
-  grid.clear()
-  for (let i = 0; i < enemies.length; i++) {
-    grid.insert(i, enemies[i].x, enemies[i].y)
-  }
-
   for (let i = 0; i < enemies.length; i++) {
     const a = enemies[i]
     const reach = a.def.radius + LARGEST_RADIUS
 
-    grid.forEachNear(a.x, a.y, reach, (j) => {
+    forEachEnemyNear(world, a.x, a.y, reach, (b, j) => {
       // Each pair is visited from both ends; only act on it once.
       if (j <= i) return
 
-      const b = enemies[j]
       const dx = b.x - a.x
       const dy = b.y - a.y
       const minDistance = a.def.radius + b.def.radius
@@ -82,5 +76,8 @@ function resolveOverlaps(world: World): void {
 
 export function updateEnemies(world: World, dt: number): void {
   seekCharacter(world, dt)
+  // Rebuilt after they move, then shared with spell targeting for the rest of
+  // the frame.
+  rebuildEnemyGrid(world)
   resolveOverlaps(world)
 }

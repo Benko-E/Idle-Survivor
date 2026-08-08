@@ -52,3 +52,51 @@ export interface EnemyDef {
   colour: string
   drawHeight: number
 }
+
+export interface WeaponDef {
+  /** Stable and generic. Never shown to a player. (spec 5.2) */
+  id: string
+  /** The only thing that ever appears on screen. */
+  displayName: string
+  /**
+   * Both flavour and mechanics. Upgrade modifiers select on these, so
+   * "+20% fire damage" or "+1 chain jump to lightning spells" need no code.
+   */
+  tags: Tag[]
+
+  /**
+   * Which entry in the behaviour registry casts this. The engine knows a set
+   * of generic patterns; it never knows that Firebolt exists.
+   *
+   * A new spell that reuses an existing pattern is a data entry and nothing
+   * else. A genuinely new *kind* of spell is a data entry plus one registered
+   * function — that's the honest boundary of "content is data".
+   */
+  behaviour: string
+
+  /**
+   * A flat bag of numbers rather than a typed shape, because modifiers target
+   * stats *by name*. A typed interface would mean every new stat any future
+   * spell wants is a change to this file and to the resolver.
+   *
+   * Conventional keys, all optional, all meaningful only to the behaviour
+   * that reads them:
+   *
+   *   cooldown     seconds between casts
+   *   damage       damage per hit
+   *   count        projectiles fired / targets chained / etc
+   *   range        how far it will look for a target
+   *   speed        projectile travel speed
+   *   pierce       extra enemies a projectile passes through
+   *   area         radius of an area effect
+   *   duration     seconds an applied effect lasts
+   *   dotDamage    damage per second for effects that linger
+   *   slow         fraction of speed removed, 0.45 = 45% slower
+   *   falloff      multiplier applied per chain jump
+   *   spread       radians of scatter on multi-projectile casts
+   */
+  stats: Record<string, number>
+
+  /** Placeholder art. */
+  colour: string
+}

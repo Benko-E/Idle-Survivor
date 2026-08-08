@@ -48,6 +48,28 @@ export const config = {
     moveSpeed: 110,
     radius: 15,
     maxHp: 100,
+
+    /**
+     * The spellbook he starts a run with, by id from data/weapons.ts.
+     *
+     * All four for now, so every behaviour in the registry can actually be
+     * seen. Once the level-up draft exists in step 6 this drops to the single
+     * starter spell and the rest become things you can be offered.
+     */
+    startingWeaponIds: ['spell_bolt_01', 'spell_nova_01', 'spell_chain_01', 'spell_curse_01'],
+  },
+
+  combat: {
+    projectileRadius: 5,
+    /** Slack on projectile hit tests, so fast bolts don't tunnel past. */
+    projectileHitPadding: 4,
+    /**
+     * How long nova/curse rings and chain arcs stay on screen. Long enough to
+     * actually read — at a third of a second a nova is a blink you'll miss,
+     * and this is a game you're meant to sit and watch.
+     */
+    ringVfxSeconds: 0.55,
+    lineVfxSeconds: 0.28,
   },
 
   /**
@@ -79,16 +101,23 @@ export const config = {
      *
      * Falloff shapes: 'sharp' | 'linear' | 'smooth' | 'wide'.
      *
-     * Balancing these two against each other is the whole job. Weight alone
-     * isn't enough — reach matters just as much. A value layer with a large
-     * radius and a slow falloff floods every cell with roughly the same
-     * positive number, and a uniform field has no gradient to climb, so the
-     * danger dips stop mattering and he walks straight into the swarm. Keep
-     * value tight enough to point at individual pickups.
+     * Balancing these two is the whole job, and weight alone isn't enough —
+     * reach matters just as much. They want opposite shapes.
+     *
+     * Danger is short and steep: it should scream when he's about to be
+     * touched and say nothing from across the field.
+     *
+     * Value is long and gentle. It's a "come here" signal, and it has to
+     * reach him from further away than he can see, or he never learns there
+     * is anything worth the trip and simply drifts away forever.
+     *
+     * A wide radius with a flat-topped falloff is the worst of both: every
+     * cell gets the same large positive number, and a uniform field has no
+     * gradient to climb. Linear keeps a steady slope all the way out.
      */
     layers: {
       enemyDanger: { weight: -3, radius: 140, falloff: 'sharp' },
-      pickupValue: { weight: 2, radius: 240, falloff: 'smooth' },
+      pickupValue: { weight: 1.6, radius: 620, falloff: 'linear' },
     },
   },
 
@@ -99,7 +128,7 @@ export const config = {
      * How far along each candidate the map is read. Multiple probes so he can
      * tell "clear ahead" from "clear for one step, then a wall".
      */
-    lookAheadDistances: [30, 90, 170],
+    lookAheadDistances: [40, 130, 260],
     /**
      * Bonus for continuing the way he's already going. This is the main
      * anti-dithering control — too low and he vibrates between equally good
@@ -147,12 +176,11 @@ export const config = {
     /**
      * Hard ceiling on simulated enemies, whatever the curve asks for.
      *
-     * Temporarily 200 rather than 400: until weapons exist nothing ever
-     * removes an enemy, so the population climbs to this number and stays
-     * pegged there, and a solid wall of sprites makes the danger map
-     * impossible to read. Put this back up once step 3 lands.
+     * Back up to 400 now that spells kill things — the count rises and falls
+     * on its own instead of pegging at the ceiling, so this is a safety limit
+     * again rather than the thing setting the difficulty.
      */
-    maxAlive: 200,
+    maxAlive: 400,
 
     /**
      * What happens to enemies the character has left far behind.
