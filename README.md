@@ -62,8 +62,10 @@ Four rules that everything else follows from:
 
 Built one system at a time.
 
+Each step is tagged, so `git checkout step-2` gets you exactly that state back.
+
 - [x] **0 — skeleton.** Loop, camera, Y-sorted rendering, endless world.
-- [ ] 1 — enemies and spawning
+- [x] **1 — enemies.** Travelling spawn ring, difficulty formulas, crowd separation.
 - [ ] 2 — the danger map and movement AI
 - [ ] 3 — weapons and combat
 - [ ] 4 — XP pickups
