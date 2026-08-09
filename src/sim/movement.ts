@@ -1,5 +1,6 @@
 import { config } from '../config'
 import { influenceMap } from './influence'
+import { characterStat } from './stats'
 import type { World } from './world'
 
 /**
@@ -97,7 +98,9 @@ export function updateCharacterMovement(world: World, dt: number): void {
   character.facingX = Math.cos(newAngle)
   character.facingY = Math.sin(newAngle)
 
-  const step = character.speed * dt
+  // Resolved every frame rather than read off the character, so a movement
+  // speed upgrade takes effect the moment it's picked.
+  const step = characterStat(world, 'moveSpeed', character.speed) * dt
   character.x += character.facingX * step
   character.y += character.facingY * step
 }

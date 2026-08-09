@@ -52,11 +52,10 @@ export const config = {
     /**
      * The spellbook he starts a run with, by id from data/weapons.ts.
      *
-     * All four for now, so every behaviour in the registry can actually be
-     * seen. Once the level-up draft exists in step 6 this drops to the single
-     * starter spell and the rest become things you can be offered.
+     * Just the starter now that the draft exists — the rest are things you
+     * can be offered. Add ids back here to test a behaviour in isolation.
      */
-    startingWeaponIds: ['spell_bolt_01', 'spell_nova_01', 'spell_chain_01', 'spell_curse_01'],
+    startingWeaponIds: ['spell_bolt_01'],
   },
 
   combat: {
@@ -507,6 +506,25 @@ export const config = {
   progression: {
     baseXp: 14,
     exponent: 1.45,
+  },
+
+  /**
+   * The level-up draft. (spec 4)
+   *
+   * It does not pause the game. Pausing exists to protect a player who would
+   * otherwise die mid-decision, and nobody here is under that pressure — the
+   * character fights on unsupervised. Levels queue on a button instead.
+   */
+  draft: {
+    /** Options offered per level-up. */
+    choices: 3,
+    /** Ceiling on spells carried at once, so a build stays a build. */
+    maxWeapons: 6,
+    /**
+     * Weight of "a new spell" against a single upgrade. Higher than any
+     * upgrade because a whole new spell is worth more than an increment.
+     */
+    newWeaponWeight: 130,
   },
 
   /** Constants behind the formulas in sim/difficulty.ts. (spec 5.3) */

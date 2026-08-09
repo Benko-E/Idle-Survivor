@@ -1,3 +1,5 @@
+import type { Modifier } from '../core/modifiers'
+
 /**
  * The shape of every piece of content in the game. (spec 5.1)
  *
@@ -121,6 +123,36 @@ export interface PickupDef {
   tierColours: string[]
   /** Display names by tier, last entry reused for anything higher. */
   tierNames: string[]
+}
+
+/**
+ * An upgrade is data describing a change. (spec 5.5)
+ *
+ * There is no code anywhere for any individual upgrade — taking one pushes
+ * its modifiers into the world's list and the existing resolver does the
+ * rest. "+15% damage" and "+30% damage to fire spells only" differ by one
+ * field, not by one code path.
+ */
+export interface UpgradeDef {
+  id: string
+  displayName: string
+  /** Shown on the card. Write it for a player, not for a spreadsheet. */
+  description: string
+  tags: Tag[]
+
+  /** What taking it actually does. */
+  modifiers: Modifier[]
+
+  /** How many times it can ever be offered. */
+  maxStacks: number
+  /** Relative likelihood of appearing in a draft. */
+  weight: number
+
+  /**
+   * Only offer this if he already owns something carrying all these tags.
+   * Stops "+30% fire damage" turning up before he has a fire spell.
+   */
+  requiresOwnedTags?: Tag[]
 }
 
 export interface WeaponDef {

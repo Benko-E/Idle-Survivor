@@ -17,6 +17,7 @@ import { distanceToShop, shopEagerness, updateShop } from './sim/shop'
 import { updateSpawner } from './sim/spawner'
 import { updateTrail } from './sim/trail'
 import { createWorld } from './sim/world'
+import { DraftUi } from './ui/draft'
 
 /**
  * STEP 3 — spells and combat.
@@ -37,6 +38,8 @@ if (!(canvas instanceof HTMLCanvasElement)) throw new Error('Missing #game canva
 const renderer = new Renderer(canvas)
 
 let world = createWorld()
+// A getter, because restarting replaces the world object entirely.
+const draftUi = new DraftUi(() => world)
 let bestTime = 0
 let lastTime = 0
 let deathElapsed = 0
@@ -158,6 +161,7 @@ function tierHistogram(): string {
 const frame: Drawable[] = []
 
 function render(): void {
+  draftUi.update()
   renderer.beginFrame()
 
   // Under the sprites, so it reads as ground rather than fog.
@@ -238,7 +242,7 @@ function render(): void {
       `enemies      ${world.enemies.length}`,
       `kills        ${world.kills}`,
       `dealing      ${(world.damageDealt / elapsed).toFixed(0)} dps`,
-      `level        ${world.level}  (${world.xp.toFixed(0)} xp)`,
+      `level        ${world.level}  (${world.pendingLevelUps} unspent)`,
       `gold         ${world.gold.toFixed(0)} carried, ${world.goldEarned.toFixed(0)} earned`,
       `pickups      ${world.pickups.length} down, ${world.pickupsCollected} taken`,
       `by tier      ${tierHistogram()}`,
@@ -252,6 +256,11 @@ function render(): void {
       `wraps        ${world.wraps}`,
       `last / best  ${formatTime(lastTime)} / ${formatTime(bestTime)}`,
       `fps          ${stats.fps.toFixed(0)}`,
+      // On screen so "did it zoom?" is answerable by comparing two
+      // screenshots instead of measuring sprites. There is no scale factor
+      // anywhere in the renderer, so if things look smaller, one of these
+      // numbers changed — browser zoom moves innerWidth, not the game.
+      `viewport     ${window.innerWidth}x${window.innerHeight} @${window.devicePixelRatio}`,
       // Which spells are actually pulling their weight, and whether one is
       // silently never finding a target.
       ...world.weapons.map((weapon) => `  ${weapon.def.displayName.padEnd(11)}${weapon.timesCast}`),

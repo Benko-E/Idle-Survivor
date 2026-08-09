@@ -100,8 +100,10 @@ export interface World {
   level: number
   /** XP accumulated towards the next level, for the bar. */
   xpIntoLevel: number
-  /** Levels earned but not yet spent. Step 6's draft consumes these. */
+  /** Levels earned but not yet spent. The draft consumes these. */
   pendingLevelUps: number
+  /** How many times each upgrade has been taken, for maxStacks. */
+  upgradesTaken: Record<string, number>
 
   /** Gold in his pocket right now, zeroed at the shop. */
   gold: number
@@ -174,6 +176,7 @@ export function createWorld(seed: number = config.world.seed): World {
     level: 1,
     xpIntoLevel: 0,
     pendingLevelUps: 0,
+    upgradesTaken: {},
     gold: 0,
     goldEarned: 0,
     intent: 'farming',

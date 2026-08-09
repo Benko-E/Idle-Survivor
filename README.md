@@ -156,5 +156,7 @@ Each step is tagged, so `git checkout step-2` gets you exactly that state back.
 - [x] **4 — gold drops.** Per-mob drop tables, merging tiers, two-layer pull.
 - [x] **4b — flow field.** Reward routes around danger; farm/bank intent.
 - [x] **5 — levelling.** XP per kill, formula curve, level-ups banked for the draft.
-- [ ] 6 — the upgrade draft
+- [x] **6 — the draft.** Non-blocking level-up offers of spells and upgrades.
 - [ ] 7 — tuning panel
+
+That completes the spec's definition of done for the prototype.
