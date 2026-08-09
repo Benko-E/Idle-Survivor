@@ -25,6 +25,18 @@ export const config = {
      */
     yScale: 0.82,
 
+    /**
+     * How much world is visible top to bottom, in world units, whatever the
+     * window is doing. The renderer scales to fit this rather than mapping a
+     * world unit to a screen pixel.
+     *
+     * Lower = a closer, more claustrophobic view with bigger sprites.
+     */
+    visibleWorldHeight: 1150,
+    /** Clamps, so a freakishly shaped window can't produce absurd sprites. */
+    minScale: 0.4,
+    maxScale: 2.5,
+
     /** Ground shadow under each sprite. Sells the ground plane; purely cosmetic. */
     shadowAlpha: 0.28,
     shadowWidthRatio: 0.9,

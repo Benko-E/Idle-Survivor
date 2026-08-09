@@ -77,7 +77,9 @@ function update(dt: number): void {
   // The spawner needs to know how much of the world is visible so it can place
   // enemies just outside it. Passed as plain numbers — nothing under sim/ ever
   // imports the renderer.
-  updateSpawner(world, dt, renderer.width / 2, renderer.height / 2)
+  // World units, not pixels — so how far off screen enemies appear no longer
+  // depends on the size of the window.
+  updateSpawner(world, dt, renderer.worldHalfWidth, renderer.worldHalfHeight)
 
   // Enemies move first and rebuild the neighbour grid, which spell targeting
   // then shares for the rest of the frame.

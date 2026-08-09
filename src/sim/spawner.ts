@@ -12,15 +12,17 @@ import type { World } from './world'
  * him. From his point of view they always come from every side, forever.
  */
 
-/** How far off screen to spawn, given the current viewport half-extents. */
-function spawnRingRadii(halfViewWidth: number, halfViewHeight: number): { rx: number; ry: number } {
+/**
+ * How far off screen to spawn, given how much world is currently visible.
+ *
+ * Takes world units rather than pixels. It used to take viewport half-extents,
+ * which meant a bigger window spawned enemies further away and quietly made
+ * the game easier — the renderer now pins the visible world, so this is stable.
+ */
+function spawnRingRadii(worldHalfWidth: number, worldHalfHeight: number): { rx: number; ry: number } {
   const { margin, minRadius } = config.spawn
-  // The Y radius is divided by yScale because the renderer squashes world Y.
-  // Without this, "one screen away" up the screen is much further in world
-  // units than the same distance sideways, and enemies from the north would
-  // take twice as long to arrive.
-  const rx = Math.max(minRadius, halfViewWidth * margin)
-  const ry = Math.max(minRadius, (halfViewHeight / config.render.yScale) * margin)
+  const rx = Math.max(minRadius, worldHalfWidth * margin)
+  const ry = Math.max(minRadius, worldHalfHeight * margin)
   return { rx, ry }
 }
 

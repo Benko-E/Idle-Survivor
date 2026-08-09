@@ -27,6 +27,9 @@ export class Renderer {
   /** Camera centre, in world coordinates. */
   readonly camera = { x: 0, y: 0 }
 
+  /** Screen pixels per world unit. Recomputed on resize. */
+  private scale = 1
+
   constructor(private readonly canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext('2d')
     if (!ctx) throw new Error('Could not get a 2D canvas context.')
@@ -43,6 +46,15 @@ export class Renderer {
     return this.viewH
   }
 
+  /** How many world units are visible from the centre to each edge. */
+  get worldHalfWidth(): number {
+    return this.viewW / 2 / this.scale
+  }
+
+  get worldHalfHeight(): number {
+    return this.viewH / 2 / (this.scale * config.render.yScale)
+  }
+
   private resize(): void {
     // Cap the pixel ratio: a 4x retina display gains no visible quality here
     // and costs 4x the fill rate, which we would rather spend on enemies.
@@ -52,14 +64,35 @@ export class Renderer {
     this.canvas.width = Math.round(this.viewW * dpr)
     this.canvas.height = Math.round(this.viewH * dpr)
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+
+    /**
+     * Pin the amount of world on screen instead of the size of a pixel.
+     *
+     * World units used to map 1:1 to CSS pixels, which meant the window size
+     * silently decided how much of the world you could see. Observed live: the
+     * viewport went 721 -> 1089 -> 721 CSS pixels tall while the game ran, and
+     * the view appeared to zoom out and back in. Nothing in the game had
+     * changed; there was simply 50% more world on screen.
+     *
+     * Now a taller window draws everything proportionally bigger and shows the
+     * same slice of world. The window decides how big things look, never how
+     * much you see — which also makes the game usable on a phone, where at 1:1
+     * the character filled a tenth of the screen.
+     *
+     * Only the vertical is pinned. A wide monitor still sees further sideways,
+     * because the alternative is letterboxing, and nobody wants that.
+     */
+    const { visibleWorldHeight, minScale, maxScale, yScale } = config.render
+    const fitted = this.viewH / (visibleWorldHeight * yScale)
+    this.scale = Math.max(minScale, Math.min(maxScale, fitted))
   }
 
   worldToScreenX(worldX: number): number {
-    return worldX - this.camera.x + this.viewW / 2
+    return (worldX - this.camera.x) * this.scale + this.viewW / 2
   }
 
   worldToScreenY(worldY: number): number {
-    return (worldY - this.camera.y) * config.render.yScale + this.viewH / 2
+    return (worldY - this.camera.y) * config.render.yScale * this.scale + this.viewH / 2
   }
 
   /** Clear and draw the ground plane. */
@@ -78,8 +111,8 @@ export class Renderer {
   private drawGround(): void {
     const { ctx } = this
     const cell = config.render.gridCellSize
-    const halfW = this.viewW / 2
-    const halfH = this.viewH / 2 / config.render.yScale
+    const halfW = this.worldHalfWidth
+    const halfH = this.worldHalfHeight
 
     ctx.strokeStyle = config.render.gridColour
     ctx.lineWidth = 1
@@ -118,19 +151,24 @@ export class Renderer {
       const sx = this.worldToScreenX(item.x)
       const sy = this.worldToScreenY(item.y)
 
+      // Drawables are sized in world units; convert once, here, so nothing
+      // that builds a draw list has to know what the current scale is.
+      const w = item.w * this.scale
+      const h = item.h * this.scale
+
       // Cheap culling. Endless world means most of it is off screen.
-      if (sx + item.w < 0 || sx - item.w > this.viewW) continue
-      if (sy + item.h < 0 || sy - item.h > this.viewH) continue
+      if (sx + w < 0 || sx - w > this.viewW) continue
+      if (sy + h < 0 || sy - h > this.viewH) continue
 
       ctx.globalAlpha = shadowAlpha
       ctx.fillStyle = '#000000'
       ctx.beginPath()
-      ctx.ellipse(sx, sy, (item.w / 2) * shadowWidthRatio, (item.w / 2) * shadowWidthRatio * yScale, 0, 0, Math.PI * 2)
+      ctx.ellipse(sx, sy, (w / 2) * shadowWidthRatio, (w / 2) * shadowWidthRatio * yScale, 0, 0, Math.PI * 2)
       ctx.fill()
       ctx.globalAlpha = 1
 
       ctx.fillStyle = item.colour
-      ctx.fillRect(Math.round(sx - item.w / 2), Math.round(sy - item.h), item.w, item.h)
+      ctx.fillRect(Math.round(sx - w / 2), Math.round(sy - h), w, h)
     }
   }
 
@@ -144,14 +182,15 @@ export class Renderer {
   fillWorldRect(worldX: number, worldY: number, worldW: number, worldH: number, colour: string, alpha = 1): void {
     const sx = this.worldToScreenX(worldX)
     const sy = this.worldToScreenY(worldY)
-    const h = worldH * config.render.yScale
-    if (sx + worldW < 0 || sx - worldW > this.viewW) return
+    const w = worldW * this.scale
+    const h = worldH * config.render.yScale * this.scale
+    if (sx + w < 0 || sx - w > this.viewW) return
     if (sy + h < 0 || sy - h > this.viewH) return
 
     const { ctx } = this
     ctx.globalAlpha = alpha
     ctx.fillStyle = colour
-    ctx.fillRect(sx - worldW / 2, sy - h / 2, worldW, h)
+    ctx.fillRect(sx - w / 2, sy - h / 2, w, h)
     ctx.globalAlpha = 1
   }
 
@@ -177,8 +216,8 @@ export class Renderer {
     ctx.ellipse(
       this.worldToScreenX(worldX),
       this.worldToScreenY(worldY),
-      radius,
-      radius * config.render.yScale,
+      radius * this.scale,
+      radius * config.render.yScale * this.scale,
       0,
       0,
       Math.PI * 2,
