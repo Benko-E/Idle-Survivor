@@ -103,6 +103,11 @@ export interface World {
    * is. Stands in for gold until there is such a thing. See config.shop.
    */
   carried: number
+  /**
+   * What he's currently trying to do. The only high-level state in the game —
+   * everything about *how* he gets anywhere stays emergent from the field.
+   */
+  intent: 'farming' | 'banking'
   shopX: number
   shopY: number
   shopVisits: number
@@ -163,6 +168,7 @@ export function createWorld(seed: number = config.world.seed): World {
     modifiers: [],
     xp: 0,
     carried: 0,
+    intent: 'farming',
     shopX: Math.cos(shopAngle) * config.shop.distanceFromStart,
     shopY: Math.sin(shopAngle) * config.shop.distanceFromStart,
     shopVisits: 0,

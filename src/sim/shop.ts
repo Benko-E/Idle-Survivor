@@ -16,30 +16,51 @@ import type { World } from './world'
 /**
  * How badly he wants to go shopping, as a multiplier on the shop layer.
  *
- * Zero below the threshold, so he farms undisturbed, then climbs as his
- * pockets fill. This is the only "decision" in the feature and it is a
- * number, not a branch — exactly the shape the focus buttons in the spec
- * will take.
+ * Zero while farming, full once he's committed to the trip.
+ *
+ * This used to be a continuous ramp, with the shop and the globes bidding
+ * against each other every frame — and it was tuned for a long time without
+ * ever working properly. He'd sit on 219 against a threshold of 60, still
+ * weighing "one more globe" against a 476 unit walk, forever, because a
+ * decent cluster underfoot always outbids a trip.
+ *
+ * Committing is a goal, not a preference. Once he decides to bank, he banks.
+ * The spec's rule against hand-written behaviours is about *movement* — don't
+ * write separate kiting and fleeing code — and this isn't that: it flips
+ * layer weights, which is precisely the mechanism the focus buttons will use.
  */
 export function shopEagerness(world: World): number {
   if (!config.shop.enabled) return 0
+  if (world.intent !== 'banking') return 0
 
   const { spendThreshold, maxEagerness } = config.shop
-  if (world.carried < spendThreshold) return 0
-
-  return Math.min(maxEagerness, world.carried / spendThreshold)
+  // At least 1, so committing has real force even at exactly the threshold.
+  return Math.min(maxEagerness, Math.max(1, world.carried / spendThreshold))
 }
 
 export function distanceToShop(world: World): number {
   return Math.hypot(world.shopX - world.character.x, world.shopY - world.character.y)
 }
 
-/** Arriving spends everything he's carrying. There is nothing to buy yet. */
+/**
+ * The two-state loop: farm until full, walk to the shop, spend, farm again.
+ *
+ * Deliberately the whole of the "decision making" in the game, and
+ * deliberately this boring. Everything about *how* he gets anywhere is still
+ * emergent from the influence field; this only decides what he's currently
+ * trying to do.
+ */
 export function updateShop(world: World): void {
   if (!config.shop.enabled) return
-  if (world.carried <= 0) return
+
+  if (world.intent === 'farming') {
+    if (world.carried >= config.shop.spendThreshold) world.intent = 'banking'
+    return
+  }
+
   if (distanceToShop(world) > config.shop.radius) return
 
+  world.intent = 'farming'
   world.spentAtShop += world.carried
   world.carried = 0
   world.shopVisits++

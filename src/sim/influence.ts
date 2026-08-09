@@ -83,9 +83,14 @@ function rebuild(world: World): void {
     influenceMap.stamp('staleness', layers.staleness, mark.x, mark.y, markFreshness(world, mark))
   }
 
+  // While banking, only the "go over there for loot" signal is turned down.
+  // The near layer is left alone on purpose: he should still hoover up
+  // anything he walks over on the way, just not detour for it.
+  const wideScale = world.intent === 'banking' ? config.shop.bankingWideScale : 1
+
   for (const pickup of world.pickups) {
     const pull = pickupPull(pickup)
-    influenceMap.stamp('pickupWide', layers.pickupWide, pickup.x, pickup.y, pull)
+    influenceMap.stamp('pickupWide', layers.pickupWide, pickup.x, pickup.y, pull * wideScale)
     influenceMap.stamp('pickupNear', layers.pickupNear, pickup.x, pickup.y, pull)
   }
 

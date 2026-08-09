@@ -288,8 +288,16 @@ export const config = {
    */
   shop: {
     enabled: true,
-    /** Placed this far from where the run began, at a random angle. */
-    distanceFromStart: 1500,
+    /**
+     * How far away it's placed, and re-placed after each visit.
+     *
+     * 1500 was too far to survive. Measured mid-run: distance to the shop went
+     * 1757 → 1801 → 1593 → 1736 → 1456 → 1381 while he travelled 2750 units,
+     * because dodging a hundred-strong horde eats most of the progress. He
+     * committed, set off, and died on the way. Far enough to be a journey,
+     * close enough to finish one.
+     */
+    distanceFromStart: 900,
     /** How close he must get to count as arrived. */
     radius: 70,
     /**
@@ -318,6 +326,14 @@ export const config = {
      * simply ignored.
      */
     gradientLength: 1000,
+    /**
+     * What the long-range loot signal is worth while he's on a banking run.
+     *
+     * Turned down so a cluster off to one side can't restart the argument he
+     * has already settled. The short-range pickup layer is untouched, so he
+     * still takes whatever he walks over — he just stops detouring for it.
+     */
+    bankingWideScale: 0.25,
     /**
      * Cap on eagerness, in multiples of the threshold.
      *

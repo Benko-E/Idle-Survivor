@@ -245,7 +245,7 @@ function render(): void {
       `camped here  ${(occupancySaturation(world, world.character.x, world.character.y) * 100).toFixed(0)}%`,
       `carrying     ${world.carried.toFixed(0)} / ${config.shop.spendThreshold}`,
       `shop         ${distanceToShop(world).toFixed(0)} away, ${world.shopVisits} visits`,
-      `wants shop   ${shopEagerness(world) > 0 ? 'yes' : 'no'}`,
+      `doing        ${world.intent}`,
       `wraps        ${world.wraps}`,
       `last / best  ${formatTime(lastTime)} / ${formatTime(bestTime)}`,
       `fps          ${stats.fps.toFixed(0)}`,
