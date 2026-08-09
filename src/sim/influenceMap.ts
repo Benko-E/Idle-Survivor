@@ -1,3 +1,5 @@
+import { config } from '../config'
+
 /**
  * The influence map. (spec 3)
  *
@@ -96,6 +98,20 @@ export class InfluenceMap {
   readonly size: number
   readonly scores: Float32Array
 
+  /**
+   * Danger magnitude only, kept separate from the total.
+   *
+   * The flow pass needs to know where the walls are, and it can't recover
+   * that from `scores` — a cell with a pack of enemies standing on a pile of
+   * loot sums to roughly zero, which is indistinguishable from empty ground
+   * and is exactly the sort of place value must not flow through.
+   */
+  readonly hazard: Float32Array
+
+  /** Scratch for the flow pass, allocated once. */
+  private readonly flow: Float32Array
+  private readonly passability: Float32Array
+
   /** World position of the centre of cell (0, 0). */
   private originX = 0
   private originY = 0
@@ -105,7 +121,11 @@ export class InfluenceMap {
     readonly halfCells: number,
   ) {
     this.size = halfCells * 2 + 1
-    this.scores = new Float32Array(this.size * this.size)
+    const cells = this.size * this.size
+    this.scores = new Float32Array(cells)
+    this.hazard = new Float32Array(cells)
+    this.flow = new Float32Array(cells)
+    this.passability = new Float32Array(cells)
   }
 
   /**
@@ -121,6 +141,7 @@ export class InfluenceMap {
     this.originX = snappedX - this.halfCells * this.cellSize
     this.originY = snappedY - this.halfCells * this.cellSize
     this.scores.fill(0)
+    this.hazard.fill(0)
   }
 
   /**
@@ -130,7 +151,7 @@ export class InfluenceMap {
    * how a Hulk can be more frightening than a Shambler using the same layer,
    * driven by a number in the enemy's data entry rather than by a branch.
    */
-  stamp(layerName: string, settings: LayerSettings, x: number, y: number, strength = 1): void {
+  stamp(layerName: string, settings: LayerSettings, x: number, y: number, strength = 1, isHazard = false): void {
     const kernel = kernelFor(layerName, settings, this.cellSize)
     const amount = settings.weight * strength
 
@@ -149,7 +170,9 @@ export class InfluenceMap {
       const kernelRow = (iy + k) * kernel.size + k
       const scoreRow = (cy + iy) * this.size + cx
       for (let ix = minIx; ix <= maxIx; ix++) {
-        this.scores[scoreRow + ix] += kernel.values[kernelRow + ix] * amount
+        const contribution = kernel.values[kernelRow + ix] * amount
+        this.scores[scoreRow + ix] += contribution
+        if (isHazard) this.hazard[scoreRow + ix] += Math.abs(contribution)
       }
     }
   }
@@ -171,6 +194,82 @@ export class InfluenceMap {
         this.scores[row + ix] += contribution(this.cellCentreX(ix), worldY)
       }
     }
+  }
+
+  /**
+   * Flood reward outward so it flows *around* danger instead of through it,
+   * and fold the result back into the field.
+   *
+   * This is the thing that fixes the movement AI's whole class of problem.
+   * Everything before it steered by firing straight probes into the raw
+   * field, and a straight line cannot represent going around an obstacle —
+   * a probe aimed at a globe behind a pack of enemies averages in the pack
+   * and reads as "bad idea", so he stayed put. Long probes only made that
+   * worse, because they averaged over more terrain, and they overshot
+   * anything close by.
+   *
+   * Here a cell's value is the best value reachable *from* it: the maximum of
+   * its neighbours, faded a little per step and throttled by how passable the
+   * cell is. Danger doesn't subtract from the value flowing past, it
+   * constricts it — so a wall of enemies with a gap has value pouring through
+   * the gap, and walking uphill takes him through it.
+   *
+   * Implemented as alternating raster sweeps rather than a priority queue.
+   * Updates are read back immediately within a sweep, so information travels
+   * the length of the grid in a single pass, and four passes cover every
+   * direction. It's approximate where a Dijkstra would be exact, and it's a
+   * fraction of the cost for a field that gets thrown away 30 times a second.
+   */
+  computeFlow(): void {
+    const { sweeps, decay, hazardResistance, minPassability, weight } = config.influence.flow
+    const { size, scores, hazard, flow, passability } = this
+
+    for (let i = 0; i < flow.length; i++) {
+      // Only rewards seed the flood. Negative cells are obstacles to route
+      // around, not sources of anything.
+      flow[i] = scores[i] > 0 ? scores[i] : 0
+      passability[i] = Math.max(minPassability, 1 / (1 + hazard[i] * hazardResistance))
+    }
+
+    const straight = decay
+    // A diagonal step covers more ground, so it should cost more to cross.
+    const diagonal = Math.pow(decay, Math.SQRT2)
+
+    for (let sweep = 0; sweep < sweeps; sweep++) {
+      const forward = sweep % 2 === 0
+      const first = forward ? 0 : size - 1
+      const past = forward ? size : -1
+      const step = forward ? 1 : -1
+
+      for (let y = first; y !== past; y += step) {
+        for (let x = first; x !== past; x += step) {
+          const index = y * size + x
+          const throughput = passability[index]
+          let best = flow[index]
+
+          for (let dy = -1; dy <= 1; dy++) {
+            const ny = y + dy
+            if (ny < 0 || ny >= size) continue
+
+            for (let dx = -1; dx <= 1; dx++) {
+              if (dx === 0 && dy === 0) continue
+              const nx = x + dx
+              if (nx < 0 || nx >= size) continue
+
+              const fade = dx !== 0 && dy !== 0 ? diagonal : straight
+              const candidate = flow[ny * size + nx] * fade * throughput
+              if (candidate > best) best = candidate
+            }
+          }
+
+          flow[index] = best
+        }
+      }
+    }
+
+    // Folded into the field rather than kept separate, so sampling and the
+    // heatmap both automatically show what he actually steers on.
+    for (let i = 0; i < scores.length; i++) scores[i] += weight * flow[i]
   }
 
   /**

@@ -88,21 +88,18 @@ Note also that straight-line probes cannot represent going *around* something,
 however far they reach. Routing through a thin sector needs a diffusion pass
 over the grid so value flows around danger rather than through it.
 
-## Known: the shop's pull is weakest at the door
+## Fixed by the flow field: walking past the shop
 
-He sometimes walks straight past a shop he wants. Not a targeting bug — the
-shop field is a cone with its peak at the shop, and his probes reach 560 units,
-so when the shop is ~100 away three of the four land *past* it where the value
-is lower again.
+He used to walk straight past a shop he wanted. Not a targeting bug — the shop
+field is a cone peaking at the shop, and his probes reached 560 units, so at
+~100 away three of the four landed *past* it where the value drops again.
+Measured from a live frame at 103 units out: toward the shop scored −1.0,
+perpendicular −3.2, away −5.5. It still won, by about two points; at 2000 units
+out that gap is eighteen. Any globe cluster outbid the last hundred units.
 
-Worked from a live frame at 103 units out: toward the shop scores −1.0,
-perpendicular −3.2, away −5.5. The shop still wins, but by about 2 points; at
-2000 units out that gap is around 18. Any decent globe cluster outbids the last
-hundred units.
-
-Cheap mitigation: raise `shop.radius` so he counts as arrived from further out.
-Real fix: a flow field, which follows a local gradient rather than sampling far
-ahead, so there is nothing to overshoot.
+The flow pass removed the need for long probes at all, so they came back down
+to 230 and the overshoot went with them. Measured after: 417 → 144 → arrived,
+straight in, no veering.
 
 ## Known: the sprite is a billboard, the collision is a circle at its feet
 

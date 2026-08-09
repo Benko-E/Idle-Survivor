@@ -67,6 +67,20 @@ export function drawHeatmap(renderer: Renderer, world: World): void {
  * same as enemies — and "he's avoiding that because he was just there" looks
  * identical to "he's avoiding that because it will kill him" otherwise.
  */
+/**
+ * His actual collision and pickup footprints.
+ *
+ * The drawn character is a billboard — everything above the base of the
+ * rectangle is behind him in world terms and occupies no ground. Without
+ * these rings, enemies appear to touch him without hurting him and globes
+ * appear to pass under him uncollected, and both look like bugs.
+ */
+export function drawFootprint(renderer: Renderer, world: World): void {
+  const { x, y, radius } = world.character
+  renderer.strokeWorldCircle(x, y, radius, '#ff6b6b', 1, 0.7)
+  renderer.strokeWorldCircle(x, y, config.pickups.collectRadius, '#4fd6e8', 1, 0.5)
+}
+
 export function drawTrail(renderer: Renderer, world: World): void {
   for (const mark of world.trail) {
     const freshness = markFreshness(world, mark)

@@ -34,8 +34,9 @@ function rebuild(world: World): void {
 
   influenceMap.beginUpdate(character.x, character.y)
 
+  // Flagged as hazard so the flow pass knows where the walls are.
   for (const enemy of world.enemies) {
-    influenceMap.stamp('enemyDanger', layers.enemyDanger, enemy.x, enemy.y, enemy.def.dangerWeight)
+    influenceMap.stamp('enemyDanger', layers.enemyDanger, enemy.x, enemy.y, enemy.def.dangerWeight, true)
   }
 
   // Two layers per pickup, saying different things.
@@ -87,6 +88,10 @@ function rebuild(world: World): void {
     influenceMap.stamp('pickupWide', layers.pickupWide, pickup.x, pickup.y, pull)
     influenceMap.stamp('pickupNear', layers.pickupNear, pickup.x, pickup.y, pull)
   }
+
+  // Last, once every source is in place: flood the rewards outward so they
+  // reach him around obstacles rather than through them.
+  if (config.influence.flow.weight > 0) influenceMap.computeFlow()
 }
 
 /**

@@ -1,6 +1,6 @@
 import { config } from './config'
 import { startLoop, stats } from './core/loop'
-import { drawCandidates, drawHeatmap, drawTrail } from './render/debugOverlay'
+import { drawCandidates, drawFootprint, drawHeatmap, drawTrail } from './render/debugOverlay'
 import { drawEffects } from './render/effects'
 import { Renderer, type Drawable } from './render/renderer'
 import { updateCombat } from './sim/combat'
@@ -217,6 +217,7 @@ function render(): void {
 
   if (showCandidates) {
     drawTrail(renderer, world)
+    drawFootprint(renderer, world)
     drawCandidates(renderer, world)
   }
 

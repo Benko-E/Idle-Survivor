@@ -100,6 +100,39 @@ export const config = {
     updateHz: 30,
 
     /**
+     * The flow pass. Floods reward outward so it travels around danger
+     * instead of through it, which is what lets him find a route rather than
+     * judging every direction by what sits on the straight line.
+     *
+     * With this on, long look-ahead probes stop being necessary — the routing
+     * information is baked into the field at every point, so a short probe
+     * already knows about a globe three hundred units away behind a pack.
+     */
+    flow: {
+      /**
+       * Raster sweeps per rebuild. Each one carries information the whole
+       * length of the grid in its own direction; four covers all of them.
+       */
+      sweeps: 4,
+      /**
+       * Value retained per cell crossed. Sets how far a reward's pull
+       * carries: at 0.96 over 30-unit cells it's down to a third after
+       * roughly 900 units.
+       */
+      decay: 0.96,
+      /**
+       * How hard danger constricts value flowing through a cell. Higher makes
+       * him treat packs as solid walls and insist on going around; lower lets
+       * value seep through and he'll consider barging past.
+       */
+      hazardResistance: 0.15,
+      /** Floor, so a fully enclosed pocket still has some gradient in it. */
+      minPassability: 0.02,
+      /** How much the routed field counts against the raw local one. */
+      weight: 1,
+    },
+
+    /**
      * Each layer is weight + how far it reaches + the shape of its falloff.
      * Weight is signed: negative repels, positive attracts. Danger is not a
      * special case in the code, it's just a layer with a negative weight.
@@ -190,13 +223,20 @@ export const config = {
      * How far along each candidate the map is read. Multiple probes so he can
      * tell "clear ahead" from "clear for one step, then a wall".
      *
-     * The furthest probe must out-reach the area he camps in. When his sight
-     * stopped at 260 and his soured zone was 315 across, every direction he
-     * could see was equally stale — a uniform penalty is a constant, and a
-     * constant added to every candidate changes nothing. He could feel that
-     * where he stood was bad and had no way to see anywhere better.
+     * Short again, now that the flow pass exists.
+     *
+     * They were stretched to 560 because a uniform camping penalty across
+     * everything he could see is a constant that changes no comparison, so he
+     * needed to see past it. But long straight probes have their own failure:
+     * they average over terrain the route would avoid, and they overshoot
+     * anything nearby — which is why he walked past shops he wanted, three of
+     * his four probes landing beyond the door where the value drops again.
+     *
+     * The flow field carries the long-range information now, baked into every
+     * cell, so a short probe already knows what's reachable far away. Probes
+     * are back to doing the one job they're good at: local dodging.
      */
-    lookAheadDistances: [40, 140, 320, 560],
+    lookAheadDistances: [40, 120, 230],
 
     /**
      * Importance of each probe, matched by position to the distances above.
@@ -206,7 +246,7 @@ export const config = {
      * would dilute the close-range detail he dodges with — which is the real
      * cost of longer sight, and the reason to weight rather than just extend.
      */
-    lookAheadWeights: [1, 0.85, 0.6, 0.45],
+    lookAheadWeights: [1, 0.8, 0.6],
     /**
      * Bonus for continuing the way he's already going. This is the main
      * anti-dithering control — too low and he vibrates between equally good
@@ -279,10 +319,19 @@ export const config = {
      */
     gradientLength: 1000,
     /**
-     * Cap on eagerness, in multiples of the threshold. Kept low — at high
-     * eagerness he beelines through anything in the way.
+     * Cap on eagerness, in multiples of the threshold.
+     *
+     * Deliberately high, because the cap is what makes him get stuck. At 1.6
+     * he was observed carrying 250 against a threshold of 60 while a globe
+     * cluster outbid the trip — "I'm loaded" had become a plateau instead of
+     * mounting pressure, so nothing changed no matter how long he ignored it.
+     *
+     * Letting it climb means the longer he puts the trip off the more
+     * irresistible it becomes, so being stuck is self-correcting rather than
+     * permanent. Still capped so a freak hoard can't send him sprinting
+     * blindly through a wall of Hulks.
      */
-    maxEagerness: 1.6,
+    maxEagerness: 6,
     drawSize: 46,
   },
 
