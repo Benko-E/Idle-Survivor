@@ -1,4 +1,6 @@
 import { rollDrops } from './drops'
+import { grantXp } from './progression'
+import { characterStat } from './stats'
 import type { Enemy, World } from './world'
 
 /**
@@ -27,5 +29,11 @@ export function damageEnemy(world: World, enemy: Enemy, amount: number): void {
 
   enemy.hp = 0
   world.kills++
+
+  // XP is awarded here rather than dropped, so it can never be left on the
+  // floor. Tagged with the enemy's own tags, which is what makes a future
+  // "+20% XP from undead" possible with no code.
+  grantXp(world, characterStat(world, 'xpGain', enemy.def.xpValue, enemy.def.tags))
+
   rollDrops(world, enemy)
 }

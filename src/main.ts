@@ -12,6 +12,7 @@ import { updateCharacterMovement } from './sim/movement'
 import { occupancySaturation, updateOccupancy } from './sim/occupancy'
 import { pickupColour, pickupSize } from './sim/pickupTiers'
 import { updatePickups } from './sim/pickups'
+import { levelProgress } from './sim/progression'
 import { distanceToShop, shopEagerness, updateShop } from './sim/shop'
 import { updateSpawner } from './sim/spawner'
 import { updateTrail } from './sim/trail'
@@ -225,6 +226,7 @@ function render(): void {
     renderer.drawOffscreenMarker(world.shopX, world.shopY, shopEagerness(world) > 0 ? '#ffd76b' : '#3f4a54')
   }
 
+  renderer.drawXpBar(levelProgress(world), world.level)
   renderer.drawHealthBar(world.character.hp / world.character.maxHp)
 
   if (showOverlay) {
@@ -236,14 +238,15 @@ function render(): void {
       `enemies      ${world.enemies.length}`,
       `kills        ${world.kills}`,
       `dealing      ${(world.damageDealt / elapsed).toFixed(0)} dps`,
-      `xp           ${world.xp.toFixed(0)}`,
+      `level        ${world.level}  (${world.xp.toFixed(0)} xp)`,
+      `gold         ${world.gold.toFixed(0)} carried, ${world.goldEarned.toFixed(0)} earned`,
       `pickups      ${world.pickups.length} down, ${world.pickupsCollected} taken`,
       `by tier      ${tierHistogram()}`,
       `missed       ${world.pickupsMissed}`,
       `spawn rate   ${spawnsPerSecond(world.time).toFixed(1)}/s`,
       `enemy hp     x${hpMultiplier(world.time).toFixed(2)}`,
       `camped here  ${(occupancySaturation(world, world.character.x, world.character.y) * 100).toFixed(0)}%`,
-      `carrying     ${world.carried.toFixed(0)} / ${config.shop.spendThreshold}`,
+      `to bank at   ${config.shop.spendThreshold} gold`,
       `shop         ${distanceToShop(world).toFixed(0)} away, ${world.shopVisits} visits`,
       `doing        ${world.intent}`,
       `wraps        ${world.wraps}`,

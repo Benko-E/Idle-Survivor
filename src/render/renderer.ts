@@ -217,6 +217,28 @@ export class Renderer {
     ctx.globalAlpha = 1
   }
 
+  /** Thin experience bar, sitting just above the health bar. */
+  drawXpBar(fraction: number, level: number): void {
+    const { ctx } = this
+    const w = Math.min(420, this.viewW - 80)
+    const h = 5
+    const x = (this.viewW - w) / 2
+    const y = this.viewH - 44
+
+    ctx.globalAlpha = 0.5
+    ctx.fillStyle = '#000000'
+    ctx.fillRect(x, y, w, h)
+    ctx.globalAlpha = 1
+
+    ctx.fillStyle = '#7dc4ff'
+    ctx.fillRect(x, y, w * Math.max(0, Math.min(1, fraction)), h)
+
+    ctx.fillStyle = '#9fb3c2'
+    ctx.font = '11px ui-monospace, Consolas, monospace'
+    ctx.textBaseline = 'bottom'
+    ctx.fillText(`lv ${level}`, x - 34, y + h + 2)
+  }
+
   /** Fixed health bar along the bottom of the screen. */
   drawHealthBar(fraction: number): void {
     const { ctx } = this

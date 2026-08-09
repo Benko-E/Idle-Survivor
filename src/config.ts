@@ -419,12 +419,12 @@ export const config = {
       hz: 4,
 
       /**
-       * XP multiplier per tier. Equal to `count` conserves value exactly, so
-       * merging is neither a bonus nor a tax — five globes are worth what the
-       * five were worth. Raise it above `count` if you want piles to reward
+       * Gold multiplier per tier. Equal to `count` conserves value exactly, so
+       * merging is neither a bonus nor a tax — five piles are worth what the
+       * five were worth. Raise it above `count` if you want hoards to reward
        * patience.
        */
-      xpPerTier: 5,
+      goldPerTier: 5,
 
       /**
        * Pull multiplier per tier. Deliberately far below xpPerTier: a tier 2
@@ -492,6 +492,21 @@ export const config = {
      * arrives as a solid wall.
      */
     wrapJitter: 0.3,
+  },
+
+  /**
+   * The XP curve. (spec 4, spec 5.3)
+   *
+   * XP needed to leave level n is baseXp * n^exponent — a formula, never a
+   * table, so changing the shape moves every level at once.
+   *
+   * At these values a ~2:30 run reaching roughly 450 kills lands around level
+   * 8, which is enough level-ups for a draft to feel like a build rather than
+   * a single decision.
+   */
+  progression: {
+    baseXp: 14,
+    exponent: 1.45,
   },
 
   /** Constants behind the formulas in sim/difficulty.ts. (spec 5.3) */

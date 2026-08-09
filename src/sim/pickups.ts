@@ -1,6 +1,6 @@
 import { config } from '../config'
 import { updatePickupMerging } from './pickupMerge'
-import { pickupXp } from './pickupTiers'
+import { pickupGold } from './pickupTiers'
 import { characterStat } from './stats'
 import type { World } from './world'
 
@@ -27,12 +27,11 @@ function collect(world: World): void {
     const dy = pickup.y - cy
     if (dx * dx + dy * dy > radiusSquared) continue
 
-    // Tags come from the globe, so "+50% XP from rare globes" selects on them,
-    // and a debuff is { target: 'xpGain', op: 'multiply', value: 0.5 }.
-    const gained = characterStat(world, 'xpGain', pickupXp(pickup), pickup.def.tags)
-    world.xp += gained
-    // TEMPORARY: also counts towards the shop trip. Becomes gold later.
-    world.carried += gained
+    // Tags come from the pile, so "+50% gold from rare drops" selects on them,
+    // and a curse is { target: 'goldGain', op: 'multiply', value: 0.5 }.
+    const gained = characterStat(world, 'goldGain', pickupGold(pickup), pickup.def.tags)
+    world.gold += gained
+    world.goldEarned += gained
     world.pickupsCollected++
 
     world.pickups[i] = world.pickups[world.pickups.length - 1]

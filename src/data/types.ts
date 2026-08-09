@@ -26,8 +26,18 @@ export interface EnemyDef {
   /** Base stats, before the difficulty formulas scale them at spawn time. */
   baseHp: number
   baseSpeed: number
-  /** Damage dealt to the character on contact. Not wired up until step 2. */
+  /** Damage dealt to the character on contact. */
   contactDamage: number
+
+  /**
+   * Experience granted for killing it, before any xpGain modifiers.
+   *
+   * XP is not a thing you pick up — it's awarded automatically on the kill.
+   * Gold is the thing that drops and gets carried to a shop. Keeping them
+   * separate means a run's progression and its economy can be tuned
+   * independently, and "+20% XP from undead" selects on this enemy's tags.
+   */
+  xpValue: number
 
   /** Collision size, and how much room it takes up in a crowd. */
   radius: number
@@ -87,8 +97,8 @@ export interface PickupDef {
   id: string
   tags: Tag[]
 
-  /** XP at tier 0, before tier scaling and before any xpGain modifiers. */
-  baseXp: number
+  /** Gold at tier 0, before tier scaling and before any goldGain modifiers. */
+  baseGold: number
 
   /**
    * Pull on the movement AI at tier 0, deliberately separate from XP value.

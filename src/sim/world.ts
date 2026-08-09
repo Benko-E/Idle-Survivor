@@ -95,14 +95,18 @@ export interface World {
    */
   modifiers: Modifier[]
 
-  /** Total XP banked this run. The level curve arrives in step 5. */
+  /** Awarded per kill, never dropped. See sim/progression.ts. */
   xp: number
+  level: number
+  /** XP accumulated towards the next level, for the bar. */
+  xpIntoLevel: number
+  /** Levels earned but not yet spent. Step 6's draft consumes these. */
+  pendingLevelUps: number
 
-  /**
-   * TEMPORARY. Value collected since his last shop visit, and where the shop
-   * is. Stands in for gold until there is such a thing. See config.shop.
-   */
-  carried: number
+  /** Gold in his pocket right now, zeroed at the shop. */
+  gold: number
+  /** Lifetime gold this run, for the readout. */
+  goldEarned: number
   /**
    * What he's currently trying to do. The only high-level state in the game —
    * everything about *how* he gets anywhere stays emergent from the field.
@@ -167,7 +171,11 @@ export function createWorld(seed: number = config.world.seed): World {
     })),
     modifiers: [],
     xp: 0,
-    carried: 0,
+    level: 1,
+    xpIntoLevel: 0,
+    pendingLevelUps: 0,
+    gold: 0,
+    goldEarned: 0,
     intent: 'farming',
     shopX: Math.cos(shopAngle) * config.shop.distanceFromStart,
     shopY: Math.sin(shopAngle) * config.shop.distanceFromStart,

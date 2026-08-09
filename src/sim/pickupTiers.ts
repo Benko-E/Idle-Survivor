@@ -7,15 +7,15 @@ import type { Pickup } from './world'
  * All formulas over one integer, so there is no ceiling — tier 9 works
  * exactly as well as tier 1 and nobody had to define it.
  *
- * The important detail is that XP and pull scale at *different* rates. XP
- * multiplies by the merge count, which conserves value exactly: five globes
+ * The important detail is that gold and pull scale at *different* rates. Gold
+ * multiplies by the merge count, which conserves value exactly: five piles
  * combining into one is worth precisely what the five were worth, so merging
  * is neutral rather than a hidden bonus or tax. Pull grows far more slowly,
- * so a big globe is loud but not so loud it drowns out survival.
+ * so a big pile is loud but not so loud it drowns out survival.
  */
 
-export function pickupXp(pickup: Pickup): number {
-  return pickup.def.baseXp * Math.pow(config.pickups.merge.xpPerTier, pickup.tier)
+export function pickupGold(pickup: Pickup): number {
+  return pickup.def.baseGold * Math.pow(config.pickups.merge.goldPerTier, pickup.tier)
 }
 
 export function pickupPull(pickup: Pickup): number {

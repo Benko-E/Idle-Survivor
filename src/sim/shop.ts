@@ -35,7 +35,7 @@ export function shopEagerness(world: World): number {
 
   const { spendThreshold, maxEagerness } = config.shop
   // At least 1, so committing has real force even at exactly the threshold.
-  return Math.min(maxEagerness, Math.max(1, world.carried / spendThreshold))
+  return Math.min(maxEagerness, Math.max(1, world.gold / spendThreshold))
 }
 
 export function distanceToShop(world: World): number {
@@ -54,15 +54,15 @@ export function updateShop(world: World): void {
   if (!config.shop.enabled) return
 
   if (world.intent === 'farming') {
-    if (world.carried >= config.shop.spendThreshold) world.intent = 'banking'
+    if (world.gold >= config.shop.spendThreshold) world.intent = 'banking'
     return
   }
 
   if (distanceToShop(world) > config.shop.radius) return
 
   world.intent = 'farming'
-  world.spentAtShop += world.carried
-  world.carried = 0
+  world.spentAtShop += world.gold
+  world.gold = 0
   world.shopVisits++
 
   // Move it somewhere new, measured from where he is now.
