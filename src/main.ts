@@ -17,6 +17,7 @@ import { distanceToShop, shopEagerness, updateShop } from './sim/shop'
 import { updateSpawner } from './sim/spawner'
 import { updateTrail } from './sim/trail'
 import { createWorld } from './sim/world'
+import { DebugPanel } from './ui/debugPanel'
 import { DraftUi } from './ui/draft'
 
 /**
@@ -40,6 +41,7 @@ const renderer = new Renderer(canvas)
 let world = createWorld()
 // A getter, because restarting replaces the world object entirely.
 const draftUi = new DraftUi(() => world)
+new DebugPanel()
 let bestTime = 0
 let lastTime = 0
 let deathElapsed = 0
