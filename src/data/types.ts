@@ -70,8 +70,13 @@ export interface EnemyDef {
    */
   drops: DropEntry[]
 
-  /** Placeholder art. Replaced by a sprite reference later. */
+  /**
+   * Sprite sheet name, from src/render/sprites.ts. Recasting an enemy is
+   * changing this string. `colour` remains the fallback if art is missing.
+   */
+  sprite?: string
   colour: string
+  /** Drawn height in world units. Width follows from the sprite's aspect. */
   drawHeight: number
 }
 

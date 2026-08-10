@@ -3,6 +3,7 @@ import { startLoop, stats } from './core/loop'
 import { drawCandidates, drawFootprint, drawHeatmap, drawTrail } from './render/debugOverlay'
 import { drawEffects } from './render/effects'
 import { Renderer, type Drawable } from './render/renderer'
+import { facingRow, getSheet, loadSprites, walkFrame } from './render/sprites'
 import { updateCombat } from './sim/combat'
 import { updateContactDamage } from './sim/damage'
 import { hpMultiplier, spawnsPerSecond } from './sim/difficulty'
@@ -193,12 +194,21 @@ function render(): void {
   }
 
   for (const enemy of world.enemies) {
+    const sheet = getSheet(enemy.def.sprite)
+    const h = enemy.def.drawHeight
     frame.push({
       x: enemy.x,
       y: enemy.y,
-      w: enemy.def.radius * 2,
-      h: enemy.def.drawHeight,
+      // Width follows the art's proportions when there is art, so changing a
+      // sprite never means also retuning a width.
+      w: sheet ? h * sheet.aspect : enemy.def.radius * 2,
+      h,
       colour: enemy.def.colour,
+      sheet,
+      // Enemies always walk straight at him, so their heading is simply the
+      // direction to the character.
+      frameRow: sheet ? facingRow(world.character.x - enemy.x, world.character.y - enemy.y) : undefined,
+      frameCol: sheet ? walkFrame(world.time, enemy.speed, enemy.id, config.character.stepLength) : undefined,
     })
   }
 
@@ -212,12 +222,21 @@ function render(): void {
     })
   }
 
+  const heroSheet = getSheet(config.character.sprite)
+  const heroHeight = config.character.drawHeight
   frame.push({
     x: world.character.x,
     y: world.character.y,
-    w: config.character.radius * 2,
-    h: config.character.radius * 3.4,
+    w: heroSheet ? heroHeight * heroSheet.aspect : config.character.radius * 2,
+    h: heroSheet ? heroHeight : config.character.radius * 3.4,
     colour: world.state === 'dead' ? '#6b5a34' : '#e8c468',
+    sheet: heroSheet,
+    frameRow: heroSheet ? facingRow(world.character.facingX, world.character.facingY) : undefined,
+    // Frozen on the standing frame once he's dead.
+    frameCol:
+      heroSheet && world.state === 'running'
+        ? walkFrame(world.time, world.character.speed, 0, config.character.stepLength)
+        : 1,
   })
 
   renderer.drawScene(frame)
@@ -281,4 +300,19 @@ function render(): void {
   }
 }
 
-startLoop(update, render)
+/**
+ * Wait for the art before the first frame.
+ *
+ * Without this you get a flash of an empty world while the images decode.
+ * If loading fails the game still starts — every drawable keeps a colour
+ * fallback, so a missing sheet costs you the art, not the game.
+ */
+renderer.drawLoading('loading...')
+
+loadSprites()
+  .catch((error: unknown) => {
+    console.warn('Sprites failed to load, falling back to shapes.', error)
+  })
+  .finally(() => {
+    startLoop(update, render)
+  })

@@ -1,4 +1,5 @@
 import { config } from '../config'
+import { getGroundTile, type SpriteSheet } from './sprites'
 
 /**
  * Everything the renderer knows how to draw.
@@ -16,7 +17,12 @@ export interface Drawable {
   y: number
   w: number
   h: number
+  /** Fallback fill, and still the whole story for things with no art yet. */
   colour: string
+  /** When present, a frame from this sheet is drawn instead of the rectangle. */
+  sheet?: SpriteSheet
+  frameCol?: number
+  frameRow?: number
 }
 
 export class Renderer {
@@ -29,6 +35,8 @@ export class Renderer {
 
   /** Screen pixels per world unit. Recomputed on resize. */
   private scale = 1
+  /** Built lazily, once the ground tile has decoded. */
+  private groundPattern: CanvasPattern | null = null
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext('2d')
@@ -82,6 +90,14 @@ export class Renderer {
      * Only the vertical is pinned. A wide monitor still sees further sideways,
      * because the alternative is letterboxing, and nobody wants that.
      */
+    this.recomputeScale()
+  }
+
+  /**
+   * Recomputed every frame rather than only on resize, so the framing can be
+   * dragged live in the debug panel. It's two divisions.
+   */
+  private recomputeScale(): void {
     const { visibleWorldHeight, minScale, maxScale, yScale } = config.render
     const fitted = this.viewH / (visibleWorldHeight * yScale)
     this.scale = Math.max(minScale, Math.min(maxScale, fitted))
@@ -113,6 +129,33 @@ export class Renderer {
     const cell = config.render.gridCellSize
     const halfW = this.worldHalfWidth
     const halfH = this.worldHalfHeight
+
+    // Tiled grass, if the art has loaded. Drawn as a pattern under a world
+    // transform so the tiles sit in world space and scroll with the camera —
+    // an endless world needs an endless floor, and a repeating fill is the
+    // cheapest possible way to get one.
+    const tile = getGroundTile()
+    if (tile) {
+      const pattern = this.groundPattern ?? (this.groundPattern = ctx.createPattern(tile, 'repeat'))
+      if (pattern) {
+        ctx.save()
+        ctx.translate(this.worldToScreenX(0), this.worldToScreenY(0))
+        ctx.scale(this.scale, this.scale * config.render.yScale)
+        ctx.fillStyle = pattern
+        ctx.fillRect(this.camera.x - halfW, this.camera.y - halfH, halfW * 2, halfH * 2)
+        ctx.restore()
+      }
+
+      const shade = config.render.groundShade
+      if (shade > 0) {
+        ctx.globalAlpha = shade
+        ctx.fillStyle = '#000000'
+        ctx.fillRect(0, 0, this.viewW, this.viewH)
+        ctx.globalAlpha = 1
+      }
+    }
+
+    if (!config.render.showGrid) return
 
     ctx.strokeStyle = config.render.gridColour
     ctx.lineWidth = 1
@@ -166,6 +209,22 @@ export class Renderer {
       ctx.ellipse(sx, sy, (w / 2) * shadowWidthRatio, (w / 2) * shadowWidthRatio * yScale, 0, 0, Math.PI * 2)
       ctx.fill()
       ctx.globalAlpha = 1
+
+      if (item.sheet) {
+        const { image, frameWidth, frameHeight } = item.sheet
+        ctx.drawImage(
+          image,
+          (item.frameCol ?? 0) * frameWidth,
+          (item.frameRow ?? 0) * frameHeight,
+          frameWidth,
+          frameHeight,
+          Math.round(sx - w / 2),
+          Math.round(sy - h),
+          Math.ceil(w),
+          Math.ceil(h),
+        )
+        continue
+      }
 
       ctx.fillStyle = item.colour
       ctx.fillRect(Math.round(sx - w / 2), Math.round(sy - h), w, h)
@@ -254,6 +313,20 @@ export class Renderer {
     ctx.arc(cx + Math.cos(angle) * scale, cy + Math.sin(angle) * scale, 7, 0, Math.PI * 2)
     ctx.fill()
     ctx.globalAlpha = 1
+  }
+
+  /** Shown while the art decodes, so the first frame isn't an empty world. */
+  drawLoading(message: string): void {
+    const { ctx } = this
+    ctx.fillStyle = config.render.backgroundColour
+    ctx.fillRect(0, 0, this.viewW, this.viewH)
+    ctx.fillStyle = '#9fb3c2'
+    ctx.font = '14px ui-monospace, Consolas, monospace'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(message, this.viewW / 2, this.viewH / 2)
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'alphabetic'
   }
 
   /** Thin experience bar, sitting just above the health bar. */

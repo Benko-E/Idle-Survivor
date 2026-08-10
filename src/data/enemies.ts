@@ -1,4 +1,4 @@
-import type { EnemyDef } from './types'
+﻿import type { EnemyDef } from './types'
 
 /**
  * The entire enemy roster. (spec 5.1)
@@ -12,8 +12,11 @@ import type { EnemyDef } from './types'
 export const ENEMY_DEFS: EnemyDef[] = [
   {
     id: 'enemy_basic_01',
-    displayName: 'Shambler',
-    tags: ['melee', 'undead'],
+    // The id stays generic while the name follows the art. This is exactly
+    // what spec 5.2 is for: recasting the commonest enemy from a slime to a
+    // crab, for contrast reasons, cost one string.
+    displayName: 'Scuttler',
+    tags: ['melee', 'beast'],
     baseHp: 10,
     baseSpeed: 46,
     contactDamage: 6,
@@ -23,6 +26,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     spawnWeight: 100,
     unlockAtSeconds: 0,
     drops: [{ pickupId: 'pickup_gold_01', chance: 0.5 }],
+    sprite: 'shambler',
     colour: '#7a4a52',
     drawHeight: 30,
   },
@@ -44,8 +48,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
       { pickupId: 'pickup_gold_01', chance: 0.08, tier: 1 },
       { pickupId: 'pickup_gold_01', chance: 0.55 },
     ],
-    // Deliberately not gold — the character is yellow, and a mass of Stalkers
-    // was reading as "where did he go?" at a glance.
+    sprite: 'stalker',
     colour: '#5f7a4a',
     drawHeight: 24,
   },
@@ -63,12 +66,13 @@ export const ENEMY_DEFS: EnemyDef[] = [
     spawnWeight: 18,
     unlockAtSeconds: 75,
     // Rare, slow and tanky, so it's worth going out of your way for. Drops
-    // pre-merged globes rather than a bigger pile of small ones.
+    // pre-merged piles rather than a heap of loose coins.
     drops: [
       { pickupId: 'pickup_gold_01', chance: 0.06, tier: 2 },
       { pickupId: 'pickup_gold_01', chance: 0.35, tier: 1 },
       { pickupId: 'pickup_gold_01', chance: 1 },
     ],
+    sprite: 'hulk',
     colour: '#4f5f7a',
     drawHeight: 46,
   },

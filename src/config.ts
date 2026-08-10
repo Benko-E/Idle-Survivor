@@ -14,6 +14,8 @@ export const config = {
     backgroundColour: '#0f1418',
     gridColour: '#1a232b',
     gridCellSize: 96,
+    /** The measuring grid. Useful for debugging, noise once there's ground art. */
+    showGrid: false,
 
     /**
      * The world is flat: positions are x/y only, there is no vertical axis.
@@ -32,7 +34,16 @@ export const config = {
      *
      * Lower = a closer, more claustrophobic view with bigger sprites.
      */
-    visibleWorldHeight: 1150,
+    visibleWorldHeight: 820,
+
+    /**
+     * Black laid over the ground tile, 0..1.
+     *
+     * The grass is bright and saturated at full strength, and sprites drawn on
+     * top of it fight for attention. Knocking the floor back a third makes the
+     * things that matter pop without touching the art.
+     */
+    groundShade: 0.32,
     /** Clamps, so a freakishly shaped window can't produce absurd sprites. */
     minScale: 0.4,
     maxScale: 2.5,
@@ -60,6 +71,11 @@ export const config = {
     moveSpeed: 110,
     radius: 15,
     maxHp: 100,
+    /** Sprite sheet name, and drawn height in world units. */
+    sprite: 'hero',
+    drawHeight: 46,
+    /** World units travelled per walk frame. Lower = faster footsteps. */
+    stepLength: 22,
 
     /**
      * The spellbook he starts a run with, by id from data/weapons.ts.
@@ -563,8 +579,12 @@ export const config = {
   },
 
   debug: {
-    /** Toggle at runtime with F1. */
-    showOverlay: true,
+    /**
+     * The live-state readout. Off by default now the debug panel exists —
+     * they show different things (this is what the run is doing, the panel is
+     * what the knobs are set to), so it's toggled rather than deleted. F1.
+     */
+    showOverlay: false,
     /** The influence map, drawn as a heatmap. Toggle with F2. */
     showHeatmap: false,
     /** The fan of candidate directions and the chosen one. Toggle with F3. */
