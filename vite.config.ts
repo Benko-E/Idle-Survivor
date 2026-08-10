@@ -16,6 +16,19 @@ export default defineConfig({
   },
 
   build: {
+    /**
+     * Committed to the repo and served by GitHub Pages directly, rather than
+     * built in CI.
+     *
+     * Licensed art can't live in a public repo — the GameDev Market licence
+     * forbids sharing assets "other than as part of the relevant Media
+     * Product" — so the source images stay in a gitignored folder on the dev
+     * machine. CI therefore can't build, and the built page is the artefact we
+     * publish instead. It embeds the art as base64, which is the Media
+     * Product, not a served asset folder.
+     */
+    outDir: 'docs',
+    emptyOutDir: true,
     target: 'es2022',
     cssCodeSplit: false,
     assetsInlineLimit: 100_000_000,

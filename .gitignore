@@ -2,3 +2,12 @@ node_modules/
 dist/
 *.local
 .DS_Store
+
+# Licensed source art. Never commit this.
+#
+# The GameDev Market Pro Licence (clause 4.2b) forbids sharing or
+# redistributing the assets "other than as part of the relevant Media
+# Product". A public repo full of the original PNGs would be exactly that.
+#
+# Only the built page in docs/ is published, with the art embedded.
+art-source/
