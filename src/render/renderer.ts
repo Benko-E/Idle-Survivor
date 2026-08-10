@@ -1,5 +1,5 @@
 import { config } from '../config'
-import { getGroundTile, type SpriteSheet } from './sprites'
+import { getGroundStrip, type SpriteSheet } from './sprites'
 
 /**
  * Everything the renderer knows how to draw.
@@ -35,8 +35,8 @@ export class Renderer {
 
   /** Screen pixels per world unit. Recomputed on resize. */
   private scale = 1
-  /** Built lazily, once the ground tile has decoded. */
-  private groundPattern: CanvasPattern | null = null
+  /** Pre-rendered ground chunks, keyed by chunk coordinate. */
+  private readonly groundChunks = new Map<string, HTMLCanvasElement>()
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext('2d')
@@ -72,6 +72,9 @@ export class Renderer {
     this.canvas.width = Math.round(this.viewW * dpr)
     this.canvas.height = Math.round(this.viewH * dpr)
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    // Pixel art scaled up with smoothing turns to mush. Set after every
+    // resize because changing the canvas size resets context state.
+    this.ctx.imageSmoothingEnabled = false
 
     /**
      * Pin the amount of world on screen instead of the size of a pixel.
@@ -130,22 +133,7 @@ export class Renderer {
     const halfW = this.worldHalfWidth
     const halfH = this.worldHalfHeight
 
-    // Tiled grass, if the art has loaded. Drawn as a pattern under a world
-    // transform so the tiles sit in world space and scroll with the camera —
-    // an endless world needs an endless floor, and a repeating fill is the
-    // cheapest possible way to get one.
-    const tile = getGroundTile()
-    if (tile) {
-      const pattern = this.groundPattern ?? (this.groundPattern = ctx.createPattern(tile, 'repeat'))
-      if (pattern) {
-        ctx.save()
-        ctx.translate(this.worldToScreenX(0), this.worldToScreenY(0))
-        ctx.scale(this.scale, this.scale * config.render.yScale)
-        ctx.fillStyle = pattern
-        ctx.fillRect(this.camera.x - halfW, this.camera.y - halfH, halfW * 2, halfH * 2)
-        ctx.restore()
-      }
-
+    if (this.drawGroundChunks(halfW, halfH)) {
       const shade = config.render.groundShade
       if (shade > 0) {
         ctx.globalAlpha = shade
@@ -177,6 +165,104 @@ export class Renderer {
     }
 
     ctx.stroke()
+  }
+
+  /**
+   * Which tile a given square of ground uses.
+   *
+   * A hash of the position rather than a random draw, so the world looks the
+   * same every time you return to a spot — an endless world can't remember
+   * what it rolled, and grass that reshuffles as you walk back over it would
+   * be far more distracting than grass that repeats.
+   */
+  private tileIndexAt(tileX: number, tileY: number, tileCount: number): number {
+    let h = Math.imul(tileX, 374761393) + Math.imul(tileY, 668265263)
+    h = Math.imul(h ^ (h >>> 13), 1274126177)
+    const unit = ((h ^ (h >>> 16)) >>> 0) / 4294967296
+
+    const { groundPlainTiles, groundDetailChance } = config.render
+    const detailCount = tileCount - groundPlainTiles
+
+    if (detailCount > 0 && unit < groundDetailChance) {
+      return groundPlainTiles + Math.floor((unit / groundDetailChance) * detailCount) % detailCount
+    }
+
+    const plainUnit = detailCount > 0 ? (unit - groundDetailChance) / (1 - groundDetailChance) : unit
+    return Math.floor(plainUnit * groundPlainTiles) % groundPlainTiles
+  }
+
+  /** Renders one chunk of ground to an offscreen canvas, once. */
+  private buildGroundChunk(chunkX: number, chunkY: number, strip: HTMLImageElement): HTMLCanvasElement {
+    const { groundTileSize: tile, groundChunkTiles: span } = config.render
+    const tileCount = Math.max(1, Math.round(strip.width / strip.height))
+
+    const canvas = document.createElement('canvas')
+    canvas.width = tile * span
+    canvas.height = tile * span
+
+    const ctx = canvas.getContext('2d')
+    if (ctx) {
+      ctx.imageSmoothingEnabled = false
+      for (let ty = 0; ty < span; ty++) {
+        for (let tx = 0; tx < span; tx++) {
+          const worldTileX = chunkX * span + tx
+          const worldTileY = chunkY * span + ty
+          const index = this.tileIndexAt(worldTileX, worldTileY, tileCount)
+          ctx.drawImage(strip, index * tile, 0, tile, tile, tx * tile, ty * tile, tile, tile)
+        }
+      }
+    }
+
+    return canvas
+  }
+
+  /**
+   * Blit whichever pre-rendered chunks are on screen.
+   *
+   * Drawing every tile individually would be a few thousand draw calls a
+   * frame; chunking makes it about twenty. Returns false if the art hasn't
+   * loaded, so the caller can skip the shading pass too.
+   */
+  private drawGroundChunks(halfW: number, halfH: number): boolean {
+    const strip = getGroundStrip()
+    if (!strip) return false
+
+    const { groundTileSize: tile, groundChunkTiles: span } = config.render
+    const chunkWorld = tile * span
+
+    const minChunkX = Math.floor((this.camera.x - halfW) / chunkWorld)
+    const maxChunkX = Math.floor((this.camera.x + halfW) / chunkWorld)
+    const minChunkY = Math.floor((this.camera.y - halfH) / chunkWorld)
+    const maxChunkY = Math.floor((this.camera.y + halfH) / chunkWorld)
+
+    const { ctx } = this
+
+    for (let cy = minChunkY; cy <= maxChunkY; cy++) {
+      for (let cx = minChunkX; cx <= maxChunkX; cx++) {
+        const key = `${cx},${cy}`
+        let chunk = this.groundChunks.get(key)
+        if (!chunk) {
+          chunk = this.buildGroundChunk(cx, cy, strip)
+          this.groundChunks.set(key, chunk)
+          // Bounded, because the world is endless and he never stops walking.
+          // Map preserves insertion order, so the oldest goes first.
+          if (this.groundChunks.size > 200) {
+            const oldest = this.groundChunks.keys().next().value
+            if (oldest !== undefined) this.groundChunks.delete(oldest)
+          }
+        }
+
+        const left = this.worldToScreenX(cx * chunkWorld)
+        const top = this.worldToScreenY(cy * chunkWorld)
+        const width = chunkWorld * this.scale
+        const height = chunkWorld * this.scale * config.render.yScale
+        // Ceil, so neighbouring chunks overlap by a fraction of a pixel rather
+        // than leaving hairline seams between them.
+        ctx.drawImage(chunk, Math.floor(left), Math.floor(top), Math.ceil(width) + 1, Math.ceil(height) + 1)
+      }
+    }
+
+    return true
   }
 
   /**

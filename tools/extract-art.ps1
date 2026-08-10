@@ -79,9 +79,43 @@ Crop $monsterSht $hulk.x $hulk.y $hulk.w $hulk.h 'hulk.png'
 $stalker = BlockRect 3 1 $monFrameW $monFrameH      # bat
 Crop $monsterSht $stalker.x $stalker.y $stalker.w $stalker.h 'stalker.png'
 
-# Plain grass, from the solid band across the top-left of the terrain sheet.
-# 16x16 grid; this tile is uniform so it repeats seamlessly.
-Crop $terrainSht 48 16 16 16 'grass.png'
+# Ground tiles, packed into a single horizontal strip.
+#
+# One repeating tile reads as wallpaper the moment you can see more than a few
+# metres of it. These are scattered by a hash of the tile's world position, so
+# the field is varied and still identical every time you look at it.
+#
+# Order matters: the first $groundPlain entries are plain grass and everything
+# after is detail. The renderer picks from the two groups at different rates —
+# flowers everywhere would look like confetti.
+# Detail tiles are mostly green tufts rather than flowers. Two reasons: a
+# meadow of scattered blossoms reads as confetti, and the magenta ones were
+# close enough to the red crabs to make a heap of enemies harder to pick out.
+# Breaking up the repetition is the job; adding colour is not.
+$groundTiles = @(
+  @(32, 16), @(48, 16), @(64, 16), @(80, 16),   # plain grass, four variations
+  @(112, 32), @(128, 32),                        # green tufts, subtle
+  @(16, 32),                                     # yellow flowers, sparse
+  @(48, 32)                                      # white flowers, sparse
+)
+
+$tile = 16
+$strip = New-Object System.Drawing.Bitmap(($groundTiles.Count * $tile), $tile)
+$sg = [System.Drawing.Graphics]::FromImage($strip)
+$sg.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::NearestNeighbor
+$sg.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::Half
+$terrainImg = [System.Drawing.Image]::FromFile($terrainSht)
+for ($i = 0; $i -lt $groundTiles.Count; $i++) {
+  $t = $groundTiles[$i]
+  $sg.DrawImage($terrainImg,
+    (New-Object System.Drawing.Rectangle(($i * $tile), 0, $tile, $tile)),
+    (New-Object System.Drawing.Rectangle($t[0], $t[1], $tile, $tile)),
+    [System.Drawing.GraphicsUnit]::Pixel)
+}
+$sg.Dispose(); $terrainImg.Dispose()
+$strip.Save((Join-Path $OutDir 'ground.png'), [System.Drawing.Imaging.ImageFormat]::Png)
+"  {0,-14} {1}x{2} ({3} tiles)" -f 'ground.png', $strip.Width, $strip.Height, $groundTiles.Count
+$strip.Dispose()
 
 # --- contact sheet, for eyeballing the casting -------------------------------
 $names = @('hero.png','shambler.png','hulk.png','stalker.png')

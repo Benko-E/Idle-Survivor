@@ -1,4 +1,4 @@
-import grassUrl from '../../art-source/grass.png'
+import groundUrl from '../../art-source/ground.png'
 import heroUrl from '../../art-source/hero.png'
 import hulkUrl from '../../art-source/hulk.png'
 import shamblerUrl from '../../art-source/shambler.png'
@@ -69,7 +69,7 @@ export async function loadSprites(): Promise<void> {
     loadSheet('shambler', shamblerUrl),
     loadSheet('hulk', hulkUrl),
     loadSheet('stalker', stalkerUrl),
-    loadImage(grassUrl).then((image) => {
+    loadImage(groundUrl).then((image) => {
       ground = image
     }),
   ])
@@ -84,7 +84,8 @@ export function getSheet(name: string | undefined): SpriteSheet | undefined {
   return name ? sheets.get(name) : undefined
 }
 
-export function getGroundTile(): HTMLImageElement | null {
+/** The ground strip: N square tiles side by side, plain ones first. */
+export function getGroundStrip(): HTMLImageElement | null {
   return ground
 }
 

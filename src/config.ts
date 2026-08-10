@@ -18,6 +18,24 @@ export const config = {
     showGrid: false,
 
     /**
+     * The ground. Tiles are scattered by a hash of their world position, so
+     * the field never repeats and yet is identical every time you look at it.
+     *
+     * The strip holds plain grass first and detail tiles after; detailChance
+     * decides how often a tile comes from the detail group. Push it up and the
+     * meadow turns to confetti.
+     */
+    groundTileSize: 16,
+    groundPlainTiles: 4,
+    groundDetailChance: 0.06,
+    /**
+     * Tiles per side of a cached chunk. Chunks are drawn once to an offscreen
+     * canvas and then blitted, which turns a few thousand tile draws per frame
+     * into about twenty.
+     */
+    groundChunkTiles: 16,
+
+    /**
      * The world is flat: positions are x/y only, there is no vertical axis.
      * Moving "up" means moving away from the camera, not upward. (spec I)
      *
