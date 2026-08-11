@@ -28,6 +28,7 @@ $charaSheet  = Join-Path $PackRoot 'over80characterswithanimations_windows\timef
 $monsterSht  = Join-Path $PackRoot 'monsterstimefantasyrpgspritepack_windows\monsterstimefantasyrpgspritepack\Assets\1x\monster1.png'
 $monsterSht2 = Join-Path $PackRoot 'monsterstimefantasyrpgspritepack_windows\monsterstimefantasyrpgspritepack\Assets\1x\monster2.png'
 $terrainSht  = Join-Path $PackRoot 'fantasyrpgtilesetpack_windows\fantasyrpgtilesetpack\Assets\TILESETS\terrain.png'
+$iconDir     = Join-Path $PackRoot 'rpginventoryiconspackvol1_windows\rpginventoryiconspackvol1\Assets\Icons 64x64\Misc'
 
 foreach ($p in @($charaSheet, $monsterSht, $monsterSht2, $terrainSht)) {
   if (-not (Test-Path $p)) { throw "Missing source sheet: $p" }
@@ -116,6 +117,54 @@ $sg.Dispose(); $terrainImg.Dispose()
 $strip.Save((Join-Path $OutDir 'ground.png'), [System.Drawing.Imaging.ImageFormat]::Png)
 "  {0,-14} {1}x{2} ({3} tiles)" -f 'ground.png', $strip.Width, $strip.Height, $groundTiles.Count
 $strip.Dispose()
+
+# Coins, one per gold tier. These come from the inventory icon pack rather than
+# the Time Fantasy set, which has no coin, and they are painterly 64x64 rather
+# than pixel art. Shrinking them to 20px throws away almost all of that detail,
+# which is the point: at this size they read as coins and stop clashing.
+$coinSources = @('Coins_Small.png', 'Coins_Medium.png', 'Coins_Big.png')
+
+# 64 -> 16 is an exact 4:1 reduction, so nearest neighbour lands on real
+# pixels and produces a crunchy result that suits the pixel art around it.
+# Bicubic was the first attempt and was worse twice over: soft against crisp
+# sprites, and it interpolated colour against transparent black, ringing every
+# coin with a dark halo.
+$coinSize = 16
+
+$coins = New-Object System.Drawing.Bitmap(($coinSources.Count * $coinSize), $coinSize)
+$cg = [System.Drawing.Graphics]::FromImage($coins)
+$cg.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::NearestNeighbor
+$cg.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::Half
+for ($i = 0; $i -lt $coinSources.Count; $i++) {
+  $path = Join-Path $iconDir $coinSources[$i]
+  if (-not (Test-Path $path)) { throw "Missing coin icon: $path" }
+  $img = [System.Drawing.Image]::FromFile($path)
+  $cg.DrawImage($img, (New-Object System.Drawing.Rectangle(($i * $coinSize), 0, $coinSize, $coinSize)))
+  $img.Dispose()
+}
+$cg.Dispose()
+
+# These icons ship as 24-bit with no alpha channel: the "transparent" area is
+# literally solid black. Pasted straight in, every coin arrives as a black
+# square. So key the black out, and tint silver to gold in the same pass —
+# the game's currency is gold and the pack's coins are not.
+for ($py = 0; $py -lt $coins.Height; $py++) {
+  for ($px = 0; $px -lt $coins.Width; $px++) {
+    $c = $coins.GetPixel($px, $py)
+    $lum = [Math]::Max($c.R, [Math]::Max($c.G, $c.B))
+    if ($lum -lt 45) {
+      $coins.SetPixel($px, $py, [System.Drawing.Color]::FromArgb(0, 0, 0, 0))
+    } else {
+      $r = [Math]::Min(255, [int]($c.R * 1.30))
+      $g2 = [Math]::Min(255, [int]($c.G * 1.02))
+      $b = [Math]::Min(255, [int]($c.B * 0.40))
+      $coins.SetPixel($px, $py, [System.Drawing.Color]::FromArgb(255, $r, $g2, $b))
+    }
+  }
+}
+$coins.Save((Join-Path $OutDir 'coins.png'), [System.Drawing.Imaging.ImageFormat]::Png)
+"  {0,-14} {1}x{2} ({3} tiers)" -f 'coins.png', $coins.Width, $coins.Height, $coinSources.Count
+$coins.Dispose()
 
 # --- contact sheet, for eyeballing the casting -------------------------------
 $names = @('hero.png','shambler.png','hulk.png','stalker.png')

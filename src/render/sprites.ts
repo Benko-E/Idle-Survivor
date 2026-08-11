@@ -1,3 +1,4 @@
+import coinsUrl from '../../art-source/coins.png'
 import groundUrl from '../../art-source/ground.png'
 import heroUrl from '../../art-source/hero.png'
 import hulkUrl from '../../art-source/hulk.png'
@@ -29,6 +30,16 @@ export interface SpriteSheet {
 
 const COLUMNS = 3
 const ROWS = 4
+
+/**
+ * Coin art tiers. Gold tiers are unbounded (the merge ladder has no ceiling)
+ * so anything above the last one reuses the biggest pile.
+ */
+export const COIN_TIERS = 3
+
+export function coinFrame(tier: number): number {
+  return Math.min(tier, COIN_TIERS - 1)
+}
 
 /** Row indices, matching the sheet layout. */
 export const FACE_DOWN = 0
@@ -62,6 +73,18 @@ async function loadSheet(name: string, url: string): Promise<void> {
   sheets.set(name, { image, frameWidth, frameHeight, aspect: frameWidth / frameHeight })
 }
 
+/** A single row of frames, for things that don't walk. */
+async function loadStrip(name: string, url: string, frames: number): Promise<void> {
+  const image = await loadImage(url)
+  const frameWidth = image.width / frames
+  sheets.set(name, {
+    image,
+    frameWidth,
+    frameHeight: image.height,
+    aspect: frameWidth / image.height,
+  })
+}
+
 /** Resolves once everything is decoded and the first frame can be drawn. */
 export async function loadSprites(): Promise<void> {
   await Promise.all([
@@ -69,6 +92,7 @@ export async function loadSprites(): Promise<void> {
     loadSheet('shambler', shamblerUrl),
     loadSheet('hulk', hulkUrl),
     loadSheet('stalker', stalkerUrl),
+    loadStrip('coins', coinsUrl, COIN_TIERS),
     loadImage(groundUrl).then((image) => {
       ground = image
     }),

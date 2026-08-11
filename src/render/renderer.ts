@@ -23,6 +23,15 @@ export interface Drawable {
   sheet?: SpriteSheet
   frameCol?: number
   frameRow?: number
+  /**
+   * Ground-shadow radius in world units. Defaults to half the drawn width,
+   * which is wrong for sprites — most frames are mostly transparent padding,
+   * so sizing the shadow from the image gives a crab a shadow twice its own
+   * body and a packed horde one continuous smear. Pass the collision radius:
+   * the shadow is the footprint, and that's what the footprint is. Zero for
+   * things lying flat on the ground.
+   */
+  shadowRadius?: number
 }
 
 export class Renderer {
@@ -289,12 +298,15 @@ export class Renderer {
       if (sx + w < 0 || sx - w > this.viewW) continue
       if (sy + h < 0 || sy - h > this.viewH) continue
 
-      ctx.globalAlpha = shadowAlpha
-      ctx.fillStyle = '#000000'
-      ctx.beginPath()
-      ctx.ellipse(sx, sy, (w / 2) * shadowWidthRatio, (w / 2) * shadowWidthRatio * yScale, 0, 0, Math.PI * 2)
-      ctx.fill()
-      ctx.globalAlpha = 1
+      const footprint = (item.shadowRadius ?? item.w / 2) * shadowWidthRatio * this.scale
+      if (footprint > 0) {
+        ctx.globalAlpha = shadowAlpha
+        ctx.fillStyle = '#000000'
+        ctx.beginPath()
+        ctx.ellipse(sx, sy, footprint, footprint * yScale, 0, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.globalAlpha = 1
+      }
 
       if (item.sheet) {
         const { image, frameWidth, frameHeight } = item.sheet

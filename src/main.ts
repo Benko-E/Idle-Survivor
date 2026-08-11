@@ -3,7 +3,7 @@ import { startLoop, stats } from './core/loop'
 import { drawCandidates, drawFootprint, drawHeatmap, drawTrail } from './render/debugOverlay'
 import { drawEffects } from './render/effects'
 import { Renderer, type Drawable } from './render/renderer'
-import { facingRow, getSheet, loadSprites, walkFrame } from './render/sprites'
+import { coinFrame, facingRow, getSheet, loadSprites, walkFrame } from './render/sprites'
 import { updateCombat } from './sim/combat'
 import { updateContactDamage } from './sim/damage'
 import { hpMultiplier, spawnsPerSecond } from './sim/difficulty'
@@ -188,9 +188,21 @@ function render(): void {
     })
   }
 
+  const coins = getSheet('coins')
   for (const pickup of world.pickups) {
     const size = pickupSize(pickup)
-    frame.push({ x: pickup.x, y: pickup.y, w: size, h: size, colour: pickupColour(pickup) })
+    frame.push({
+      x: pickup.x,
+      y: pickup.y,
+      w: size,
+      h: size,
+      colour: pickupColour(pickup),
+      sheet: coins,
+      frameCol: coins ? coinFrame(pickup.tier) : undefined,
+      frameRow: 0,
+      // Gold lies on the ground; a shadow under it would be nonsense.
+      shadowRadius: 0,
+    })
   }
 
   for (const enemy of world.enemies) {
@@ -205,6 +217,7 @@ function render(): void {
       h,
       colour: enemy.def.colour,
       sheet,
+      shadowRadius: enemy.def.radius,
       // Enemies always walk straight at him, so their heading is simply the
       // direction to the character.
       frameRow: sheet ? facingRow(world.character.x - enemy.x, world.character.y - enemy.y) : undefined,
@@ -231,6 +244,7 @@ function render(): void {
     h: heroSheet ? heroHeight : config.character.radius * 3.4,
     colour: world.state === 'dead' ? '#6b5a34' : '#e8c468',
     sheet: heroSheet,
+    shadowRadius: config.character.radius,
     frameRow: heroSheet ? facingRow(world.character.facingX, world.character.facingY) : undefined,
     // Frozen on the standing frame once he's dead.
     frameCol:
