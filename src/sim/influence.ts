@@ -33,9 +33,13 @@ function rebuild(world: World): void {
 
   influenceMap.beginUpdate(character.x, character.y)
 
+  // Danger counts for more the more hurt he is — see influence.hurtFear.
+  const missing = 1 - character.hp / Math.max(1, character.maxHp)
+  const fear = 1 + config.influence.hurtFear * missing
+
   // Flagged as hazard so the flow pass knows where the walls are.
   for (const enemy of world.enemies) {
-    influenceMap.stamp(layers.enemyDanger, enemy.x, enemy.y, enemy.def.dangerWeight, true)
+    influenceMap.stamp(layers.enemyDanger, enemy.x, enemy.y, enemy.def.dangerWeight * fear, true)
   }
 
   // The pull of the shop, applied per cell rather than stamped: the shop is

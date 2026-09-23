@@ -267,6 +267,59 @@ To tune, take out or add a spell:
 - **Too much on screen?** `render.effectsAlpha` turns every spell effect down
   at once, and `render.damageNumbers` has its own switch and limits.
 
+## Balance pass
+
+Measured with a bot that drafts like a sensible player — takes new spells
+until it has about four, prefers upgrades that fit what it owns, picks
+defence when hurt — over fifteen seeded runs of up to 40 minutes, five from
+each starting spell.
+
+| | Before | After |
+| --- | --- | --- |
+| Median run | ~7 min | 27.7 min |
+| Died before 10:00 | most | none |
+| Still going at 40:00 | — | 4 of 15 |
+| Banked gold per minute alive | 146 | 332 |
+
+Early, runs died on bank trips: a fuller pocket pulled harder towards the
+shop, up to six times, and the shop's pull is a straight line that doesn't
+route around danger. With a real build he earned gold fast enough to march
+through the horde every couple of minutes. Nothing healed him either, so
+chip damage from the first minutes never came back.
+
+Late, a run that got through the middle never ended: by minute 16 he killed
+everything the spawner could produce, and his health rose over time.
+
+What changed, each measured on its own first:
+
+- **Shop pull capped at 1.5x instead of 6x** (`shop.maxEagerness`). Every run
+  to 15:00 survived with more trips and more gold banked. Routing the shop
+  through the flow like loot was tried — it banked less and died more.
+- **Base regeneration of 0.5 hp a second** (`character.hpRegen`).
+- **Hurt makes him careful** (`influence.hurtFear`): enemies look up to three
+  times as dangerous as his health runs out. With regeneration, deaths before
+  20:00 went from 10 of 12 runs to 2 of 12.
+- **A late-game ramp from minute 12** (`difficulty.late*`): enemies' health
+  grows with the square of late minutes, and their contact damage climbs.
+  The first twelve minutes are untouched.
+- **Spells:** Chain Lightning buffed (range, cooldown, damage — it was the
+  weakest alone and the worst starter); Thunderstorm trimmed (43% of damage
+  when owned, now 28%); Meteor trimmed twice; Righteous Fire wider and hotter
+  (he keeps his distance from enemies, so a small aura rarely touched them).
+
+Worth knowing:
+
+- **Bank trips are now how most runs end** — 8 of 11 deaths. That's the
+  gamble working: more kills means more gold means more trips.
+  `shop.spendThreshold` (fewer, bigger trips) and `shop.maxEagerness` are
+  the dials.
+- **Picks matter.** A bot picking at random, which takes far more defence,
+  lived longer than the sensible one: median over 40 minutes. A greedy
+  damage build gets rich and lives on the edge; a defensive one lasts.
+- **Single-target spells fade late.** Firebolt, Frostbolt and Chain are
+  reliable starters and 4-9% of damage by the end, against area spells in a
+  horde of hundreds. Meteor is still the heaviest hitter when owned (41%).
+
 ## Upgrades
 
 All 22 live in `src/data/upgrades.ts`, as data. Each one is a list of
@@ -369,3 +422,5 @@ That completes the spec's definition of done for the prototype. Past it:
 - [x] **11 — damage numbers and spells.** Floating damage numbers; six new
   spells on two new behaviours (aura, ground zones); a starting spell pick;
   per-spell switches and live tuning. See "Spells".
+- [x] **12 — balance pass.** Bank trips no longer suicidal, base regeneration,
+  caution when hurt, a late-game ramp, spell tuning. See "Balance pass".

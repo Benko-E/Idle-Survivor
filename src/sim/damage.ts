@@ -1,4 +1,5 @@
 import { config } from '../config'
+import { damageMultiplier } from './difficulty'
 import { gameEvents } from './events'
 import { characterStat } from './stats'
 import type { World } from './world'
@@ -32,7 +33,7 @@ export function updateContactDamage(world: World, dt: number): void {
   // adding up: four of them leave him taking 66%, never 60% less and never
   // invulnerable.
   const taken = characterStat(world, 'damageTaken', 1)
-  character.hp -= incoming * config.damage.contactScale * taken * dt
+  character.hp -= incoming * config.damage.contactScale * damageMultiplier(world.time) * taken * dt
 
   if (character.hp <= 0) {
     character.hp = 0

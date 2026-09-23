@@ -126,8 +126,16 @@ export const config = {
     moveSpeed: 110,
     radius: 15,
     maxHp: 100,
-    /** Health restored per second, before upgrades. None by default. */
-    hpRegen: 0,
+    /**
+     * Health restored per second, before upgrades.
+     *
+     * There's no other healing, so at 0 every scratch in the first minutes
+     * was permanent: runs that took an early bad patch spent the rest of the
+     * run on a sliver of health and died to the next thing that touched them.
+     * Half a point a second — 30 a minute — lets early chip damage recover
+     * without making a real mauling survivable. Second Wind adds to it.
+     */
+    hpRegen: 0.5,
     /** Sprite sheet name, and drawn height in world units. */
     sprite: 'hero',
     drawHeight: 46,
@@ -248,6 +256,19 @@ export const config = {
      * a mob exactly like one lying in the open.
      */
     guardFear: 3,
+    /**
+     * How much scarier enemies look to him as he gets hurt. At full health
+     * danger counts as normal; with none left it counts as 1 + this.
+     *
+     * He used to walk a bank trip at 6 hp exactly as he would at full, which
+     * is how most runs ended. Together with base regeneration, this took
+     * deaths before 20:00 from 10 of 12 bot runs to 2 of 12 — and banked
+     * gold per minute nearly doubled, because a live wizard banks.
+     *
+     * The same kind of knob as the planned focus buttons: a runtime scale on
+     * a layer's weight, no new behaviour.
+     */
+    hurtFear: 2,
 
     /**
      * Each layer is weight + how far it reaches + the shape of its falloff.
@@ -430,17 +451,22 @@ export const config = {
     /**
      * Cap on eagerness, in multiples of the threshold.
      *
-     * Deliberately high, because the cap is what makes him get stuck. At 1.6
-     * he was observed carrying 250 against a threshold of 60 while a globe
-     * cluster outbid the trip — "I'm loaded" had become a plateau instead of
-     * mounting pressure, so nothing changed no matter how long he ignored it.
+     * The shop's pull is a straight line — it doesn't route around danger the
+     * way loot does — so how hard it can pull decides whether a trip is a
+     * walk or a march through the horde. At 6 it was a march: every run with
+     * a real build died on a bank trip by 7:30, because more spells meant more
+     * kills, more gold and fuller pockets. Measured over four seeded runs to
+     * 15:00: at 6 none survived, at 3 one, at 2 three, at 1.5 all four — with
+     * the most gold banked, 7-11 trips a run. At 1 he dawdles with a full
+     * pocket and dies holding it.
      *
-     * Letting it climb means the longer he puts the trip off the more
-     * irresistible it becomes, so being stuck is self-correcting rather than
-     * permanent. Still capped so a freak hoard can't send him sprinting
-     * blindly through a wall of Hulks.
+     * It was 6 to stop loot outbidding the trip forever, which it did back
+     * when loot pulled in straight lines too. Routed loot, turned down while
+     * banking, no longer can. Routing the shop through the flow as well was
+     * tried and banked less and died more — a gentle straight pull that he
+     * dodges around beats a strong routed one.
      */
-    maxEagerness: 6,
+    maxEagerness: 1.5,
     drawSize: 46,
   },
 
@@ -624,6 +650,26 @@ export const config = {
     maxSpawnsPerSecond: 25,
 
     hpGrowthPerMinute: 0.35,
+    /**
+     * The late game. Before this minute the curve is as above; after it,
+     * enemies also get tougher faster and start hitting harder.
+     *
+     * Without it a run that survived the middle never ended. From about
+     * minute 16 he was killing everything the spawner could produce — the
+     * spawn rate and alive caps set a ceiling on pressure — and his health
+     * went *up* over time. Eight of nine bot runs were still going at 40:00.
+     *
+     * Starting late leaves the first twelve minutes alone, because they
+     * already played well. Measured over fifteen bot runs to 40:00, with the
+     * spell changes from the same pass: median 27.7 minutes, most between 20
+     * and 30, none dead before 10, and four exceptional builds of fifteen
+     * still standing at the end.
+     */
+    lateStartMinutes: 12,
+    /** Added to the HP multiplier per late minute, squared: +3.6 at 20:00, +23 at 28:00. */
+    lateHpPerMinuteSquared: 0.09,
+    /** Added to contact damage per late minute: x2.4 at 20:00, x3.9 at 28:00. */
+    lateDamagePerMinute: 0.18,
 
     speedGrowthPerMinute: 0.05,
     maxSpeedMultiplier: 1.6,

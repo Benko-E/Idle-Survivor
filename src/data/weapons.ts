@@ -90,8 +90,11 @@ export const WEAPON_DEFS: WeaponDef[] = [
       // the player feels. Duration outlasts it, so the burn is continuous
       // while they stay close and fades a moment after they leave.
       cooldown: 0.4,
-      area: 105,
-      dotDamage: 8,
+      // Wider and hotter after the balance pass. He keeps his distance from
+      // enemies — that's the movement AI doing its job — so a small aura
+      // rarely touched anything: 12% of damage when owned, 20% after.
+      area: 130,
+      dotDamage: 10,
       duration: 1,
     },
     colour: '#ff6a2a',
@@ -121,12 +124,14 @@ export const WEAPON_DEFS: WeaponDef[] = [
     enabled: true,
     tags: ['spell', 'lightning', 'chain'],
     behaviour: 'chain',
+    // Buffed in the balance pass: the weakest spell alone, and as a starter
+    // it died first. Its short range left it idle more than anything else.
     stats: {
-      cooldown: 2.7,
-      damage: 15,
+      cooldown: 2.2,
+      damage: 17,
       // The first target plus three jumps.
       count: 4,
-      range: 320,
+      range: 420,
       // How far it will reach for the next link.
       jumpRange: 165,
       falloff: 0.78,
@@ -144,15 +149,17 @@ export const WEAPON_DEFS: WeaponDef[] = [
     tags: ['spell', 'lightning', 'zone', 'area', 'strike'],
     behaviour: 'zone',
     targeting: 'random',
+    // Trimmed in the balance pass: it took 43% of all damage in builds that
+    // had it, against five other spells. 28% after.
     stats: {
-      cooldown: 2.4,
+      cooldown: 2.8,
       range: 420,
       // Strikes per cast, each on a different enemy.
       count: 3,
       area: 55,
       // A beat of warning on the ground before it lands.
       delay: 0.45,
-      damage: 24,
+      damage: 19,
       duration: 0,
     },
     colour: '#f4e76e',
@@ -171,7 +178,9 @@ export const WEAPON_DEFS: WeaponDef[] = [
       count: 1,
       area: 95,
       delay: 1.1,
-      damage: 55,
+      // 55 at first, then 45 — still the heaviest share when owned (42%), so
+      // down again. The balance pass section of the README has the numbers.
+      damage: 40,
       duration: 0,
     },
     colour: '#ff7b3d',

@@ -19,9 +19,25 @@ export function spawnsPerSecond(seconds: number): number {
   return Math.min(maxSpawnsPerSecond, baseSpawnsPerSecond + spawnGrowthPerMinute * minutes)
 }
 
-/** Multiplier applied to an enemy's base HP at the moment it spawns. */
+/**
+ * Multiplier applied to an enemy's base HP at the moment it spawns. Linear,
+ * plus a squared term once the late game starts.
+ */
 export function hpMultiplier(seconds: number): number {
-  return 1 + config.difficulty.hpGrowthPerMinute * (seconds / 60)
+  const minutes = seconds / 60
+  const { hpGrowthPerMinute, lateStartMinutes, lateHpPerMinuteSquared } = config.difficulty
+  const late = Math.max(0, minutes - lateStartMinutes)
+  return 1 + hpGrowthPerMinute * minutes + lateHpPerMinuteSquared * late * late
+}
+
+/**
+ * Multiplier on every enemy's contact damage, `seconds` into the run. Flat
+ * until the late game starts, then climbing — applied to every enemy by the
+ * current time, not its spawn time, so the whole horde turns fiercer at once.
+ */
+export function damageMultiplier(seconds: number): number {
+  const { lateStartMinutes, lateDamagePerMinute } = config.difficulty
+  return 1 + lateDamagePerMinute * Math.max(0, seconds / 60 - lateStartMinutes)
 }
 
 /**
