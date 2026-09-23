@@ -3,16 +3,28 @@ import type { WeaponDef } from './types'
 /**
  * The spellbook. (spec 5.1)
  *
- * Four entries covering four different behaviours, which is the point of the
- * set rather than any attempt at a real roster — the spec says the actual
- * spell list gets decided later (spec 7). What matters is that a fifth entry
- * reusing 'projectile' is data alone, and the ids are generic enough that
- * renaming Firebolt to Magic Missile is a one-word change.
+ * Every spell is one entry here, built from a handful of generic behaviours
+ * (sim/behaviours.ts): projectile, nova, chain, curse, aura and zone. Meteor
+ * and Thunderstorm are the same behaviour with different numbers; so are
+ * Firebolt and Frostbolt. A new spell that reuses a behaviour is data alone.
+ *
+ * To take a spell out of the game, set `enabled: false` — it's never offered
+ * and stops casting. Every number is live in the debug panel under "spells",
+ * and "log changes" prints what you moved, ready to paste back here.
+ *
+ * Tags do two jobs: flavour, and letting upgrades select on them. A spell
+ * tagged 'fire' gets Kindled Fury; one tagged 'dot' makes Deepening Rot
+ * appear in the draft. Give a new spell the tags that describe it honestly
+ * and the right upgrades follow with no other change.
  */
 export const WEAPON_DEFS: WeaponDef[] = [
+  // --- Bolts --------------------------------------------------------------------
+
   {
     id: 'spell_bolt_01',
     displayName: 'Firebolt',
+    description: 'A fast bolt of fire at the nearest enemy',
+    enabled: true,
     tags: ['spell', 'fire', 'projectile'],
     behaviour: 'projectile',
     stats: {
@@ -27,8 +39,34 @@ export const WEAPON_DEFS: WeaponDef[] = [
     colour: '#ff8a3d',
   },
   {
+    id: 'spell_frostbolt_01',
+    displayName: 'Frostbolt',
+    description: 'A slower bolt of ice that chills whatever it hits',
+    enabled: true,
+    tags: ['spell', 'frost', 'projectile'],
+    behaviour: 'projectile',
+    stats: {
+      cooldown: 1.1,
+      damage: 8,
+      count: 1,
+      speed: 300,
+      // Passes through one, so the chill spreads a little down a line.
+      pierce: 1,
+      range: 480,
+      spread: 0.14,
+      slow: 0.35,
+      duration: 1.6,
+    },
+    colour: '#8fd8ff',
+  },
+
+  // --- Around him ---------------------------------------------------------------
+
+  {
     id: 'spell_nova_01',
     displayName: 'Frost Nova',
+    description: 'A burst of cold around him that damages and chills',
+    enabled: true,
     tags: ['spell', 'frost', 'area'],
     behaviour: 'nova',
     stats: {
@@ -41,8 +79,46 @@ export const WEAPON_DEFS: WeaponDef[] = [
     colour: '#7fd8ff',
   },
   {
+    id: 'spell_aura_01',
+    displayName: 'Righteous Fire',
+    description: 'A ring of holy fire around him, burning everything close',
+    enabled: true,
+    tags: ['spell', 'fire', 'aura', 'area', 'dot'],
+    behaviour: 'aura',
+    stats: {
+      // How often the burn is refreshed on everything inside — not a delay
+      // the player feels. Duration outlasts it, so the burn is continuous
+      // while they stay close and fades a moment after they leave.
+      cooldown: 0.4,
+      area: 105,
+      dotDamage: 8,
+      duration: 1,
+    },
+    colour: '#ff6a2a',
+  },
+  {
+    id: 'spell_curse_01',
+    displayName: 'Curse of Withering',
+    description: 'Afflicts everything nearby with slow, creeping decay',
+    enabled: true,
+    tags: ['spell', 'shadow', 'curse', 'area', 'dot'],
+    behaviour: 'curse',
+    stats: {
+      cooldown: 2.2,
+      area: 210,
+      dotDamage: 7,
+      duration: 3.5,
+    },
+    colour: '#9d7bd8',
+  },
+
+  // --- Jumping --------------------------------------------------------------------
+
+  {
     id: 'spell_chain_01',
     displayName: 'Chain Lightning',
+    description: 'Lightning that leaps from enemy to enemy',
+    enabled: true,
     tags: ['spell', 'lightning', 'chain'],
     behaviour: 'chain',
     stats: {
@@ -57,18 +133,88 @@ export const WEAPON_DEFS: WeaponDef[] = [
     },
     colour: '#c9a6ff',
   },
+
+  // --- On the ground, somewhere else ------------------------------------------------
+
   {
-    id: 'spell_curse_01',
-    displayName: 'Curse of Withering',
-    tags: ['spell', 'shadow', 'curse', 'area'],
-    behaviour: 'curse',
+    id: 'spell_storm_01',
+    displayName: 'Thunderstorm',
+    description: 'Lightning strikes down on enemies around him',
+    enabled: true,
+    tags: ['spell', 'lightning', 'zone', 'area', 'strike'],
+    behaviour: 'zone',
+    targeting: 'random',
     stats: {
-      cooldown: 2.2,
-      area: 210,
-      dotDamage: 7,
-      duration: 3.5,
+      cooldown: 2.4,
+      range: 420,
+      // Strikes per cast, each on a different enemy.
+      count: 3,
+      area: 55,
+      // A beat of warning on the ground before it lands.
+      delay: 0.45,
+      damage: 24,
+      duration: 0,
     },
-    colour: '#9d7bd8',
+    colour: '#f4e76e',
+  },
+  {
+    id: 'spell_meteor_01',
+    displayName: 'Meteor',
+    description: 'Calls a meteor down on the biggest crowd. Slow, but it hits hard',
+    enabled: true,
+    tags: ['spell', 'fire', 'zone', 'area'],
+    behaviour: 'zone',
+    targeting: 'densest',
+    stats: {
+      cooldown: 4,
+      range: 460,
+      count: 1,
+      area: 95,
+      delay: 1.1,
+      damage: 55,
+      duration: 0,
+    },
+    colour: '#ff7b3d',
+  },
+  {
+    id: 'spell_vortex_01',
+    displayName: 'Vortex',
+    description: 'Tears open a rift in the biggest crowd and drags enemies into it',
+    enabled: true,
+    tags: ['spell', 'shadow', 'zone', 'area', 'dot'],
+    behaviour: 'zone',
+    targeting: 'densest',
+    stats: {
+      cooldown: 5.5,
+      range: 380,
+      count: 1,
+      area: 140,
+      delay: 0.1,
+      duration: 2.8,
+      pull: 85,
+      dotDamage: 6,
+    },
+    colour: '#7b5cff',
+  },
+  {
+    id: 'spell_roots_01',
+    displayName: 'Entangling Roots',
+    description: 'Roots burst from the ground under the biggest crowd, holding them still',
+    enabled: true,
+    tags: ['spell', 'nature', 'zone', 'area', 'root'],
+    behaviour: 'zone',
+    targeting: 'densest',
+    stats: {
+      cooldown: 4.5,
+      range: 360,
+      count: 1,
+      area: 115,
+      delay: 0.25,
+      damage: 6,
+      duration: 0,
+      root: 1.8,
+    },
+    colour: '#6fcf5a',
   },
 ]
 

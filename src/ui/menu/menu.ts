@@ -34,10 +34,14 @@ const STYLES = `
 .menu-screen-body { min-width: 220px; min-height: 120px; text-align: center; }
 .menu-placeholder { color: #5f7a8a; }
 .menu-back { margin-top: 10px; }
+.menu-choices { display: flex; flex-direction: column; gap: 10px; }
+.menu-choice { width: 320px; display: flex; flex-direction: column; gap: 4px; text-align: left; }
+.menu-choice-name { font-size: 15px; color: #e8c468; }
+.menu-choice-desc { font-size: 12px; color: #9fb3c2; line-height: 1.4; }
 `
 
 export interface MenuHost {
-  play(): void
+  play(starterId?: string): void
   /** Shown under the title, so banking is visible before anything spends it. */
   bankedGold(): number
 }
@@ -58,7 +62,7 @@ export class Menu {
     document.head.appendChild(style)
 
     this.nav = {
-      play: () => host.play(),
+      play: (starterId) => host.play(starterId),
       open: (screen) => this.openScreen(screen),
     }
 
@@ -126,7 +130,7 @@ export class Menu {
   private openScreen(screen: Screen): void {
     this.screenTitle.textContent = screen.title
     this.screenBody.replaceChildren()
-    screen.build(this.screenBody)
+    screen.build(this.screenBody, this.nav)
 
     this.heading.hidden = true
     this.subtitle.hidden = true

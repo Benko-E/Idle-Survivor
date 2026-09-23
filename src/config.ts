@@ -82,6 +82,12 @@ export const config = {
      * the sprite back and forth and reads as stutter-stepping.
      */
     facingSlackDegrees: 15,
+    /**
+     * How loud every spell effect is drawn, 0 to 1: rings, bolts, zones,
+     * auras. The knob for when a big build turns into a light show — the
+     * spells keep working exactly the same underneath.
+     */
+    effectsAlpha: 1,
 
     /** Numbers floating off enemies as they take damage. */
     damageNumbers: {
@@ -129,12 +135,15 @@ export const config = {
     stepLength: 22,
 
     /**
-     * The spellbook he starts a run with, by id from data/weapons.ts.
-     *
-     * Just the starter now that the draft exists — the rest are things you
-     * can be offered. Add ids back here to test a behaviour in isolation.
+     * The spells offered as a starting pick on the menu, by id from
+     * data/weapons.ts. With only one listed, Play skips the choice.
      */
-    startingWeaponIds: ['spell_bolt_01'],
+    starterChoices: ['spell_bolt_01', 'spell_frostbolt_01', 'spell_chain_01'],
+    /**
+     * Extra spells handed out at the start of every run on top of the pick.
+     * Empty for real play; add ids here to test a spell in isolation.
+     */
+    startingWeaponIds: [] as string[],
   },
 
   combat: {

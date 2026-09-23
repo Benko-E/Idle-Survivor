@@ -4,6 +4,7 @@ import { updateProjectiles } from './projectiles'
 import { weaponStat } from './stats'
 import { updateStatusEffects } from './statusEffects'
 import { updateVfx } from './vfx'
+import { updateZones } from './zones'
 import type { World } from './world'
 
 /**
@@ -16,6 +17,10 @@ import type { World } from './world'
 
 function castReadySpells(world: World, dt: number): void {
   for (const weapon of world.weapons) {
+    // Switched off in the data or the debug panel: holds its charge, casts
+    // nothing, so switching it back on picks up where it left off.
+    if (!weapon.def.enabled) continue
+
     weapon.cooldownRemaining -= dt
     if (weapon.cooldownRemaining > 0) continue
 
@@ -75,6 +80,7 @@ function removeDead(world: World): void {
 export function updateCombat(world: World, dt: number): void {
   castReadySpells(world, dt)
   updateProjectiles(world, dt)
+  updateZones(world, dt)
   updateStatusEffects(world, dt)
   updateVfx(world, dt)
   removeDead(world)

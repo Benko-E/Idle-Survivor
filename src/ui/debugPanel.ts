@@ -1,4 +1,5 @@
 import { config } from '../config'
+import { WEAPON_DEFS } from '../data/weapons'
 
 /**
  * The tuning panel. (spec 5.4, step 7)
@@ -13,6 +14,10 @@ import { config } from '../config'
  * Everything in the game reads config live, so edits apply on the next frame.
  * The exceptions are values consumed once at startup or at the birth of a run;
  * those are labelled rather than silently doing nothing.
+ *
+ * Spells get a section too, walked from data/weapons.ts the same way: an
+ * on/off switch and every stat, live. Spell numbers are content rather than
+ * config, so they're baked back into the data file, not config.ts.
  */
 
 /** Read once at load or at createWorld, so editing them mid-run does nothing. */
@@ -57,9 +62,20 @@ const INTEGER_PATHS = new Set([
   'render.damageNumbers.maxOnScreen',
 ])
 
+/** Spell stats that are counts. Matched by the end of the path. */
+const INTEGER_SPELL_STATS = /\.stats\.(count|pierce)$/
+
+/** A spell's switch and numbers, the part of its entry worth tuning live. */
+type SpellSnapshot = { enabled: boolean; stats: Record<string, number> }
+
+function snapshotSpells(): Record<string, SpellSnapshot> {
+  return Object.fromEntries(WEAPON_DEFS.map((def) => [def.id, { enabled: def.enabled, stats: { ...def.stats } }]))
+}
+
 /** Where the automatic range is a poor fit. */
 const RANGE_OVERRIDES: Record<string, [number, number]> = {
   'render.yScale': [0.3, 1],
+  'render.effectsAlpha': [0, 1],
   'render.visibleWorldHeight': [400, 3000],
   'render.cameraFollowRate': [1, 20],
   'influence.updateHz': [5, 60],
@@ -137,6 +153,8 @@ function stepFor(value: number, min: number, max: number): number {
 function rangeFor(path: string, value: number): [number, number] {
   const override = RANGE_OVERRIDES[path]
   if (override) return override
+  if (path.endsWith('.stats.pierce')) return [0, 6]
+  if (path.endsWith('.stats.count')) return [1, 10]
   if (value === 0) return [0, 1]
   if (value > 0) return [0, value * 4]
   return [value * 4, 0]
@@ -151,6 +169,7 @@ export class DebugPanel {
   private readonly toggle: HTMLButtonElement
   /** Deep snapshot taken before anything is touched, for reset. */
   private readonly original = structuredClone(config) as unknown as Bag
+  private readonly originalSpells = snapshotSpells()
 
   constructor() {
     const style = document.createElement('style')
@@ -180,6 +199,39 @@ export class DebugPanel {
       if (typeof value !== 'object' || value === null) continue
       this.panel.appendChild(this.section(key, value as Bag, key))
     }
+
+    this.panel.appendChild(this.spellsSection())
+  }
+
+  private spellsSection(): HTMLElement {
+    const details = document.createElement('details')
+    const summary = document.createElement('summary')
+    summary.textContent = 'spells'
+    details.appendChild(summary)
+
+    const body = document.createElement('div')
+    body.className = 'dbg-body'
+    for (const def of WEAPON_DEFS) {
+      const spell = document.createElement('details')
+      const title = document.createElement('summary')
+      title.textContent = def.displayName
+      spell.appendChild(title)
+
+      const inner = document.createElement('div')
+      inner.className = 'dbg-body'
+      const path = `spells.${def.id}`
+      const toggle = this.control(def as unknown as Bag, 'enabled', `${path}.enabled`, def.enabled)
+      if (toggle) inner.appendChild(toggle)
+      for (const [key, value] of Object.entries(def.stats)) {
+        const row = this.control(def.stats as Bag, key, `${path}.stats.${key}`, value)
+        if (row) inner.appendChild(row)
+      }
+      spell.appendChild(inner)
+      body.appendChild(spell)
+    }
+
+    details.appendChild(body)
+    return details
   }
 
   private actions(): HTMLElement {
@@ -190,6 +242,13 @@ export class DebugPanel {
     reset.textContent = 'reset all'
     reset.addEventListener('click', () => {
       Object.assign(config, structuredClone(this.original))
+      for (const def of WEAPON_DEFS) {
+        const saved = this.originalSpells[def.id]
+        def.enabled = saved.enabled
+        // In place, so anything holding the stats object sees the reset.
+        for (const key of Object.keys(def.stats)) delete def.stats[key]
+        Object.assign(def.stats, saved.stats)
+      }
       this.build()
     })
 
@@ -198,7 +257,10 @@ export class DebugPanel {
     const dump = document.createElement('button')
     dump.textContent = 'log changes'
     dump.addEventListener('click', () => {
-      const changes = diff(this.original, config as unknown as Bag, '')
+      const changes = {
+        ...diff(this.original, config as unknown as Bag, ''),
+        ...diff(this.originalSpells as unknown as Bag, snapshotSpells() as unknown as Bag, 'spells'),
+      }
       console.log(Object.keys(changes).length ? changes : 'no changes from defaults')
     })
 
@@ -255,10 +317,12 @@ export class DebugPanel {
     }
 
     if (typeof value === 'number') {
-      const whole = INTEGER_PATHS.has(path)
+      const whole = INTEGER_PATHS.has(path) || INTEGER_SPELL_STATS.test(path)
       const [rawMin, rawMax] = rangeFor(path, value)
-      // Counts can't go below one, and a range that starts at 0 would offer it.
-      const min = whole ? Math.max(1, Math.round(rawMin)) : rawMin
+      // Counts can't go below one, and a range that starts at 0 would offer
+      // it. Pierce is the exception: zero is the normal value.
+      const floor = path.endsWith('.stats.pierce') ? 0 : 1
+      const min = whole ? Math.max(floor, Math.round(rawMin)) : rawMin
       const max = whole ? Math.max(min + 1, Math.round(rawMax)) : rawMax
       readout.textContent = formatNumber(value)
 

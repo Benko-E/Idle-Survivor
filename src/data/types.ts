@@ -165,6 +165,14 @@ export interface WeaponDef {
   id: string
   /** The only thing that ever appears on screen. */
   displayName: string
+  /** One line for the starting pick and the draft card. */
+  description: string
+  /**
+   * Switched off, it's never offered, can't be picked to start with, and
+   * stops casting if he already has it. The way to take a spell out of the
+   * game without deleting it — and it's live in the debug panel.
+   */
+  enabled: boolean
   /**
    * Both flavour and mechanics. Upgrade modifiers select on these, so
    * "+20% fire damage" or "+1 chain jump to lightning spells" need no code.
@@ -202,8 +210,29 @@ export interface WeaponDef {
    *   slow         fraction of speed removed, 0.45 = 45% slower
    *   falloff      multiplier applied per chain jump
    *   spread       radians between bolts that double up on one target
+   *
+   * Ground zones (behaviour 'zone') add:
+   *
+   *   delay        seconds between placing it and it landing
+   *   duration     seconds it stays active after landing; 0 = one hit
+   *   damage       dealt once, on landing
+   *   dotDamage    per second to everything inside while active
+   *   pull         world units per second it drags enemies inwards
+   *   root         seconds enemies caught on landing can't move
+   *
+   * On a projectile, `slow` or `dotDamage` with `duration` is left on each
+   * enemy it hits: a chill, or a burn.
    */
   stats: Record<string, number>
+
+  /**
+   * How a spell that chooses a spot picks it. Only zones read this.
+   *
+   *   densest  the biggest crowd within range
+   *   random   anywhere there's an enemy within range
+   *   nearest  closest first
+   */
+  targeting?: 'densest' | 'random' | 'nearest'
 
   /** Placeholder art. */
   colour: string

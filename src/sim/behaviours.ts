@@ -2,7 +2,7 @@ import { config } from '../config'
 import type { WeaponDef } from '../data/types'
 import { damageEnemy } from './damageEnemy'
 import { applyEffect } from './statusEffects'
-import { enemiesInRadius, nearestEnemies, nearestEnemy } from './targeting'
+import { enemiesInRadius, nearestEnemies, nearestEnemy, pickTargets } from './targeting'
 import { spawnLine, spawnRing } from './vfx'
 import type { Enemy, WeaponInstance, World } from './world'
 
@@ -65,6 +65,20 @@ const projectile: Behaviour = ({ world, weapon, def, stat }) => {
   const damage = stat('damage')
   const pierce = Math.max(0, Math.round(stat('pierce')))
 
+  // Whatever lingers on a hit: a chill if the spell slows, a burn if it has
+  // damage over time. Neither for a plain bolt.
+  const duration = stat('duration')
+  const slow = stat('slow')
+  const burn = stat('dotDamage')
+  const onHit =
+    duration <= 0
+      ? null
+      : slow > 0
+        ? { kind: 'slow' as const, magnitude: slow, duration }
+        : burn > 0
+          ? { kind: 'dot' as const, magnitude: burn, duration }
+          : null
+
   for (let i = 0; i < count; i++) {
     const target = targets[i % targets.length]
     // Bolts beyond the number of targets go round again, fanned out either
@@ -86,7 +100,7 @@ const projectile: Behaviour = ({ world, weapon, def, stat }) => {
       life: speed > 0 ? range / speed : 0,
       hits: new Set(),
       source: weapon,
-      onHit: null,
+      onHit,
     })
   }
 
@@ -171,9 +185,62 @@ const curse: Behaviour = ({ world, weapon, def, stat }) => {
   return true
 }
 
+/**
+ * A burn on everything within reach of him, refreshed every cooldown.
+ * Righteous Fire. No ring on each refresh — it's drawn as a steady glow for as
+ * long as he has it, because a pulse every 0.4s would be a strobe.
+ */
+const aura: Behaviour = ({ world, weapon, stat }) => {
+  const caster = world.character
+  const targets = enemiesInRadius(world, caster.x, caster.y, stat('area'), scratchTargets)
+  if (targets.length === 0) return false
+
+  const dotDamage = stat('dotDamage')
+  const duration = stat('duration')
+  for (const enemy of targets) applyEffect(enemy, 'dot', dotDamage, duration, weapon)
+  return true
+}
+
+/**
+ * Claims a patch of ground somewhere near him: a lightning strike, a meteor,
+ * a vortex, roots. Everything about what the patch does is in its numbers;
+ * see sim/zones.ts.
+ */
+const zone: Behaviour = ({ world, weapon, def, stat }) => {
+  const caster = world.character
+  const area = stat('area')
+  const count = Math.max(1, Math.round(stat('count')))
+  const targets = pickTargets(world, caster.x, caster.y, stat('range'), count, area, def.targeting ?? 'densest', scratchTargets)
+  if (targets.length === 0) return false
+
+  const delay = Math.max(0, stat('delay'))
+  const duration = Math.max(0, stat('duration'))
+  for (const target of targets) {
+    world.zones.push({
+      x: target.x,
+      y: target.y,
+      radius: area,
+      delay,
+      delayTotal: delay,
+      remaining: duration,
+      durationTotal: duration,
+      burst: stat('damage'),
+      dps: stat('dotDamage'),
+      pull: stat('pull'),
+      root: stat('root'),
+      landed: false,
+      colour: def.colour,
+      source: weapon,
+    })
+  }
+  return true
+}
+
 export const BEHAVIOURS: Record<string, Behaviour> = {
   projectile,
   nova,
   chain,
   curse,
+  aura,
+  zone,
 }

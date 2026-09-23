@@ -8,6 +8,7 @@ import type { Projectile } from './projectiles'
 import type { StatusEffect } from './statusEffects'
 import type { VisitMark } from './trail'
 import type { Vfx } from './vfx'
+import type { Zone } from './zones'
 
 /**
  * All mutable game state, in one object.
@@ -107,6 +108,8 @@ export interface World {
   enemies: Enemy[]
   pickups: Pickup[]
   projectiles: Projectile[]
+  /** Ground a spell has claimed: strikes on their way down, vortices, roots. */
+  zones: Zone[]
   vfx: Vfx[]
   /** Where he's recently been. Oldest first. */
   trail: VisitMark[]
@@ -158,7 +161,11 @@ export interface World {
   damageDealt: number
 }
 
-export function createWorld(seed: number = config.world.seed): World {
+/**
+ * A fresh run. `starterId` is the spell picked on the menu; without one it's
+ * the first of the starting choices, which is what the headless tests get.
+ */
+export function createWorld(seed: number = config.world.seed, starterId?: string): World {
   const rng = makeRng(seed)
 
   // Somewhere out there, at a random bearing. Far enough that reaching it is
@@ -187,11 +194,12 @@ export function createWorld(seed: number = config.world.seed): World {
     enemies: [],
     pickups: [],
     projectiles: [],
+    zones: [],
     vfx: [],
     trail: [],
     lastMarkX: 0,
     lastMarkY: 0,
-    weapons: config.character.startingWeaponIds.map((id) => ({
+    weapons: startingSpells(starterId).map((id) => ({
       def: findWeaponDef(id),
       // Ready almost at once. There's only one starting spell, and since a
       // miss no longer spends the cooldown, spells drift out of lockstep on
@@ -224,4 +232,11 @@ export function createWorld(seed: number = config.world.seed): World {
     kills: 0,
     damageDealt: 0,
   }
+}
+
+/** The chosen starter, plus any extra spells the config hands out for testing. */
+function startingSpells(starterId: string | undefined): string[] {
+  const starter = starterId ?? config.character.starterChoices[0]
+  const ids = [starter, ...config.character.startingWeaponIds]
+  return ids.filter((id, index) => ids.indexOf(id) === index)
 }

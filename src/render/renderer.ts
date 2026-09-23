@@ -432,6 +432,26 @@ export class Renderer {
     ctx.globalAlpha = 1
   }
 
+  /** Filled, and squashed by yScale like the outline version below. */
+  fillWorldCircle(worldX: number, worldY: number, radius: number, colour: string, alpha = 1): void {
+    if (radius <= 0 || alpha <= 0) return
+    const { ctx } = this
+    ctx.globalAlpha = alpha
+    ctx.fillStyle = colour
+    ctx.beginPath()
+    ctx.ellipse(
+      this.worldToScreenX(worldX),
+      this.worldToScreenY(worldY),
+      radius * this.scale,
+      radius * config.render.yScale * this.scale,
+      0,
+      0,
+      Math.PI * 2,
+    )
+    ctx.fill()
+    ctx.globalAlpha = 1
+  }
+
   /** Squashed by yScale, so it reads as a circle lying on the ground. */
   strokeWorldCircle(worldX: number, worldY: number, radius: number, colour: string, width = 2, alpha = 1): void {
     const { ctx } = this

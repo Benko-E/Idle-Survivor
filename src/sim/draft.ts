@@ -41,10 +41,11 @@ function candidates(world: World): { offer: Offer; weight: number }[] {
   const pool: { offer: Offer; weight: number }[] = []
 
   for (const def of WEAPON_DEFS) {
+    if (!def.enabled) continue
     if (world.weapons.some((weapon) => weapon.def.id === def.id)) continue
     if (world.weapons.length >= config.draft.maxWeapons) continue
     pool.push({
-      offer: { kind: 'weapon', id: def.id, displayName: def.displayName, description: 'New spell', def },
+      offer: { kind: 'weapon', id: def.id, displayName: def.displayName, description: def.description, def },
       // New spells are worth more than an increment, so they're weighted up.
       weight: config.draft.newWeaponWeight,
     })

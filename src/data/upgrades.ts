@@ -51,8 +51,9 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     displayName: 'Farsight',
     description: 'Spells find targets 20% further away',
     tags: ['offence'],
-    // Aimed spells only: bolts and the first link of a chain. Area spells are
-    // centred on him and measure their reach in `area` instead.
+    // Spells that reach out: bolts, the first link of a chain, and how far
+    // away a zone can be placed. Spells centred on him measure their reach in
+    // `area` instead.
     modifiers: [{ target: 'range', op: 'increase', value: 0.2 }],
     maxStacks: 3,
     weight: 50,
@@ -137,7 +138,29 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     modifiers: [{ target: 'dotDamage', op: 'increase', value: 0.4 }],
     maxStacks: 4,
     weight: 60,
-    requiresOwnedTags: ['curse'],
+    // Any spell that deals damage over time: the curse, Righteous Fire, the
+    // vortex. It used to require the curse, back when that was the only one.
+    requiresOwnedTags: ['dot'],
+  },
+  {
+    id: 'up_strike_01',
+    displayName: 'Gathering Storm',
+    description: '+1 lightning strike per cast',
+    tags: ['offence', 'lightning'],
+    modifiers: [{ target: 'count', op: 'add', value: 1, tags: ['strike'] }],
+    maxStacks: 3,
+    weight: 50,
+    requiresOwnedTags: ['strike'],
+  },
+  {
+    id: 'up_root_01',
+    displayName: 'Deep Roots',
+    description: 'Roots hold enemies 30% longer',
+    tags: ['offence', 'root'],
+    modifiers: [{ target: 'root', op: 'increase', value: 0.3, tags: ['root'] }],
+    maxStacks: 3,
+    weight: 45,
+    requiresOwnedTags: ['root'],
   },
 
   // --- Offence: by element ----------------------------------------------------
@@ -147,7 +170,11 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     displayName: 'Kindled Fury',
     description: '+30% damage with fire spells',
     tags: ['offence', 'fire'],
-    modifiers: [{ target: 'damage', op: 'increase', value: 0.3, tags: ['fire'] }],
+    // Both stats, so burns count as fire: Righteous Fire deals only dotDamage.
+    modifiers: [
+      { target: 'damage', op: 'increase', value: 0.3, tags: ['fire'] },
+      { target: 'dotDamage', op: 'increase', value: 0.3, tags: ['fire'] },
+    ],
     maxStacks: 4,
     weight: 60,
     requiresOwnedTags: ['fire'],
@@ -157,7 +184,10 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     displayName: "Winter's Bite",
     description: '+30% damage with frost spells',
     tags: ['offence', 'frost'],
-    modifiers: [{ target: 'damage', op: 'increase', value: 0.3, tags: ['frost'] }],
+    modifiers: [
+      { target: 'damage', op: 'increase', value: 0.3, tags: ['frost'] },
+      { target: 'dotDamage', op: 'increase', value: 0.3, tags: ['frost'] },
+    ],
     maxStacks: 4,
     weight: 60,
     requiresOwnedTags: ['frost'],
@@ -167,7 +197,10 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     displayName: 'Static Charge',
     description: '+30% damage with lightning spells',
     tags: ['offence', 'lightning'],
-    modifiers: [{ target: 'damage', op: 'increase', value: 0.3, tags: ['lightning'] }],
+    modifiers: [
+      { target: 'damage', op: 'increase', value: 0.3, tags: ['lightning'] },
+      { target: 'dotDamage', op: 'increase', value: 0.3, tags: ['lightning'] },
+    ],
     maxStacks: 4,
     weight: 60,
     requiresOwnedTags: ['lightning'],

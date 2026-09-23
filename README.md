@@ -237,9 +237,39 @@ replace coloured boxes. Until then the shadow ellipse is the only honest
 indicator of where he actually is. Worth drawing the collision and pickup radii
 as debug rings.
 
+## Spells
+
+Ten, all in `src/data/weapons.ts`, built from six generic behaviours:
+
+| Behaviour | Spells | What it does |
+| --- | --- | --- |
+| projectile | Firebolt, Frostbolt | Bolts at the nearest enemies; can chill or burn on hit |
+| nova | Frost Nova | A burst around him |
+| aura | Righteous Fire | A steady burn on everything close |
+| curse | Curse of Withering | Damage over time on everything in a wide radius |
+| chain | Chain Lightning | Leaps from enemy to enemy |
+| zone | Thunderstorm, Meteor, Vortex, Entangling Roots | Claims a patch of ground: warns, lands, then burns, pulls or roots |
+
+A run starts with a choice of Firebolt, Frostbolt or Chain Lightning
+(`character.starterChoices`); the rest come from the level-up draft, up to
+`draft.maxWeapons` at once.
+
+To tune, take out or add a spell:
+
+- **Every number is live** in the debug panel under *spells*, with an
+  *enabled* switch per spell. "log changes" prints what you moved, ready to be
+  pasted back into the data file.
+- **`enabled: false`** takes a spell out of the game — never offered, not a
+  starting choice, and it stops casting if he already has it.
+- **A new spell reusing a behaviour is one data entry.** Meteor and
+  Thunderstorm are the same behaviour with different numbers. Tag it honestly
+  (`fire`, `dot`, `area`...) and the matching upgrades apply automatically.
+- **Too much on screen?** `render.effectsAlpha` turns every spell effect down
+  at once, and `render.damageNumbers` has its own switch and limits.
+
 ## Upgrades
 
-All 20 live in `src/data/upgrades.ts`, as data. Each one is a list of
+All 22 live in `src/data/upgrades.ts`, as data. Each one is a list of
 modifiers on a named stat: the spell stats are listed on `WeaponDef` in
 `data/types.ts`, the character's in `sim/stats.ts`. Gear and character stats
 will be more modifiers into the same list, so they need no new code either.
@@ -247,7 +277,7 @@ will be more modifiers into the same list, so they need no new code either.
 | Group | Upgrades |
 | --- | --- |
 | Every spell | Focused Will (damage), Quickened Mind (recharge), Farsight (range) |
-| Kind of spell | Widened Sigils (area), Splitting Bolt, Lancing Bolt (pierce), Forked Arc, Conduction (chain falloff), Permafrost (chill), Deepening Rot (damage over time) |
+| Kind of spell | Widened Sigils (area), Splitting Bolt, Lancing Bolt (pierce), Forked Arc, Conduction (chain falloff), Permafrost (chill), Deepening Rot (damage over time), Gathering Storm (strikes), Deep Roots |
 | Element | Kindled Fury (fire), Winter's Bite (frost), Static Charge (lightning) |
 | Defence | Hardy (max health), Second Wind (regeneration), Warding (damage taken) |
 | Utility | Miser's Instinct (pickup radius), Fleet Step (speed), Keen Study (XP), Gilded Touch (gold) |
@@ -336,3 +366,6 @@ That completes the spec's definition of done for the prototype. Past it:
 - [x] **10 — upgrade pass.** Audited all upgrades; recharge rate instead of
   cooldown percentage, bolts that split between targets; nine new upgrades
   including the first defensive ones. See "Upgrades".
+- [x] **11 — damage numbers and spells.** Floating damage numbers; six new
+  spells on two new behaviours (aura, ground zones); a starting spell pick;
+  per-spell switches and live tuning. See "Spells".

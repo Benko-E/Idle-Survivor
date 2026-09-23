@@ -81,9 +81,13 @@ const menu = new Menu(MENU_ENTRIES, {
   bankedGold: () => profile.bankedGold,
 })
 
+/** The spell picked at the start of the last run, reused by a quick restart. */
+let lastStarterId: string | undefined
+
 /** A fresh run: new world, camera on him, menu away. */
-function startRun(): void {
-  world = createWorld()
+function startRun(starterId?: string): void {
+  lastStarterId = starterId ?? lastStarterId
+  world = createWorld(config.world.seed, lastStarterId)
   resetInfluenceClock()
   damageNumbers.clear()
   deathElapsed = 0
