@@ -3,6 +3,7 @@ import type { Modifier } from '../core/modifiers'
 import { makeRng, type Rng } from '../core/rng'
 import { findWeaponDef } from '../data/weapons'
 import type { EnemyDef, PickupDef, WeaponDef } from '../data/types'
+import type { BuildBonus } from './buildBonus'
 import type { Offer } from './draft'
 import { spellsOfTier } from './spellTiers'
 import type { Projectile } from './projectiles'
@@ -59,6 +60,10 @@ export interface Enemy {
    * distance rather than time is what makes a chilled enemy visibly trudge.
    */
   stride: number
+  /** The element that last hit it, for Elemental Equilibrium. */
+  markedBy?: string
+  /** World time that mark wears off. */
+  markedUntil?: number
 }
 
 export interface Pickup {
@@ -128,6 +133,8 @@ export interface World {
   weapons: WeaponInstance[]
   /** Every stat change in play, from upgrades taken in the draft. */
   modifiers: Modifier[]
+  /** Earned when the last spell tier is chosen; see sim/buildBonus.ts. */
+  buildBonus: BuildBonus
 
   /** Awarded per kill, never dropped. See sim/progression.ts. */
   xp: number
@@ -220,6 +227,7 @@ export function createWorld(seed: number = config.world.seed, starterId?: string
       damageDealt: 0,
     })),
     modifiers: [],
+    buildBonus: null,
     xp: 0,
     level: 1,
     xpIntoLevel: 0,

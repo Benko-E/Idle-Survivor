@@ -1,3 +1,4 @@
+import { equilibriumMultiplier } from './buildBonus'
 import { rollDrops } from './drops'
 import { gameEvents, type GameEvents } from './events'
 import { grantXp } from './progression'
@@ -24,6 +25,7 @@ const payload: GameEvents['enemyDamaged'] = { enemyId: 0, x: 0, y: 0, amount: 0,
  */
 export function damageEnemy(world: World, enemy: Enemy, amount: number, source: WeaponInstance | null): void {
   if (enemy.hp <= 0 || amount <= 0) return
+  amount *= equilibriumMultiplier(world, enemy, source)
 
   // Overkill doesn't count. A 400-damage meteor landing on a 10 hp enemy
   // dealt 10, and counting 400 would make slow heavy hitters look far better

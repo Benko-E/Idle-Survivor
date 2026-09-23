@@ -1,4 +1,5 @@
-import { pendingSpellTier, spellsOfTier, takeSpell } from '../sim/spellTiers'
+import { bonusFor, describeBonus, elementOf } from '../sim/buildBonus'
+import { pendingSpellTier, spellsOfTier, takeSpell, tierCount } from '../sim/spellTiers'
 import type { WeaponDef } from '../data/types'
 import type { World } from '../sim/world'
 import { spellIcon } from './spellIcons'
@@ -48,6 +49,8 @@ const STYLES = `
 .spell-card .name { font-size: 16px; color: #e8c468; }
 .spell-card .desc { line-height: 1.45; flex: 1; }
 .spell-card .locks { font-size: 11px; color: #7a8a96; }
+.spell-card .completes { font-size: 11px; color: #e8c468; }
+.spell-card .completes.none { color: #6f8090; }
 .spell-later {
   position: fixed; top: 18px; right: 18px;
   background: none; border: none; color: #9fb3c2; cursor: pointer;
@@ -133,6 +136,16 @@ export class SpellChoiceUi {
     locks.textContent = others.length ? `Locks out ${others.join(' and ')}` : ''
 
     card.append(spellIcon(def.id, def.colour, 56), element, name, desc, locks)
+
+    // On the last choice, say what the set would come to.
+    const world = this.getWorld()
+    if (def.tier === tierCount()) {
+      const bonus = bonusFor([...world.weapons.map((w) => elementOf(w.def)), elementOf(def)], tierCount())
+      const completes = document.createElement('span')
+      completes.className = bonus ? 'completes' : 'completes none'
+      completes.textContent = bonus ? `Completes ${describeBonus(bonus).name}: ${describeBonus(bonus).effect}` : 'No build bonus'
+      card.append(completes)
+    }
     card.addEventListener('click', () => {
       takeSpell(this.getWorld(), def)
       this.hide()

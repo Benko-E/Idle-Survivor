@@ -1,5 +1,6 @@
 import { config } from '../config'
 import type { WeaponDef } from '../data/types'
+import { settleBuildBonus } from './buildBonus'
 import { WEAPON_DEFS } from '../data/weapons'
 import type { World } from './world'
 
@@ -61,4 +62,5 @@ export function takeSpell(world: World, def: WeaponDef): void {
   const tier = pendingSpellTier(world)
   if (tier === null || def.tier !== tier || !def.enabled) return
   world.weapons.push({ def, cooldownRemaining: 0.1, timesCast: 0, idleSeconds: 0, damageDealt: 0 })
+  settleBuildBonus(world, tierCount())
 }

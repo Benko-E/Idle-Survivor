@@ -1,3 +1,4 @@
+import { bonusProspect, describeBonus } from '../sim/buildBonus'
 import { pendingSpellTier, tierCount, tierUnlockLevel } from '../sim/spellTiers'
 import { weaponStat } from '../sim/stats'
 import type { WeaponInstance, World } from '../sim/world'
@@ -37,6 +38,16 @@ const STYLES = `
   0%, 100% { box-shadow: 0 0 3px #c9a6ff66; }
   50% { box-shadow: 0 0 12px #c9a6ffcc; }
 }
+.build-badge {
+  margin-left: 6px; padding: 5px 9px; border-radius: 6px; pointer-events: auto;
+  border: 1px solid var(--badge); color: var(--badge); background: #0d1218cc;
+  letter-spacing: 0.04em; white-space: nowrap;
+}
+.build-badge.hint { opacity: 0.55; border-style: dashed; }
+.build-badge.prismatic {
+  --badge: #e6d6ff;
+  background: linear-gradient(90deg, #ff8a3d33, #8fd8ff33, #f1e05a33), #0d1218cc;
+}
 .spell-sweep {
   position: absolute; inset: 0; pointer-events: none;
   background: conic-gradient(rgba(6, 9, 12, 0.72) var(--left), transparent 0);
@@ -48,6 +59,8 @@ const STYLES = `
  * "cast" several times a second — so those show as always ready.
  */
 const MIN_SWEEP_SECONDS = 0.6
+
+const ELEMENT_COLOURS: Record<string, string> = { fire: '#ff8a3d', frost: '#8fd8ff', lightning: '#f1e05a' }
 
 export class SpellBar {
   private readonly bar: HTMLDivElement
@@ -74,7 +87,7 @@ export class SpellBar {
 
     const world = this.getWorld()
     const pending = pendingSpellTier(world)
-    const signature = `${world.weapons.map((w) => w.def.id).join()}|${pending}|${world.level >= tierUnlockLevel(2)}`
+    const signature = `${world.weapons.map((w) => w.def.id).join()}|${pending}|${world.level >= tierUnlockLevel(2)}|${JSON.stringify(world.buildBonus)}`
     if (signature !== this.signature) {
       this.signature = signature
       this.rebuild(world, pending)
@@ -118,5 +131,31 @@ export class SpellBar {
 
       this.bar.appendChild(slot)
     }
+
+    this.addBadge(world)
+  }
+
+  /** The build bonus: bright once earned, faded while it's still on the way. */
+  private addBadge(world: World): void {
+    const earned = world.buildBonus
+    const prospect = earned ? null : bonusProspect(world, tierCount())
+    const bonus = earned ?? prospect?.bonus
+    if (!bonus) return
+
+    const { name, effect } = describeBonus(bonus)
+    const badge = document.createElement('div')
+    badge.className = 'build-badge'
+    if (bonus.kind === 'prismatic') badge.classList.add('prismatic')
+    else badge.style.setProperty('--badge', ELEMENT_COLOURS[bonus.element] ?? '#e8c468')
+
+    if (earned) {
+      badge.textContent = name
+      badge.title = effect
+    } else {
+      badge.classList.add('hint')
+      badge.textContent = `${name} ${prospect!.have}/${tierCount()}`
+      badge.title = `Still possible: ${name} — ${effect}`
+    }
+    this.bar.appendChild(badge)
   }
 }

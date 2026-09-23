@@ -272,6 +272,28 @@ Spells come in **tiers**, one per tier, and each choice is final:
   locks out the rest of that tier for the run. It doesn't pause, and he fights
   on with what he has until you choose.
 - Level-ups only ever offer **upgrades**, never spells.
+- The **spell bar** at the top shows each tier's slot: the spell's icon with
+  its recharge sweeping round it, the level an empty slot opens at, and a
+  glowing *NEW* when a choice is waiting.
+
+**Build bonuses**, settled when the last spell is chosen
+(`buildBonus` in the config, `sim/buildBonus.ts`):
+
+- **Pure** — all three spells one element: +25% damage and burn for it.
+- **Prismatic** — one of each: *Elemental Equilibrium*. An enemy hit by one
+  element takes +30% from the others for 3 seconds, so the reward is for
+  mixing elements on the same enemy.
+- Two of one element and one other earns nothing. That's the decision.
+
+A badge beside the spell bar shows the bonus once earned, and a faded hint
+while it's still possible; the last tier's cards say what each would
+complete.
+
+**Level-up cards lean by slot** (`draft.slots`, `draft.slotThemes`,
+`draft.slotBias`): the left card towards fighting and surviving, the right
+towards comfort — XP, gold, pickup radius, speed — and the middle towards
+nothing. Each keeps its lean three times in four. Struggling, the left card
+is the one you want; cruising, the right.
 - A spell's tier is a field in its data entry (`tier: 2`). A spell with no
   tier, or switched off, is never offered — that's how Frost Nova, Curse of
   Withering, Vortex and Entangling Roots are kept for later.
@@ -446,3 +468,7 @@ That completes the spec's definition of done for the prototype. Past it:
   per-spell switches and live tuning. See "Spells".
 - [x] **12 — balance pass.** Bank trips no longer suicidal, base regeneration,
   caution when hurt, a late-game ramp, spell tuning. See "Balance pass".
+- [x] **13 — spell tiers.** A random seed per run; a 3x3 grid of spells by
+  tier and element, one exclusive pick per tier; Frozen Orb, Ball Lightning
+  and Blizzard; the spell bar with icons; level-up cards that lean by slot;
+  pure and prismatic build bonuses. Balance is rough until the next pass.

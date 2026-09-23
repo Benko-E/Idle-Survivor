@@ -656,6 +656,22 @@ export const config = {
     slotBias: 0.75,
   },
 
+  /**
+   * Rewards for how the three spells fit together. See sim/buildBonus.ts.
+   * Two of one element and one other earns nothing — that's the decision.
+   */
+  buildBonus: {
+    /** All one element: extra damage and burn for that element. */
+    pureDamage: 0.25,
+    /**
+     * One of each, Elemental Equilibrium: extra damage an enemy takes from
+     * an element other than the one that last hit it.
+     */
+    equilibriumBonus: 0.3,
+    /** How long that mark lasts, in seconds. */
+    equilibriumSeconds: 3,
+  },
+
   /** How spells are gained. See sim/spellTiers.ts. */
   spells: {
     /**
