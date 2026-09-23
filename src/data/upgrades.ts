@@ -145,9 +145,11 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   {
     id: 'up_strike_01',
     displayName: 'Gathering Storm',
-    description: '+1 lightning strike per cast',
+    description: 'Storms strike 25% more often',
     tags: ['offence', 'lightning'],
-    modifiers: [{ target: 'count', op: 'add', value: 1, tags: ['strike'] }],
+    // It used to add a strike per cast, back when Thunderstorm was a volley.
+    // Now the storm sits overhead, so it's how often lightning falls.
+    modifiers: [{ target: 'strikeRate', op: 'increase', value: 0.25, tags: ['strike'] }],
     maxStacks: 3,
     weight: 50,
     requiresOwnedTags: ['strike'],

@@ -4,6 +4,9 @@ import { enemiesInRadius } from './targeting'
 import { spawnLine, spawnRing } from './vfx'
 import type { Enemy, WeaponInstance, World } from './world'
 
+/** How long a zone's chill lingers on an enemy that steps out of it. */
+const CHILL_LINGER = 0.4
+
 /**
  * Patches of ground a spell has claimed: a lightning strike about to land, a
  * meteor on its way down, a vortex dragging things in, roots bursting up.
@@ -11,8 +14,9 @@ import type { Enemy, WeaponInstance, World } from './world'
  * One generic thing with a few numbers, rather than a system per spell. Each
  * zone waits out a `delay` (drawn on the ground as a warning), lands — dealing
  * any `burst` damage and rooting what it caught — and then stays active for
- * `remaining` seconds, burning and pulling whatever is inside. Which of those
- * a spell uses is just which numbers it sets; the rest are zero.
+ * `remaining` seconds, burning, pulling, chilling or striking whatever is
+ * inside. Which of those a spell uses is just which numbers it sets; the rest
+ * are zero.
  */
 
 export interface Zone {
@@ -35,6 +39,15 @@ export interface Zone {
   pull: number
   /** Seconds enemies caught on landing are rooted for. */
   root: number
+  /** Fraction of speed removed from everything inside while active. */
+  slow: number
+  /** Strikes per second while active, each on a random enemy inside. */
+  strikeRate: number
+  /** Damage of each strike, to everything within `strikeRadius` of it. */
+  strikeDamage: number
+  strikeRadius: number
+  /** Fractional strikes carried between frames. */
+  strikeCredit: number
   landed: boolean
   colour: string
   source: WeaponInstance
@@ -58,6 +71,25 @@ function land(world: World, zone: Zone): void {
   spawnRing(world, zone.x, zone.y, zone.radius, zone.colour, 0.4)
 }
 
+/** Lightning out of a storm: a random enemy inside, and everything near it. */
+function strike(world: World, zone: Zone, inside: Enemy[], dt: number): void {
+  zone.strikeCredit += zone.strikeRate * dt
+  while (zone.strikeCredit >= 1) {
+    zone.strikeCredit -= 1
+    const target = inside[Math.floor(world.rng() * inside.length)]
+    const tx = target.x
+    const ty = target.y
+    // Copied out first: the scratch list is about to be reused for the blast.
+    for (const enemy of enemiesInRadius(world, tx, ty, zone.strikeRadius, strikeScratch)) {
+      damageEnemy(world, enemy, zone.strikeDamage, zone.source)
+    }
+    spawnLine(world, tx, ty - 200, tx, ty, zone.colour, 0.14)
+    spawnRing(world, tx, ty, zone.strikeRadius, zone.colour, 0.25)
+  }
+}
+
+const strikeScratch: Enemy[] = []
+
 export function updateZones(world: World, dt: number): void {
   for (let i = world.zones.length - 1; i >= 0; i--) {
     const zone = world.zones[i]
@@ -71,6 +103,7 @@ export function updateZones(world: World, dt: number): void {
     if (zone.remaining > 0) {
       const inside = enemiesInRadius(world, zone.x, zone.y, zone.radius, scratch)
       for (const enemy of inside) {
+        if (zone.slow > 0) applyEffect(enemy, 'slow', zone.slow, CHILL_LINGER, zone.source)
         if (zone.dps > 0) damageEnemy(world, enemy, zone.dps * dt, zone.source)
         if (zone.pull > 0) {
           const dx = zone.x - enemy.x
@@ -85,6 +118,7 @@ export function updateZones(world: World, dt: number): void {
           }
         }
       }
+      if (zone.strikeRate > 0 && inside.length > 0) strike(world, zone, inside, dt)
       zone.remaining -= dt
     }
 

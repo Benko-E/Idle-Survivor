@@ -12,22 +12,28 @@ import type { WeaponDef } from './types'
  *   tier 2     Righteous Fire   Frozen Orb     Ball Lightning
  *   tier 3     Meteor           Blizzard       Thunderstorm
  *
- * Every spell is one entry here, built from a handful of generic behaviours
- * (sim/behaviours.ts): projectile, nova, chain, curse, aura and zone. Meteor
- * and Thunderstorm are the same behaviour with different numbers; so are
- * Firebolt and Frostbolt. A new spell that reuses a behaviour is data alone.
+ * The tiers differ in shape as well as power. Tier 1 aims at single enemies.
+ * Tier 2 covers the ground around him: an aura, a line, an orbit. Tier 3 is
+ * placed on the map, on the crowd: one heavy impact, a lasting field, a storm.
  *
- * To take a spell out of the game, set `enabled: false` — it's never offered
- * and stops casting. Every number is live in the debug panel under "spells",
- * and "log changes" prints what you moved, ready to paste back here.
+ * Every spell is built from a handful of generic behaviours
+ * (sim/behaviours.ts): projectile, chain, aura, orbit, zone, plus nova and
+ * curse for the shelved ones. Meteor, Blizzard and Thunderstorm are all
+ * 'zone' with different numbers. A new spell that reuses a behaviour is data.
+ *
+ * To take a spell out of the game, set `enabled: false`. Every number is live
+ * in the debug panel under "spells", and "log changes" prints what you moved.
  *
  * Tags do two jobs: flavour, and letting upgrades select on them. A spell
  * tagged 'fire' gets Kindled Fury; one tagged 'dot' makes Deepening Rot
- * appear in the draft. Give a new spell the tags that describe it honestly
- * and the right upgrades follow with no other change.
+ * appear in the draft. Tag honestly and the right upgrades follow.
+ *
+ * Numbers are first guesses since the move to tiers. The balance pass that
+ * tuned the old roster assumed four to six spells a run; with three, it
+ * needs doing again.
  */
 export const WEAPON_DEFS: WeaponDef[] = [
-  // --- Bolts --------------------------------------------------------------------
+  // --- Tier 1: the starting pick ---------------------------------------------------
 
   {
     id: 'spell_bolt_01',
@@ -70,69 +76,6 @@ export const WEAPON_DEFS: WeaponDef[] = [
     },
     colour: '#8fd8ff',
   },
-
-  // --- Around him ---------------------------------------------------------------
-
-  {
-    id: 'spell_nova_01',
-    displayName: 'Frost Nova',
-    description: 'A burst of cold around him that damages and chills',
-    // Shelved: no place in the fire/frost/lightning tiers yet. Kept for a
-    // shadow or nature element, or for gear to grant.
-    enabled: false,
-    tags: ['spell', 'frost', 'area'],
-    behaviour: 'nova',
-    stats: {
-      cooldown: 3.6,
-      damage: 11,
-      area: 155,
-      slow: 0.45,
-      duration: 2.4,
-    },
-    colour: '#7fd8ff',
-  },
-  {
-    id: 'spell_aura_01',
-    displayName: 'Righteous Fire',
-    description: 'A ring of holy fire around him, burning everything close',
-    enabled: true,
-    tier: 2,
-    tags: ['spell', 'fire', 'aura', 'area', 'dot'],
-    behaviour: 'aura',
-    stats: {
-      // How often the burn is refreshed on everything inside — not a delay
-      // the player feels. Duration outlasts it, so the burn is continuous
-      // while they stay close and fades a moment after they leave.
-      cooldown: 0.4,
-      // Wider and hotter after the balance pass. He keeps his distance from
-      // enemies — that's the movement AI doing its job — so a small aura
-      // rarely touched anything: 12% of damage when owned, 20% after.
-      area: 130,
-      dotDamage: 10,
-      duration: 1,
-    },
-    colour: '#ff6a2a',
-  },
-  {
-    id: 'spell_curse_01',
-    displayName: 'Curse of Withering',
-    description: 'Afflicts everything nearby with slow, creeping decay',
-    // Shelved: no place in the fire/frost/lightning tiers yet. Kept for a
-    // shadow or nature element, or for gear to grant.
-    enabled: false,
-    tags: ['spell', 'shadow', 'curse', 'area', 'dot'],
-    behaviour: 'curse',
-    stats: {
-      cooldown: 2.2,
-      area: 210,
-      dotDamage: 7,
-      duration: 3.5,
-    },
-    colour: '#9d7bd8',
-  },
-
-  // --- Jumping --------------------------------------------------------------------
-
   {
     id: 'spell_chain_01',
     displayName: 'Chain Lightning',
@@ -156,32 +99,83 @@ export const WEAPON_DEFS: WeaponDef[] = [
     colour: '#c9a6ff',
   },
 
-  // --- On the ground, somewhere else ------------------------------------------------
+  // --- Tier 2: the ground around him, from level 6 -----------------------------------
 
   {
-    id: 'spell_storm_01',
-    displayName: 'Thunderstorm',
-    description: 'Lightning strikes down on enemies around him',
+    id: 'spell_aura_01',
+    displayName: 'Righteous Fire',
+    description: 'A ring of holy fire around him, burning everything close',
     enabled: true,
-    tier: 3,
-    tags: ['spell', 'lightning', 'zone', 'area', 'strike'],
-    behaviour: 'zone',
-    targeting: 'random',
-    // Trimmed in the balance pass: it took 43% of all damage in builds that
-    // had it, against five other spells. 28% after.
+    tier: 2,
+    tags: ['spell', 'fire', 'aura', 'area', 'dot'],
+    behaviour: 'aura',
     stats: {
-      cooldown: 2.8,
-      range: 420,
-      // Strikes per cast, each on a different enemy.
-      count: 3,
-      area: 55,
-      // A beat of warning on the ground before it lands.
-      delay: 0.45,
-      damage: 19,
-      duration: 0,
+      // How often the burn is refreshed on everything inside — not a delay
+      // the player feels. Duration outlasts it, so the burn is continuous
+      // while they stay close and fades a moment after they leave.
+      cooldown: 0.4,
+      // Wider and hotter after the balance pass. He keeps his distance from
+      // enemies — that's the movement AI doing its job — so a small aura
+      // rarely touched anything: 12% of damage when owned, 20% after.
+      area: 130,
+      dotDamage: 10,
+      duration: 1,
     },
-    colour: '#f4e76e',
+    colour: '#ff6a2a',
   },
+  {
+    id: 'spell_orb_01',
+    displayName: 'Frozen Orb',
+    description: 'A slow ball of ice that ploughs through everything in its path, chilling as it goes',
+    enabled: true,
+    tier: 2,
+    tags: ['spell', 'frost', 'projectile', 'area'],
+    behaviour: 'projectile',
+    stats: {
+      cooldown: 2.6,
+      damage: 16,
+      count: 1,
+      // Slow on purpose: it's the time spent crossing the crowd that makes
+      // it hit so much of it.
+      speed: 140,
+      // Effectively endless. Lancing Bolt still adds to it, harmlessly.
+      pierce: 999,
+      range: 620,
+      spread: 0.3,
+      size: 16,
+      slow: 0.3,
+      duration: 1.4,
+    },
+    colour: '#bfeaff',
+  },
+  {
+    id: 'spell_ball_01',
+    displayName: 'Ball Lightning',
+    description: 'Orbs of lightning circle him, striking anything they touch',
+    enabled: true,
+    tier: 2,
+    tags: ['spell', 'lightning', 'orbit', 'area'],
+    behaviour: 'orbit',
+    stats: {
+      // How often the orbs check what they're touching, not a felt delay.
+      cooldown: 0.1,
+      damage: 14,
+      // Orbs circling at once.
+      count: 2,
+      // Orbit radius. Widened Sigils pushes them further out.
+      area: 90,
+      // Radians per second: about one lap every two seconds.
+      speed: 3.2,
+      // Each orb's own radius.
+      size: 13,
+      // Seconds before one enemy can be hit by the same spell again.
+      rehit: 0.5,
+    },
+    colour: '#f1e05a',
+  },
+
+  // --- Tier 3: on the crowd, from level 15 --------------------------------------------
+
   {
     id: 'spell_meteor_01',
     displayName: 'Meteor',
@@ -205,11 +199,93 @@ export const WEAPON_DEFS: WeaponDef[] = [
     colour: '#ff7b3d',
   },
   {
+    id: 'spell_blizzard_01',
+    displayName: 'Blizzard',
+    description: 'A howling storm of ice over the biggest crowd, chilling and grinding down all inside',
+    enabled: true,
+    tier: 3,
+    tags: ['spell', 'frost', 'zone', 'area', 'dot'],
+    behaviour: 'zone',
+    targeting: 'densest',
+    stats: {
+      cooldown: 6,
+      range: 440,
+      count: 1,
+      area: 125,
+      delay: 0.3,
+      duration: 4.5,
+      dotDamage: 10,
+      slow: 0.45,
+    },
+    colour: '#d6f3ff',
+  },
+  {
+    id: 'spell_storm_01',
+    displayName: 'Thunderstorm',
+    description: 'A storm settles over the biggest crowd, lightning striking at random beneath it',
+    enabled: true,
+    tier: 3,
+    tags: ['spell', 'lightning', 'zone', 'area', 'strike'],
+    behaviour: 'zone',
+    targeting: 'densest',
+    // Reworked for tier 3: a storm that sits over a crowd for a while, rather
+    // than a quick volley of three separate strikes.
+    stats: {
+      cooldown: 5.5,
+      range: 420,
+      count: 1,
+      area: 150,
+      delay: 0.4,
+      duration: 4,
+      // Strikes per second while it's overhead, each on a random enemy under it.
+      strikeRate: 3,
+      // Per strike, to everything within strikeRadius of it.
+      damage: 18,
+      strikeRadius: 45,
+    },
+    colour: '#f4e76e',
+  },
+
+  // --- Shelved ------------------------------------------------------------------------
+  //
+  // No place in the fire/frost/lightning grid yet. Kept, switched off and
+  // without a tier, for a shadow or nature element, or for gear to grant.
+
+  {
+    id: 'spell_nova_01',
+    displayName: 'Frost Nova',
+    description: 'A burst of cold around him that damages and chills',
+    enabled: false,
+    tags: ['spell', 'frost', 'area'],
+    behaviour: 'nova',
+    stats: {
+      cooldown: 3.6,
+      damage: 11,
+      area: 155,
+      slow: 0.45,
+      duration: 2.4,
+    },
+    colour: '#7fd8ff',
+  },
+  {
+    id: 'spell_curse_01',
+    displayName: 'Curse of Withering',
+    description: 'Afflicts everything nearby with slow, creeping decay',
+    enabled: false,
+    tags: ['spell', 'shadow', 'curse', 'area', 'dot'],
+    behaviour: 'curse',
+    stats: {
+      cooldown: 2.2,
+      area: 210,
+      dotDamage: 7,
+      duration: 3.5,
+    },
+    colour: '#9d7bd8',
+  },
+  {
     id: 'spell_vortex_01',
     displayName: 'Vortex',
     description: 'Tears open a rift in the biggest crowd and drags enemies into it',
-    // Shelved: no place in the fire/frost/lightning tiers yet. Kept for a
-    // shadow or nature element, or for gear to grant.
     enabled: false,
     tags: ['spell', 'shadow', 'zone', 'area', 'dot'],
     behaviour: 'zone',
@@ -230,8 +306,6 @@ export const WEAPON_DEFS: WeaponDef[] = [
     id: 'spell_roots_01',
     displayName: 'Entangling Roots',
     description: 'Roots burst from the ground under the biggest crowd, holding them still',
-    // Shelved: no place in the fire/frost/lightning tiers yet. Kept for a
-    // shadow or nature element, or for gear to grant.
     enabled: false,
     tags: ['spell', 'nature', 'zone', 'area', 'root'],
     behaviour: 'zone',

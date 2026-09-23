@@ -432,6 +432,33 @@ export class Renderer {
     ctx.globalAlpha = 1
   }
 
+  /**
+   * A round glowing ball hanging `lift` world units above a point on the
+   * ground — a bolt in flight, an orb. Not squashed like ground circles,
+   * because it isn't lying on the ground.
+   */
+  drawWorldOrb(worldX: number, worldY: number, radius: number, lift: number, colour: string, alpha = 1): void {
+    const { ctx } = this
+    const sx = this.worldToScreenX(worldX)
+    const sy = this.worldToScreenY(worldY) - lift * this.scale
+    const r = Math.max(1.5, radius * this.scale)
+    ctx.globalAlpha = alpha * 0.35
+    ctx.fillStyle = colour
+    ctx.beginPath()
+    ctx.arc(sx, sy, r * 1.8, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.globalAlpha = alpha
+    ctx.beginPath()
+    ctx.arc(sx, sy, r, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.fillStyle = '#ffffff'
+    ctx.globalAlpha = alpha * 0.75
+    ctx.beginPath()
+    ctx.arc(sx, sy, r * 0.45, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.globalAlpha = 1
+  }
+
   /** Filled, and squashed by yScale like the outline version below. */
   fillWorldCircle(worldX: number, worldY: number, radius: number, colour: string, alpha = 1): void {
     if (radius <= 0 || alpha <= 0) return

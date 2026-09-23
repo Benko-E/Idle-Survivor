@@ -89,6 +89,12 @@ export interface WeaponInstance {
    * caused counts: its bolts, its effects ticking later, its zones.
    */
   damageDealt: number
+  /**
+   * When each enemy was last hit by this spell, by enemy id. Only spells that
+   * touch the same enemies over and over use it — an orb circling through a
+   * crowd must not hit the same one sixty times a second.
+   */
+  hitLog?: Map<number, number>
 }
 
 export interface World {

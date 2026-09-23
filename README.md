@@ -241,16 +241,28 @@ as debug rings.
 
 ## Spells
 
-Ten, all in `src/data/weapons.ts`, built from six generic behaviours:
+Nine in play, all in `src/data/weapons.ts`, laid out as a grid:
+
+| | Fire | Frost | Lightning |
+| --- | --- | --- | --- |
+| **Tier 1** — aimed | Firebolt | Frostbolt | Chain Lightning |
+| **Tier 2** — around him | Righteous Fire | Frozen Orb | Ball Lightning |
+| **Tier 3** — on the crowd | Meteor | Blizzard | Thunderstorm |
+
+The tiers differ in shape, not just power: tier 2 is an aura, a line and an
+orbit; tier 3 is one heavy impact, a lasting field and a storm that strikes
+at random beneath it.
+
+They're built from a handful of generic behaviours:
 
 | Behaviour | Spells | What it does |
 | --- | --- | --- |
-| projectile | Firebolt, Frostbolt | Bolts at the nearest enemies; can chill or burn on hit |
-| nova | Frost Nova | A burst around him |
-| aura | Righteous Fire | A steady burn on everything close |
-| curse | Curse of Withering | Damage over time on everything in a wide radius |
+| projectile | Firebolt, Frostbolt, Frozen Orb | Bolts at the nearest enemies; can pierce, chill or burn |
 | chain | Chain Lightning | Leaps from enemy to enemy |
-| zone | Thunderstorm, Meteor, Vortex, Entangling Roots | Claims a patch of ground: warns, lands, then burns, pulls or roots |
+| aura | Righteous Fire | A steady burn on everything close |
+| orbit | Ball Lightning | Orbs circling him, hitting what they touch |
+| zone | Meteor, Blizzard, Thunderstorm | Claims a patch of ground: warns, lands, then burns, chills, strikes, pulls or roots |
+| nova, curse | *(shelved)* | Kept for Frost Nova and Curse of Withering |
 
 Spells come in **tiers**, one per tier, and each choice is final:
 

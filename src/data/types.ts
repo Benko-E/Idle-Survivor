@@ -226,6 +226,17 @@ export interface WeaponDef {
    *   dotDamage    per second to everything inside while active
    *   pull         world units per second it drags enemies inwards
    *   root         seconds enemies caught on landing can't move
+   *   slow         chill on everything inside while active
+   *   strikeRate   strikes per second while active, each on a random enemy
+   *                inside; `damage` then goes to each strike instead of the
+   *                landing, hitting everything within `strikeRadius`
+   *
+   * Orbiting spells (behaviour 'orbit') use count (orbs), area (orbit radius),
+   * speed (radians per second), size (orb radius), damage and rehit (seconds
+   * before the same enemy can be hit again).
+   *
+   * Any projectile can set `size`, its radius, for something bigger than a
+   * bolt.
    *
    * On a projectile, `slow` or `dotDamage` with `duration` is left on each
    * enemy it hits: a chill, or a burn.

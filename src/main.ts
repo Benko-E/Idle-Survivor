@@ -296,15 +296,7 @@ function render(): void {
     })
   }
 
-  for (const projectile of world.projectiles) {
-    frame.push({
-      x: projectile.x,
-      y: projectile.y,
-      w: projectile.radius * 2,
-      h: projectile.radius * 2,
-      colour: projectile.colour,
-    })
-  }
+  // Projectiles are drawn with the spell effects, as glowing balls in flight.
 
   const heroSheet = getSheet(config.character.sprite)
   const heroHeight = config.character.drawHeight

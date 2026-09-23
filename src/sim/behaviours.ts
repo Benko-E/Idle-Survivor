@@ -2,6 +2,7 @@ import { config } from '../config'
 import type { WeaponDef } from '../data/types'
 import { damageEnemy } from './damageEnemy'
 import { applyEffect } from './statusEffects'
+import { orbitPositions } from './orbit'
 import { enemiesInRadius, nearestEnemies, nearestEnemy, pickTargets } from './targeting'
 import { spawnLine, spawnRing } from './vfx'
 import type { Enemy, WeaponInstance, World } from './world'
@@ -94,7 +95,8 @@ const projectile: Behaviour = ({ world, weapon, def, stat }) => {
       vy: Math.sin(angle) * speed,
       damage,
       pierce,
-      radius: config.combat.projectileRadius,
+      // A spell can set its own bolt size — Frozen Orb is a big slow ball.
+      radius: stat('size') || config.combat.projectileRadius,
       colour: def.colour,
       tags: def.tags,
       life: speed > 0 ? range / speed : 0,
@@ -215,6 +217,7 @@ const zone: Behaviour = ({ world, weapon, def, stat }) => {
 
   const delay = Math.max(0, stat('delay'))
   const duration = Math.max(0, stat('duration'))
+  const strikeRate = Math.max(0, stat('strikeRate'))
   for (const target of targets) {
     world.zones.push({
       x: target.x,
@@ -224,10 +227,16 @@ const zone: Behaviour = ({ world, weapon, def, stat }) => {
       delayTotal: delay,
       remaining: duration,
       durationTotal: duration,
-      burst: stat('damage'),
+      // A storm's damage comes in strikes, not all at once when it arrives.
+      burst: strikeRate > 0 ? 0 : stat('damage'),
       dps: stat('dotDamage'),
       pull: stat('pull'),
       root: stat('root'),
+      slow: stat('slow'),
+      strikeRate,
+      strikeDamage: strikeRate > 0 ? stat('damage') : 0,
+      strikeRadius: stat('strikeRadius'),
+      strikeCredit: 0,
       landed: false,
       colour: def.colour,
       source: weapon,
@@ -236,6 +245,39 @@ const zone: Behaviour = ({ world, weapon, def, stat }) => {
   return true
 }
 
+/**
+ * Orbs circling him that hurt whatever they touch. Ball Lightning.
+ *
+ * "Casts" on a short tick rather than once per cooldown: each tick checks
+ * what the orbs are touching. `rehit` is how soon one enemy can be hit again,
+ * so an orb sweeping through a crowd hits each of them once per pass.
+ */
+const orbit: Behaviour = ({ world, weapon, stat }) => {
+  const size = stat('size')
+  const damage = stat('damage')
+  const rehit = stat('rehit')
+  const log = (weapon.hitLog ??= new Map())
+  let hitAny = false
+
+  for (const orb of orbitPositions(world, weapon)) {
+    for (const enemy of enemiesInRadius(world, orb.x, orb.y, size + enemyReach, scratchTargets)) {
+      if ((enemy.x - orb.x) ** 2 + (enemy.y - orb.y) ** 2 > (size + enemy.def.radius) ** 2) continue
+      const last = log.get(enemy.id)
+      if (last !== undefined && world.time - last < rehit) continue
+      log.set(enemy.id, world.time)
+      damageEnemy(world, enemy, damage, weapon)
+      hitAny = true
+    }
+  }
+
+  // Forget enemies that have long since died or wandered off.
+  if (log.size > 500) for (const [id, time] of log) if (world.time - time > rehit) log.delete(id)
+  return hitAny
+}
+
+/** Slack when asking the grid what an orb might touch: the biggest enemy's radius. */
+const enemyReach = 20
+
 export const BEHAVIOURS: Record<string, Behaviour> = {
   projectile,
   nova,
@@ -243,4 +285,5 @@ export const BEHAVIOURS: Record<string, Behaviour> = {
   curse,
   aura,
   zone,
+  orbit,
 }
