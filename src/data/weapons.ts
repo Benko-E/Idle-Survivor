@@ -3,6 +3,15 @@ import type { WeaponDef } from './types'
 /**
  * The spellbook. (spec 5.1)
  *
+ * Laid out as a grid: three elements across, three tiers down. A run gets one
+ * spell per tier — the first picked on the menu, the next two when their
+ * tiers open — and picking one locks out the rest of that tier.
+ *
+ *              fire             frost          lightning
+ *   tier 1     Firebolt         Frostbolt      Chain Lightning
+ *   tier 2     Righteous Fire   Frozen Orb     Ball Lightning
+ *   tier 3     Meteor           Blizzard       Thunderstorm
+ *
  * Every spell is one entry here, built from a handful of generic behaviours
  * (sim/behaviours.ts): projectile, nova, chain, curse, aura and zone. Meteor
  * and Thunderstorm are the same behaviour with different numbers; so are
@@ -25,6 +34,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     displayName: 'Firebolt',
     description: 'A fast bolt of fire at the nearest enemy',
     enabled: true,
+    tier: 1,
     tags: ['spell', 'fire', 'projectile'],
     behaviour: 'projectile',
     stats: {
@@ -43,6 +53,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     displayName: 'Frostbolt',
     description: 'A slower bolt of ice that chills whatever it hits',
     enabled: true,
+    tier: 1,
     tags: ['spell', 'frost', 'projectile'],
     behaviour: 'projectile',
     stats: {
@@ -66,7 +77,9 @@ export const WEAPON_DEFS: WeaponDef[] = [
     id: 'spell_nova_01',
     displayName: 'Frost Nova',
     description: 'A burst of cold around him that damages and chills',
-    enabled: true,
+    // Shelved: no place in the fire/frost/lightning tiers yet. Kept for a
+    // shadow or nature element, or for gear to grant.
+    enabled: false,
     tags: ['spell', 'frost', 'area'],
     behaviour: 'nova',
     stats: {
@@ -83,6 +96,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     displayName: 'Righteous Fire',
     description: 'A ring of holy fire around him, burning everything close',
     enabled: true,
+    tier: 2,
     tags: ['spell', 'fire', 'aura', 'area', 'dot'],
     behaviour: 'aura',
     stats: {
@@ -103,7 +117,9 @@ export const WEAPON_DEFS: WeaponDef[] = [
     id: 'spell_curse_01',
     displayName: 'Curse of Withering',
     description: 'Afflicts everything nearby with slow, creeping decay',
-    enabled: true,
+    // Shelved: no place in the fire/frost/lightning tiers yet. Kept for a
+    // shadow or nature element, or for gear to grant.
+    enabled: false,
     tags: ['spell', 'shadow', 'curse', 'area', 'dot'],
     behaviour: 'curse',
     stats: {
@@ -122,6 +138,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     displayName: 'Chain Lightning',
     description: 'Lightning that leaps from enemy to enemy',
     enabled: true,
+    tier: 1,
     tags: ['spell', 'lightning', 'chain'],
     behaviour: 'chain',
     // Buffed in the balance pass: the weakest spell alone, and as a starter
@@ -146,6 +163,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     displayName: 'Thunderstorm',
     description: 'Lightning strikes down on enemies around him',
     enabled: true,
+    tier: 3,
     tags: ['spell', 'lightning', 'zone', 'area', 'strike'],
     behaviour: 'zone',
     targeting: 'random',
@@ -169,6 +187,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     displayName: 'Meteor',
     description: 'Calls a meteor down on the biggest crowd. Slow, but it hits hard',
     enabled: true,
+    tier: 3,
     tags: ['spell', 'fire', 'zone', 'area'],
     behaviour: 'zone',
     targeting: 'densest',
@@ -189,7 +208,9 @@ export const WEAPON_DEFS: WeaponDef[] = [
     id: 'spell_vortex_01',
     displayName: 'Vortex',
     description: 'Tears open a rift in the biggest crowd and drags enemies into it',
-    enabled: true,
+    // Shelved: no place in the fire/frost/lightning tiers yet. Kept for a
+    // shadow or nature element, or for gear to grant.
+    enabled: false,
     tags: ['spell', 'shadow', 'zone', 'area', 'dot'],
     behaviour: 'zone',
     targeting: 'densest',
@@ -209,7 +230,9 @@ export const WEAPON_DEFS: WeaponDef[] = [
     id: 'spell_roots_01',
     displayName: 'Entangling Roots',
     description: 'Roots burst from the ground under the biggest crowd, holding them still',
-    enabled: true,
+    // Shelved: no place in the fire/frost/lightning tiers yet. Kept for a
+    // shadow or nature element, or for gear to grant.
+    enabled: false,
     tags: ['spell', 'nature', 'zone', 'area', 'root'],
     behaviour: 'zone',
     targeting: 'densest',

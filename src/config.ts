@@ -152,11 +152,6 @@ export const config = {
     stepLength: 22,
 
     /**
-     * The spells offered as a starting pick on the menu, by id from
-     * data/weapons.ts. With only one listed, Play skips the choice.
-     */
-    starterChoices: ['spell_bolt_01', 'spell_frostbolt_01', 'spell_chain_01'],
-    /**
      * Extra spells handed out at the start of every run on top of the pick.
      * Empty for real play; add ids here to test a spell in isolation.
      */
@@ -641,15 +636,18 @@ export const config = {
    * character fights on unsupervised. Levels queue on a button instead.
    */
   draft: {
-    /** Options offered per level-up. */
+    /** Options offered per level-up. Upgrades only — spells come in tiers. */
     choices: 3,
-    /** Ceiling on spells carried at once, so a build stays a build. */
-    maxWeapons: 6,
+  },
+
+  /** How spells are gained. See sim/spellTiers.ts. */
+  spells: {
     /**
-     * Weight of "a new spell" against a single upgrade. Higher than any
-     * upgrade because a whole new spell is worth more than an increment.
+     * The level each tier after the first opens at: tier 2 at the first
+     * entry, tier 3 at the second. Add an entry and a tier 4 exists — give
+     * some spells `tier: 4` and it's offered.
      */
-    newWeaponWeight: 130,
+    tierLevels: [6, 15],
   },
 
   /** Constants behind the formulas in sim/difficulty.ts. (spec 5.3) */

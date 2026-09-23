@@ -174,6 +174,13 @@ export interface WeaponDef {
    */
   enabled: boolean
   /**
+   * Which choice it belongs to: 1 is the starting pick, 2 and 3 open at the
+   * levels in `spells.tierLevels`. One spell per tier, and picking one locks
+   * out the rest of its tier for the run. A spell with no tier is never
+   * offered at all — that's how a spell is kept in the data for later.
+   */
+  tier?: number
+  /**
    * Both flavour and mechanics. Upgrade modifiers select on these, so
    * "+20% fire damage" or "+1 chain jump to lightning spells" need no code.
    */

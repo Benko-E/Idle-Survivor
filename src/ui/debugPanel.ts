@@ -58,7 +58,6 @@ const INTEGER_PATHS = new Set([
   'pickups.merge.maxTier',
   'spawn.maxAlive',
   'draft.choices',
-  'draft.maxWeapons',
   'render.damageNumbers.maxOnScreen',
 ])
 

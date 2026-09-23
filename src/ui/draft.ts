@@ -101,7 +101,7 @@ export class DraftUi {
 
     const kind = document.createElement('span')
     kind.className = 'kind'
-    kind.textContent = offer.kind === 'weapon' ? 'new spell' : 'upgrade'
+    kind.textContent = 'upgrade'
 
     const name = document.createElement('span')
     name.className = 'name'

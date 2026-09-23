@@ -1,7 +1,6 @@
 import { config } from '../config'
-import type { UpgradeDef, WeaponDef } from '../data/types'
+import type { UpgradeDef } from '../data/types'
 import { UPGRADE_DEFS } from '../data/upgrades'
-import { WEAPON_DEFS } from '../data/weapons'
 import type { World } from './world'
 
 /**
@@ -23,9 +22,11 @@ import type { World } from './world'
  * tuning measurements.
  */
 
-export type Offer =
-  | { kind: 'weapon'; id: string; displayName: string; description: string; def: WeaponDef }
-  | { kind: 'upgrade'; id: string; displayName: string; description: string; def: UpgradeDef }
+/**
+ * A card in the draft. Always an upgrade now: new spells come from the tier
+ * choices in sim/spellTiers.ts, never from an ordinary level-up.
+ */
+export type Offer = { kind: 'upgrade'; id: string; displayName: string; description: string; def: UpgradeDef }
 
 function ownsTag(world: World, tag: string): boolean {
   return world.weapons.some((weapon) => weapon.def.tags.includes(tag))
@@ -39,17 +40,6 @@ function upgradeIsEligible(world: World, def: UpgradeDef): boolean {
 
 function candidates(world: World): { offer: Offer; weight: number }[] {
   const pool: { offer: Offer; weight: number }[] = []
-
-  for (const def of WEAPON_DEFS) {
-    if (!def.enabled) continue
-    if (world.weapons.some((weapon) => weapon.def.id === def.id)) continue
-    if (world.weapons.length >= config.draft.maxWeapons) continue
-    pool.push({
-      offer: { kind: 'weapon', id: def.id, displayName: def.displayName, description: def.description, def },
-      // New spells are worth more than an increment, so they're weighted up.
-      weight: config.draft.newWeaponWeight,
-    })
-  }
 
   for (const def of UPGRADE_DEFS) {
     if (!upgradeIsEligible(world, def)) continue
@@ -114,12 +104,8 @@ export function takeOffer(world: World, offer: Offer): void {
   if (!world.draftOffers?.includes(offer)) return
   world.draftOffers = null
 
-  if (offer.kind === 'weapon') {
-    world.weapons.push({ def: offer.def, cooldownRemaining: 0.1, timesCast: 0, idleSeconds: 0, damageDealt: 0 })
-  } else {
-    world.modifiers.push(...offer.def.modifiers)
-    world.upgradesTaken[offer.id] = (world.upgradesTaken[offer.id] ?? 0) + 1
-  }
+  world.modifiers.push(...offer.def.modifiers)
+  world.upgradesTaken[offer.id] = (world.upgradesTaken[offer.id] ?? 0) + 1
 
   world.pendingLevelUps = Math.max(0, world.pendingLevelUps - 1)
 }

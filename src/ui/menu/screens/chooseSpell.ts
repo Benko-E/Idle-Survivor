@@ -1,16 +1,10 @@
-import { config } from '../../../config'
-import { WEAPON_DEFS } from '../../../data/weapons'
 import type { WeaponDef } from '../../../data/types'
+import { spellsOfTier } from '../../../sim/spellTiers'
 import type { Screen } from '../types'
 
-/**
- * The starting pick: one card per spell in `character.starterChoices`,
- * leaving out any that are switched off.
- */
+/** The starting pick: every enabled tier-1 spell. */
 export function starterChoices(): WeaponDef[] {
-  return config.character.starterChoices
-    .map((id) => WEAPON_DEFS.find((def) => def.id === id))
-    .filter((def): def is WeaponDef => def !== undefined && def.enabled)
+  return spellsOfTier(1)
 }
 
 export const chooseSpellScreen: Screen = {

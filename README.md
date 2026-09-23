@@ -252,9 +252,17 @@ Ten, all in `src/data/weapons.ts`, built from six generic behaviours:
 | chain | Chain Lightning | Leaps from enemy to enemy |
 | zone | Thunderstorm, Meteor, Vortex, Entangling Roots | Claims a patch of ground: warns, lands, then burns, pulls or roots |
 
-A run starts with a choice of Firebolt, Frostbolt or Chain Lightning
-(`character.starterChoices`); the rest come from the level-up draft, up to
-`draft.maxWeapons` at once.
+Spells come in **tiers**, one per tier, and each choice is final:
+
+- **Tier 1** is picked on the menu: Firebolt, Frostbolt or Chain Lightning.
+- **Tier 2** opens at level 6 and **tier 3** at level 15
+  (`spells.tierLevels`). A glowing *New spell!* button appears; picking one
+  locks out the rest of that tier for the run. It doesn't pause, and he fights
+  on with what he has until you choose.
+- Level-ups only ever offer **upgrades**, never spells.
+- A spell's tier is a field in its data entry (`tier: 2`). A spell with no
+  tier, or switched off, is never offered — that's how Frost Nova, Curse of
+  Withering, Vortex and Entangling Roots are kept for later.
 
 To tune, take out or add a spell:
 

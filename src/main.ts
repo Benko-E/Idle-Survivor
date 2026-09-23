@@ -24,6 +24,7 @@ import { createWorld } from './sim/world'
 import { DebugPanel } from './ui/debugPanel'
 import { DraftUi } from './ui/draft'
 import { MENU_ENTRIES } from './ui/menu/entries'
+import { SpellChoiceUi } from './ui/spellChoice'
 import { Menu } from './ui/menu/menu'
 
 /**
@@ -47,6 +48,7 @@ const renderer = new Renderer(canvas)
 let world = createWorld()
 // A getter, because restarting replaces the world object entirely.
 const draftUi = new DraftUi(() => world)
+const spellChoiceUi = new SpellChoiceUi(() => world)
 new DebugPanel()
 let bestTime = 0
 let lastTime = 0
@@ -233,6 +235,7 @@ const frame: Drawable[] = []
 
 function render(): void {
   draftUi.update()
+  spellChoiceUi.update()
   renderer.beginFrame()
 
   // Under the sprites, so it reads as ground rather than fog.

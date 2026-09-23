@@ -4,6 +4,7 @@ import { makeRng, type Rng } from '../core/rng'
 import { findWeaponDef } from '../data/weapons'
 import type { EnemyDef, PickupDef, WeaponDef } from '../data/types'
 import type { Offer } from './draft'
+import { spellsOfTier } from './spellTiers'
 import type { Projectile } from './projectiles'
 import type { StatusEffect } from './statusEffects'
 import type { VisitMark } from './trail'
@@ -239,7 +240,7 @@ export function createWorld(seed: number = config.world.seed, starterId?: string
 
 /** The chosen starter, plus any extra spells the config hands out for testing. */
 function startingSpells(starterId: string | undefined): string[] {
-  const starter = starterId ?? config.character.starterChoices[0]
+  const starter = starterId ?? spellsOfTier(1)[0]?.id ?? 'spell_bolt_01'
   const ids = [starter, ...config.character.startingWeaponIds]
   return ids.filter((id, index) => ids.indexOf(id) === index)
 }
