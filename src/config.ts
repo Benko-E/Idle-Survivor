@@ -116,7 +116,16 @@ export const config = {
   },
 
   world: {
-    /** Deterministic world generation, so a tuning run is reproducible. */
+    /**
+     * Every run gets a fresh seed — different spawns, different drafts. Turn
+     * this off to replay `seed` exactly, which is what before/after tuning
+     * needs: change one number, and the difference in the run is that number.
+     */
+    randomSeed: true,
+    /**
+     * The seed used when `randomSeed` is off. The F1 overlay shows each run's
+     * seed, so a run worth replaying can be copied here.
+     */
     seed: 1337,
   },
 
@@ -712,9 +721,9 @@ export const config = {
      * Skip the menu and start a new run by itself this many seconds after
      * death. 0 (the default) means off: death goes back to the menu.
      *
-     * For leaving tuning sessions unattended. Runs use a fixed seed, so an
-     * identical run repeats every time — change one weight and the survival
-     * time is a real before/after measurement rather than a guess.
+     * For leaving tuning sessions unattended. With `world.randomSeed` off,
+     * an identical run repeats every time — change one weight and the
+     * survival time is a real before/after measurement rather than a guess.
      */
     autoRestartSeconds: 0,
   },

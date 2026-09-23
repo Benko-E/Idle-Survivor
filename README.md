@@ -57,8 +57,10 @@ without rebuilding and the live site keeps showing the old version.
 | `F3` | The fan of candidate directions, with the chosen one in yellow |
 | `R` | Restart the run (during a run; the menu has Play) |
 
-Runs use a fixed seed, so the same run repeats exactly. Change one weight in
-`config.ts` and the survival time is a real before/after measurement.
+Every run gets a fresh random seed, shown in the F1 panel. For tuning, turn
+off `world.randomSeed` in the debug panel and the run on `world.seed` repeats
+exactly: change one weight and the survival time is a real before/after
+measurement.
 
 Two things keep that true, and are worth knowing before you break them. The
 level-up draft draws from its own random stream, so *when* you open it can't

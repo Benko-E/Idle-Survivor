@@ -91,6 +91,8 @@ export interface WeaponInstance {
 }
 
 export interface World {
+  /** What this run was generated from. Same seed, same choices, same run. */
+  seed: number
   /** Seconds since the run started. Every difficulty formula reads this. */
   time: number
   state: RunState
@@ -173,6 +175,7 @@ export function createWorld(seed: number = config.world.seed, starterId?: string
   const shopAngle = rng() * Math.PI * 2
 
   return {
+    seed,
     time: 0,
     state: 'running',
     rng,

@@ -87,7 +87,10 @@ let lastStarterId: string | undefined
 /** A fresh run: new world, camera on him, menu away. */
 function startRun(starterId?: string): void {
   lastStarterId = starterId ?? lastStarterId
-  world = createWorld(config.world.seed, lastStarterId)
+  // A new seed per run unless the debug panel pins one. Math.random is fine
+  // here: it only picks the seed, and everything after is deterministic.
+  const seed = config.world.randomSeed ? Math.floor(Math.random() * 2 ** 31) : config.world.seed
+  world = createWorld(seed, lastStarterId)
   resetInfluenceClock()
   damageNumbers.clear()
   deathElapsed = 0
@@ -345,6 +348,7 @@ function render(): void {
     const elapsed = Math.max(world.time, 0.001)
     renderer.drawOverlay([
       `time         ${formatTime(world.time)}`,
+      `seed         ${world.seed}`,
       `hp           ${world.character.hp.toFixed(0)} / ${world.character.maxHp.toFixed(0)}`,
       `taking       ${world.incomingDps.toFixed(0)} dps`,
       `enemies      ${world.enemies.length}`,
