@@ -12,17 +12,35 @@ import type { World, WeaponInstance } from './world'
  * draft hands out apply everywhere at once, with no code per upgrade.
  */
 
-/** Scoped by the spell's tags, so "+15% to fire spells" can select on them. */
-export function weaponStat(world: World, weapon: WeaponInstance, key: string): number {
-  const base = weapon.def.stats[key] ?? 0
+/**
+ * Scoped by the spell's tags, so "+15% to fire spells" can select on them.
+ *
+ * `fallback` is the base for a stat the spell's data entry doesn't list. Zero
+ * suits most stats, but a rate like `cooldownRecovery` has to start at 1 or
+ * every spell would recharge at zero speed.
+ */
+export function weaponStat(world: World, weapon: WeaponInstance, key: string, fallback = 0): number {
+  const base = weapon.def.stats[key] ?? fallback
   return resolveStat(base, key, world.modifiers, weapon.def.tags)
 }
 
 /**
- * Character-wide stats: pickup radius, XP gain, move speed. These belong to
- * him rather than to a spell, so only untagged modifiers apply — unless the
- * caller passes tags describing what's being acted *on*, which is how
- * "+50% XP from rare globes" works.
+ * Character-wide stats. These belong to him rather than to a spell, so only
+ * untagged modifiers apply — unless the caller passes tags describing what's
+ * being acted *on*, which is how "+50% XP from undead" works.
+ *
+ * The keys in use, and what the base passed in is:
+ *
+ *   moveSpeed     world units per second        config.character.moveSpeed
+ *   maxHp         health ceiling                config.character.maxHp
+ *   hpRegen       health restored per second    config.character.hpRegen
+ *   damageTaken   multiplier on damage taken    1
+ *   pickupRadius  how close gold must be        config.pickups.collectRadius
+ *   xpGain        XP per kill                   the enemy's xpValue
+ *   goldGain      gold per pickup               the pile's gold
+ *
+ * Gear and character stats will be more modifiers into the same list, so a
+ * new source of "+20 max health" needs no code at all.
  */
 export function characterStat(world: World, key: string, base: number, subjectTags: readonly string[] = []): number {
   return resolveStat(base, key, world.modifiers, subjectTags)

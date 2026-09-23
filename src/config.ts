@@ -95,6 +95,8 @@ export const config = {
     moveSpeed: 110,
     radius: 15,
     maxHp: 100,
+    /** Health restored per second, before upgrades. None by default. */
+    hpRegen: 0,
     /** Sprite sheet name, and drawn height in world units. */
     sprite: 'hero',
     drawHeight: 46,

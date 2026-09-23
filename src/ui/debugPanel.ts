@@ -19,7 +19,6 @@ import { config } from '../config'
 const NEEDS_RESTART = new Set([
   'world.seed',
   'character.moveSpeed',
-  'character.maxHp',
   'character.radius',
   'character.startingWeaponIds',
   'influence.cellSize',

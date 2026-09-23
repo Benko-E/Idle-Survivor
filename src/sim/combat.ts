@@ -45,9 +45,14 @@ function castReadySpells(world: World, dt: number): void {
 
     weapon.timesCast++
 
-    // Set from the resolved cooldown rather than accumulating, and floored, so
-    // a heavily stacked cast-speed build can't drive it to zero or negative.
-    weapon.cooldownRemaining = Math.max(0.05, weaponStat(world, weapon, 'cooldown'))
+    // Cooldown divided by a recovery *rate*, rather than shortened by a
+    // percentage. Percentage reductions add up in a straight line: five picks
+    // of -12% made -60%, and a little gear on top would have reached -100%
+    // and a spell with no cooldown at all. As a rate, +100% recovery halves
+    // the wait and +200% thirds it — every pick still helps, less each time,
+    // and it can never reach zero. The floor is only a last-ditch backstop.
+    const recovery = Math.max(0.1, weaponStat(world, weapon, 'cooldownRecovery', 1))
+    weapon.cooldownRemaining = Math.max(0.05, weaponStat(world, weapon, 'cooldown') / recovery)
   }
 }
 

@@ -237,6 +237,45 @@ replace coloured boxes. Until then the shadow ellipse is the only honest
 indicator of where he actually is. Worth drawing the collision and pickup radii
 as debug rings.
 
+## Upgrades
+
+All 20 live in `src/data/upgrades.ts`, as data. Each one is a list of
+modifiers on a named stat: the spell stats are listed on `WeaponDef` in
+`data/types.ts`, the character's in `sim/stats.ts`. Gear and character stats
+will be more modifiers into the same list, so they need no new code either.
+
+| Group | Upgrades |
+| --- | --- |
+| Every spell | Focused Will (damage), Quickened Mind (recharge), Farsight (range) |
+| Kind of spell | Widened Sigils (area), Splitting Bolt, Lancing Bolt (pierce), Forked Arc, Conduction (chain falloff), Permafrost (chill), Deepening Rot (damage over time) |
+| Element | Kindled Fury (fire), Winter's Bite (frost), Static Charge (lightning) |
+| Defence | Hardy (max health), Second Wind (regeneration), Warding (damage taken) |
+| Utility | Miser's Instinct (pickup radius), Fleet Step (speed), Keen Study (XP), Gilded Touch (gold) |
+
+Three rules the stacking follows, each learned the hard way:
+
+- **Cooldowns shrink by a recovery rate, not a percentage.** Percentages add
+  up in a straight line and reach zero. As a rate, +100% halves the wait and
+  +200% thirds it, so every pick helps and none can make a spell free.
+- **Damage taken is multiplied, not pooled.** Four "10% less damage" picks
+  leave him taking 66%, never 60% less, and nothing makes him invulnerable.
+- **Every modifier must target a stat something reads.** A typo'd target is an
+  upgrade that silently does nothing. When adding upgrades, check the stat
+  lists above.
+
+Ideas that need a small new mechanic first, for later:
+
+- **Critical hits** — a chance for a hit to deal extra damage. One roll in
+  `damageEnemy`, then crit chance and crit damage are ordinary stats.
+- **Burning** — fire hits leave a short damage-over-time. Status effects
+  already exist; this is an on-hit hook for projectiles.
+- **On-kill effects** — corpses that explode, a chance to heal on kill. Needs
+  a `killed` event from `damageEnemy`, like `banked` and `died`.
+- **Echo** — a chance for a spell to cast twice.
+- **Knockback** on novas, **bouncing** bolts that ricochet to a new target.
+- **Shop and economy** — interest on banked gold, a bigger payout per visit.
+  These belong with the Upgrades menu screen rather than the level-up draft.
+
 ## How this is put together
 
 The architecture matters more than the content here — nearly everything will be
@@ -269,7 +308,7 @@ Four rules that everything else follows from:
   one-word change.
 - **Anything that scales is a formula.** XP curves, enemy HP, spawn rates. Never
   a hardcoded table.
-- **Upgrades are modifiers.** `{ target: "fireRate", op: "multiply", value: 1.15 }`
+- **Upgrades are modifiers.** `{ target: "damage", op: "increase", value: 0.15 }`
   goes through one generic system. No bespoke code per upgrade.
 
 ## Build status
@@ -294,3 +333,6 @@ That completes the spec's definition of done for the prototype. Past it:
   saved between runs; a main menu with placeholder Options and Upgrades screens.
 - [x] **9 — movement pass.** Loot routed around danger only, exact stamps,
   refined heading, sticky sprite facing; camping layer removed. See above.
+- [x] **10 — upgrade pass.** Audited all upgrades; recharge rate instead of
+  cooldown percentage, bolts that split between targets; nine new upgrades
+  including the first defensive ones. See "Upgrades".

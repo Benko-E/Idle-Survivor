@@ -1,5 +1,6 @@
 import { config } from '../config'
 import { gameEvents } from './events'
+import { characterStat } from './stats'
 import type { World } from './world'
 
 /**
@@ -27,7 +28,11 @@ export function updateContactDamage(world: World, dt: number): void {
   world.incomingDps = incoming
   if (incoming === 0) return
 
-  character.hp -= incoming * config.damage.contactScale * dt
+  // A multiplier stat, so "take 10% less damage" picks compound rather than
+  // adding up: four of them leave him taking 66%, never 60% less and never
+  // invulnerable.
+  const taken = characterStat(world, 'damageTaken', 1)
+  character.hp -= incoming * config.damage.contactScale * taken * dt
 
   if (character.hp <= 0) {
     character.hp = 0

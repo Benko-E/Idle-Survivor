@@ -189,7 +189,8 @@ export interface WeaponDef {
    * Conventional keys, all optional, all meaningful only to the behaviour
    * that reads them:
    *
-   *   cooldown     seconds between casts
+   *   cooldown     seconds between casts, before cooldownRecovery
+   *   cooldownRecovery  recharge rate, 1 unless listed; 1.5 = 50% faster
    *   damage       damage per hit
    *   count        projectiles fired / targets chained / etc
    *   range        how far it will look for a target
@@ -200,7 +201,7 @@ export interface WeaponDef {
    *   dotDamage    damage per second for effects that linger
    *   slow         fraction of speed removed, 0.45 = 45% slower
    *   falloff      multiplier applied per chain jump
-   *   spread       radians of scatter on multi-projectile casts
+   *   spread       radians between bolts that double up on one target
    */
   stats: Record<string, number>
 

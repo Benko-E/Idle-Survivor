@@ -12,7 +12,7 @@
  *
  *   { target: 'damage',   op: 'increase', value: 0.15 }                  +15% damage
  *   { target: 'damage',   op: 'increase', value: 0.15, tags: ['fire'] }  +15% fire damage
- *   { target: 'cooldown', op: 'increase', value: -0.1 }                  10% faster casting
+ *   { target: 'cooldownRecovery', op: 'increase', value: 0.15 }          recharge 15% faster
  *
  * There is never bespoke code for an individual upgrade.
  */

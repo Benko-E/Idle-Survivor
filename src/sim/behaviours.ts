@@ -2,7 +2,7 @@ import { config } from '../config'
 import type { WeaponDef } from '../data/types'
 import { damageEnemy } from './damageEnemy'
 import { applyEffect } from './statusEffects'
-import { enemiesInRadius, nearestEnemy } from './targeting'
+import { enemiesInRadius, nearestEnemies, nearestEnemy } from './targeting'
 import { spawnLine, spawnRing } from './vfx'
 import type { Enemy, World } from './world'
 
@@ -41,29 +41,35 @@ export type Behaviour = (context: CastContext) => boolean
 const scratchTargets: Enemy[] = []
 
 /**
- * Fires one or more travelling bolts at the nearest enemy.
+ * Fires one or more travelling bolts, each at a different nearby enemy.
  * Firebolt, and anything else that throws something.
+ *
+ * Extra bolts pick the next-nearest targets rather than fanning around one
+ * aim line. The fan was so narrow that every bolt landed on the same enemy,
+ * which turned "+1 projectile" into "+100% damage to one target" — by far the
+ * strongest pick in the draft, and nothing like what it says. Only once there
+ * are more bolts than targets do they double up, fanned by `spread`.
  */
 const projectile: Behaviour = ({ world, def, stat }) => {
   const caster = world.character
   const range = stat('range')
-
-  const target = nearestEnemy(world, caster.x, caster.y, range)
-  if (!target) return false
-
   const count = Math.max(1, Math.round(stat('count')))
+
+  const targets = nearestEnemies(world, caster.x, caster.y, range, count, scratchTargets)
+  if (targets.length === 0) return false
+
   const speed = stat('speed')
   const spread = stat('spread')
   const damage = stat('damage')
   const pierce = Math.max(0, Math.round(stat('pierce')))
 
-  const baseAngle = Math.atan2(target.y - caster.y, target.x - caster.x)
-  // Fan the extra bolts around the aim line rather than stacking them.
-  const totalSpread = spread * (count - 1)
-
   for (let i = 0; i < count; i++) {
-    const offset = count === 1 ? 0 : (i / (count - 1) - 0.5) * totalSpread
-    const angle = baseAngle + offset
+    const target = targets[i % targets.length]
+    // Bolts beyond the number of targets go round again, fanned out either
+    // side of the line: +spread, -spread, +2 spread...
+    const round = Math.floor(i / targets.length)
+    const offset = round === 0 ? 0 : Math.ceil(round / 2) * spread * (round % 2 === 1 ? 1 : -1)
+    const angle = Math.atan2(target.y - caster.y, target.x - caster.x) + offset
 
     world.projectiles.push({
       x: caster.x,

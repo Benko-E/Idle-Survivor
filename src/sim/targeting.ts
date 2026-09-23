@@ -26,6 +26,22 @@ export function nearestEnemy(world: World, x: number, y: number, maxRange: numbe
   return best
 }
 
+/**
+ * Up to `count` distinct enemies within range, nearest first.
+ *
+ * Collects into a caller-supplied array so casting doesn't allocate. Sorting
+ * everything in range is fine at one cast a second; if a spell ever wants
+ * this every frame, swap in a partial selection.
+ */
+export function nearestEnemies(world: World, x: number, y: number, maxRange: number, count: number, out: Enemy[]): Enemy[] {
+  enemiesInRadius(world, x, y, maxRange, out)
+  if (out.length > count) {
+    out.sort((a, b) => (a.x - x) ** 2 + (a.y - y) ** 2 - ((b.x - x) ** 2 + (b.y - y) ** 2))
+    out.length = count
+  }
+  return out
+}
+
 /** Collects into a caller-supplied array so casting doesn't allocate. */
 export function enemiesInRadius(world: World, x: number, y: number, radius: number, out: Enemy[]): Enemy[] {
   out.length = 0

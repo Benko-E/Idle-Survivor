@@ -10,8 +10,14 @@ import type { UpgradeDef } from './types'
  * Note what the tag selectors buy: "+30% damage" and "+30% damage to fire
  * spells" differ by one field. Adding "+2 chain jumps to lightning spells"
  * later is an entry here and nothing else.
+ *
+ * Each modifier's target must be a stat something actually reads — the spell
+ * stats are listed on WeaponDef in types.ts, the character's in sim/stats.ts.
+ * A target nothing reads is an upgrade that silently does nothing.
  */
 export const UPGRADE_DEFS: UpgradeDef[] = [
+  // --- Offence: every spell --------------------------------------------------
+
   {
     id: 'up_damage_01',
     displayName: 'Focused Will',
@@ -28,19 +34,38 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     weight: 100,
   },
   {
+    // The id stays, so nothing that refers to it breaks. The name changed
+    // because there's no casting to quicken — spells have no cast time, only
+    // a recharge. It also used to shorten cooldowns by a flat percentage,
+    // which adds up towards zero; see combat.ts for why it's a rate now.
     id: 'up_haste_01',
-    displayName: 'Quickened Casting',
-    description: '12% faster casting',
+    displayName: 'Quickened Mind',
+    description: 'Spells recharge 15% faster',
     tags: ['offence'],
-    // Cooldown is a duration, so "faster" is a negative increase.
-    modifiers: [{ target: 'cooldown', op: 'increase', value: -0.12 }],
+    modifiers: [{ target: 'cooldownRecovery', op: 'increase', value: 0.15 }],
     maxStacks: 5,
     weight: 90,
   },
   {
+    id: 'up_range_01',
+    displayName: 'Farsight',
+    description: 'Spells find targets 20% further away',
+    tags: ['offence'],
+    // Aimed spells only: bolts and the first link of a chain. Area spells are
+    // centred on him and measure their reach in `area` instead.
+    modifiers: [{ target: 'range', op: 'increase', value: 0.2 }],
+    maxStacks: 3,
+    weight: 50,
+  },
+
+  // --- Offence: by kind of spell ---------------------------------------------
+
+  {
     id: 'up_area_01',
     displayName: 'Widened Sigils',
-    description: '+25% area of effect',
+    // Radius, which is what the number actually is. "+25% area of effect"
+    // undersold it: a quarter more radius is over half as much again of area.
+    description: 'Area spells reach 25% further',
     tags: ['offence', 'area'],
     modifiers: [{ target: 'area', op: 'increase', value: 0.25 }],
     maxStacks: 4,
@@ -50,7 +75,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   {
     id: 'up_multishot_01',
     displayName: 'Splitting Bolt',
-    description: '+1 projectile',
+    description: '+1 bolt, aimed at another nearby enemy',
     tags: ['offence', 'projectile'],
     modifiers: [{ target: 'count', op: 'add', value: 1, tags: ['projectile'] }],
     maxStacks: 3,
@@ -58,24 +83,51 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     requiresOwnedTags: ['projectile'],
   },
   {
+    id: 'up_pierce_01',
+    displayName: 'Lancing Bolt',
+    description: 'Bolts pass through 1 more enemy',
+    tags: ['offence', 'projectile'],
+    modifiers: [{ target: 'pierce', op: 'add', value: 1, tags: ['projectile'] }],
+    maxStacks: 3,
+    weight: 50,
+    requiresOwnedTags: ['projectile'],
+  },
+  {
     id: 'up_chain_01',
     displayName: 'Forked Arc',
     description: '+1 chain jump',
-    tags: ['offence', 'lightning'],
+    tags: ['offence', 'chain'],
     modifiers: [{ target: 'count', op: 'add', value: 1, tags: ['chain'] }],
     maxStacks: 3,
     weight: 55,
     requiresOwnedTags: ['chain'],
   },
   {
-    id: 'up_fire_01',
-    displayName: 'Kindled Fury',
-    description: '+30% damage with fire spells',
-    tags: ['offence', 'fire'],
-    modifiers: [{ target: 'damage', op: 'increase', value: 0.3, tags: ['fire'] }],
-    maxStacks: 4,
-    weight: 60,
-    requiresOwnedTags: ['fire'],
+    id: 'up_conduct_01',
+    displayName: 'Conduction',
+    description: 'Chains lose less power with each jump',
+    tags: ['offence', 'chain'],
+    // The fraction kept per jump, 0.78 at base. Three stacks reach 0.96 — the
+    // stack cap is what stops a chain ever gaining power as it goes.
+    modifiers: [{ target: 'falloff', op: 'add', value: 0.06, tags: ['chain'] }],
+    maxStacks: 3,
+    weight: 45,
+    requiresOwnedTags: ['chain'],
+  },
+  {
+    id: 'up_chill_01',
+    displayName: 'Permafrost',
+    description: 'Chills slow 10% more and last 30% longer',
+    tags: ['offence', 'frost'],
+    // Slow is a fraction of speed removed, added flat: 45% becomes 55%.
+    // statusEffects caps the total at 90%, so nothing is ever frozen solid.
+    modifiers: [
+      { target: 'slow', op: 'add', value: 0.1, tags: ['frost'] },
+      { target: 'duration', op: 'increase', value: 0.3, tags: ['frost'] },
+    ],
+    maxStacks: 3,
+    weight: 50,
+    requiresOwnedTags: ['frost'],
   },
   {
     id: 'up_wither_01',
@@ -87,6 +139,74 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     weight: 60,
     requiresOwnedTags: ['curse'],
   },
+
+  // --- Offence: by element ----------------------------------------------------
+
+  {
+    id: 'up_fire_01',
+    displayName: 'Kindled Fury',
+    description: '+30% damage with fire spells',
+    tags: ['offence', 'fire'],
+    modifiers: [{ target: 'damage', op: 'increase', value: 0.3, tags: ['fire'] }],
+    maxStacks: 4,
+    weight: 60,
+    requiresOwnedTags: ['fire'],
+  },
+  {
+    id: 'up_frost_01',
+    displayName: "Winter's Bite",
+    description: '+30% damage with frost spells',
+    tags: ['offence', 'frost'],
+    modifiers: [{ target: 'damage', op: 'increase', value: 0.3, tags: ['frost'] }],
+    maxStacks: 4,
+    weight: 60,
+    requiresOwnedTags: ['frost'],
+  },
+  {
+    id: 'up_storm_01',
+    displayName: 'Static Charge',
+    description: '+30% damage with lightning spells',
+    tags: ['offence', 'lightning'],
+    modifiers: [{ target: 'damage', op: 'increase', value: 0.3, tags: ['lightning'] }],
+    maxStacks: 4,
+    weight: 60,
+    requiresOwnedTags: ['lightning'],
+  },
+
+  // --- Defence ----------------------------------------------------------------
+
+  {
+    id: 'up_vigour_01',
+    displayName: 'Hardy',
+    description: '+20 maximum health',
+    tags: ['defence'],
+    modifiers: [{ target: 'maxHp', op: 'add', value: 20 }],
+    maxStacks: 5,
+    weight: 70,
+  },
+  {
+    id: 'up_regen_01',
+    displayName: 'Second Wind',
+    description: 'Regenerate 1 health per second',
+    tags: ['defence'],
+    modifiers: [{ target: 'hpRegen', op: 'add', value: 1 }],
+    maxStacks: 3,
+    weight: 60,
+  },
+  {
+    id: 'up_ward_01',
+    displayName: 'Warding',
+    description: 'Take 10% less damage',
+    tags: ['defence'],
+    // Multiply rather than increase, so picks compound: four leave him taking
+    // 66%. Pooled as a percentage, ten would have made him invulnerable.
+    modifiers: [{ target: 'damageTaken', op: 'multiply', value: 0.9 }],
+    maxStacks: 4,
+    weight: 55,
+  },
+
+  // --- Utility ----------------------------------------------------------------
+
   {
     id: 'up_reach_01',
     displayName: "Miser's Instinct",

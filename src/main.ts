@@ -18,6 +18,7 @@ import { levelProgress } from './sim/progression'
 import { distanceToShop, shopEagerness, updateShop } from './sim/shop'
 import { updateSpawner } from './sim/spawner'
 import { updateTrail } from './sim/trail'
+import { updateVitals } from './sim/vitals'
 import { createWorld } from './sim/world'
 import { DebugPanel } from './ui/debugPanel'
 import { DraftUi } from './ui/draft'
@@ -130,6 +131,9 @@ function update(dt: number): void {
   updateTrail(world)
   updateShop(world)
   updateCombat(world, dt)
+  // Healing before damage, so a hit that would kill him this step is judged
+  // against his health after this step's regeneration.
+  updateVitals(world, dt)
   updateContactDamage(world, dt)
 
   const k = 1 - Math.exp(-config.render.cameraFollowRate * dt)
@@ -330,7 +334,7 @@ function render(): void {
     const elapsed = Math.max(world.time, 0.001)
     renderer.drawOverlay([
       `time         ${formatTime(world.time)}`,
-      `hp           ${world.character.hp.toFixed(0)} / ${world.character.maxHp}`,
+      `hp           ${world.character.hp.toFixed(0)} / ${world.character.maxHp.toFixed(0)}`,
       `taking       ${world.incomingDps.toFixed(0)} dps`,
       `enemies      ${world.enemies.length}`,
       `kills        ${world.kills}`,
