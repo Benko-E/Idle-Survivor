@@ -4,8 +4,11 @@ Art the game needs that none of the owned packs have. Each section is a prompt
 for an image generator: paste the **style block** first, then the asset's own
 prompt.
 
-Everything else in the game is the Time Fantasy style (finalbossblues), so the
-new art has to sit next to it without looking pasted in.
+Everything else in the game is 16-bit JRPG pixel art from a purchased pack, so
+the new art has to sit next to it without looking pasted in. The style block
+describes that look rather than naming the pack: asking for an original
+sprite in a general style is fine, asking to imitate a specific product isn't
+something we want to do.
 
 ## How to hand the results back
 
@@ -19,19 +22,20 @@ That's why the prompts ask for chunky 8× pixels on magenta: image generators
 are bad at exact small sizes and clean transparency, and this sidesteps both.
 If a result comes out slightly off-grid, send it anyway — I can clean it up.
 
-Check the generator's terms before committing generated art to the public
-repo; until we know, it goes in `art-source/` like the licensed art.
+Art you generate is yours to use (OpenAI's terms give you ownership of what
+you generate). It still goes in `art-source/` alongside the licensed art, so
+there's one pipeline for everything; committing it later is your call.
 
 ---
 
 ## Style block (paste before every prompt)
 
 ```
-Pixel art game sprite in the style of Time Fantasy RPG assets: 16-bit JRPG
-look, top-down three-quarter view, limited palette, soft two- or three-step
-shading, dark coloured outlines (a darker shade of the fill colour, not pure
-black), no anti-aliasing, no blur, no gradients, no text, no border, no drop
-shadow. Draw at 8x scale: every single art pixel is a solid 8x8 square of one
+Original pixel art game sprite for a cosy 16-bit JRPG: top-down
+three-quarter view, bright but slightly muted colours, limited palette, soft
+two- or three-step shading, dark coloured outlines (a darker shade of the fill
+colour, not pure black), chunky readable shapes, no anti-aliasing, no blur, no
+gradients, no text, no border, no drop shadow. Draw at 8x scale: every single art pixel is a solid 8x8 square of one
 colour, perfectly aligned to an 8-pixel grid. Solid flat magenta background
 (#FF00FF) everywhere that is not the sprite. Frames side by side in one
 horizontal row, all frames exactly the same size, no gaps and no padding
