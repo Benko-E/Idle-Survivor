@@ -4,6 +4,19 @@ import heroUrl from '../../art-source/hero.png'
 import hulkUrl from '../../art-source/hulk.png'
 import shamblerUrl from '../../art-source/shambler.png'
 import stalkerUrl from '../../art-source/stalker.png'
+import heroCastUrl from '../../art-source/hero_cast.png'
+import flamesUrl from '../../art-source/flames.png'
+import chestUrl from '../../art-source/chest.png'
+import shopkeeperUrl from '../../art-source/shopkeeper.png'
+import orbIceUrl from '../../art-source/orb_ice.png'
+import orbFireUrl from '../../art-source/orb_fire.png'
+
+/**
+ * World props — trees, stumps, the shop camp — one image each, picked up by
+ * file name. A new prop is a line in tools/extract-art.ps1 and an entry in
+ * data/obstacles.ts; nothing here changes. Loaded as `prop:<name>`.
+ */
+const PROP_FILES = import.meta.glob('../../art-source/props/*.png', { eager: true, import: 'default' }) as Record<string, string>
 
 /**
  * Sprite loading.
@@ -93,6 +106,13 @@ export async function loadSprites(): Promise<void> {
     loadSheet('hulk', hulkUrl),
     loadSheet('stalker', stalkerUrl),
     loadStrip('coins', coinsUrl, COIN_TIERS),
+    loadStrip('hero_cast', heroCastUrl, 3),
+    loadStrip('flames', flamesUrl, 4),
+    loadStrip('chest', chestUrl, 4),
+    loadStrip('shopkeeper', shopkeeperUrl, 1),
+    loadStrip('orb_ice', orbIceUrl, 4),
+    loadStrip('orb_fire', orbFireUrl, 4),
+    ...Object.entries(PROP_FILES).map(([path, url]) => loadStrip(`prop:${path.split('/').pop()!.replace(/\.png$/, '')}`, url, 1)),
     loadImage(groundUrl).then((image) => {
       ground = image
     }),

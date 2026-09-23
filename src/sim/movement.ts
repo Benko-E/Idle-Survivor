@@ -1,5 +1,6 @@
 import { config } from '../config'
 import { influenceMap } from './influence'
+import { pushOutOfObstacles } from './obstacles'
 import { characterStat } from './stats'
 import type { World } from './world'
 
@@ -125,4 +126,7 @@ export function updateCharacterMovement(world: World, dt: number): void {
   character.x += character.facingX * step
   character.y += character.facingY * step
   character.stride += step
+  // Trees are solid. No sideways slide for him: steering should route him
+  // round them, and this only catches the corner he clipped anyway.
+  pushOutOfObstacles(world, character, character.radius, 0)
 }

@@ -1,6 +1,7 @@
 import { config } from '../config'
 import { InfluenceMap, type LayerSettings } from './influenceMap'
 import { pickupPull } from './pickupTiers'
+import { forEachObstacleNear } from './obstacles'
 import { distanceToShop, shopEagerness } from './shop'
 import { markFreshness } from './trail'
 import type { World } from './world'
@@ -55,6 +56,19 @@ function rebuild(world: World): void {
     const characterToShop = distanceToShop(world)
     influenceMap.addPerCell((x, y) => shopSlope * (characterToShop - Math.hypot(world.shopX - x, world.shopY - y)))
   }
+
+  // Obstacles: walls to the flow, and a short push away up close so the
+  // steering probes don't aim him at a trunk. The whole grid's worth.
+  const gridReach = config.influence.gridRadiusCells * config.influence.cellSize
+  forEachObstacleNear(world, character.x, character.y, gridReach, (obstacle) => {
+    if (obstacle.radius <= 0) return
+    influenceMap.block(obstacle.x, obstacle.y, obstacle.radius + character.radius)
+    influenceMap.stamp(
+      { ...layers.obstacle, radius: obstacle.radius + layers.obstacle.radius },
+      obstacle.x,
+      obstacle.y,
+    )
+  })
 
   // Ground he has recently stood on, fading as it ages. Strength is the
   // mark's freshness, so a spot he left ten seconds ago barely registers.

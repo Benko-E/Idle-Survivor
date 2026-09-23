@@ -1,5 +1,6 @@
 import { config } from '../config'
 import { forEachEnemyNear, LARGEST_ENEMY_RADIUS, rebuildEnemyGrid } from './enemyGrid'
+import { pushOutOfObstacles } from './obstacles'
 import { slowMultiplier } from './statusEffects'
 import type { World } from './world'
 
@@ -72,10 +73,24 @@ function resolveOverlaps(world: World): void {
   }
 }
 
+/**
+ * Keep them out of trees. Odd and even ids slide opposite ways, so a crowd
+ * meeting a trunk parts round both sides of it.
+ */
+function avoidObstacles(world: World): void {
+  const slide = config.obstacles.enemySlide
+  for (const enemy of world.enemies) {
+    pushOutOfObstacles(world, enemy, enemy.def.radius, enemy.id % 2 === 0 ? slide : -slide)
+  }
+}
+
 export function updateEnemies(world: World, dt: number): void {
   seekCharacter(world, dt)
   // Rebuilt after they move, then shared with spell targeting for the rest of
   // the frame.
   rebuildEnemyGrid(world)
   resolveOverlaps(world)
+  // Last, so crowd pressure can't shove anyone back into a trunk after it
+  // was pushed out.
+  avoidObstacles(world)
 }

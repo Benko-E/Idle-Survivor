@@ -80,6 +80,9 @@ export class InfluenceMap {
    */
   private readonly seeds: Float32Array
 
+  /** Cells something solid stands in. The flow can't pass them. */
+  private readonly blocked: Uint8Array
+
   /** Scratch for the flow pass, allocated once. */
   private readonly flow: Float32Array
   private readonly passability: Float32Array
@@ -97,6 +100,7 @@ export class InfluenceMap {
     this.scores = new Float32Array(cells)
     this.hazard = new Float32Array(cells)
     this.seeds = new Float32Array(cells)
+    this.blocked = new Uint8Array(cells)
     this.flow = new Float32Array(cells)
     this.passability = new Float32Array(cells)
   }
@@ -116,6 +120,30 @@ export class InfluenceMap {
     this.scores.fill(0)
     this.hazard.fill(0)
     this.seeds.fill(0)
+    this.blocked.fill(0)
+  }
+
+  /**
+   * Mark the cells a solid circle covers as walls. Only the flow reads this:
+   * value can't pass through, so routes bend round trees instead of through
+   * them. At least the cell the centre is in, however thin the trunk.
+   */
+  block(x: number, y: number, radius: number): void {
+    const gx = (x - this.originX) / this.cellSize
+    const gy = (y - this.originY) / this.cellSize
+    const reach = radius / this.cellSize
+    const minIy = Math.max(0, Math.ceil(gy - reach))
+    const maxIy = Math.min(this.size - 1, Math.floor(gy + reach))
+    const minIx = Math.max(0, Math.ceil(gx - reach))
+    const maxIx = Math.min(this.size - 1, Math.floor(gx + reach))
+    for (let iy = minIy; iy <= maxIy; iy++) {
+      for (let ix = minIx; ix <= maxIx; ix++) {
+        if ((ix - gx) ** 2 + (iy - gy) ** 2 <= reach * reach) this.blocked[iy * this.size + ix] = 1
+      }
+    }
+    const cx = Math.round(gx)
+    const cy = Math.round(gy)
+    if (cx >= 0 && cy >= 0 && cx < this.size && cy < this.size) this.blocked[cy * this.size + cx] = 1
   }
 
   /**
@@ -219,13 +247,13 @@ export class InfluenceMap {
    */
   computeFlow(): void {
     const { sweeps, decay, hazardResistance, minPassability, weight } = config.influence.flow
-    const { size, scores, hazard, seeds, flow, passability } = this
+    const { size, scores, hazard, seeds, flow, passability, blocked } = this
 
     for (let i = 0; i < flow.length; i++) {
       // Only rewards seed the flood. Negative cells are obstacles to route
       // around, not sources of anything.
       flow[i] = (scores[i] > 0 ? scores[i] : 0) + seeds[i]
-      passability[i] = Math.max(minPassability, 1 / (1 + hazard[i] * hazardResistance))
+      passability[i] = blocked[i] ? 0 : Math.max(minPassability, 1 / (1 + hazard[i] * hazardResistance))
     }
 
     const straight = decay

@@ -4,6 +4,7 @@ import { drawCandidates, drawFootprint, drawHeatmap, drawTrail } from './render/
 import { loadProfile, saveProfile } from './meta/profile'
 import { DamageNumbers } from './render/damageNumbers'
 import { drawEffects } from './render/effects'
+import { pushWorldProps } from './render/props'
 import { Renderer, type Drawable } from './render/renderer'
 import { coinFrame, getSheet, loadSprites, stickyFacingRow, walkFrame } from './render/sprites'
 import { updateCombat } from './sim/combat'
@@ -73,6 +74,28 @@ gameEvents.on('banked', ({ amount }) => {
 })
 
 const damageNumbers = new DamageNumbers()
+
+// When he last banked, for the chest to pop open. Render-side memory only.
+let bankedAt = -Infinity
+gameEvents.on('banked', () => {
+  bankedAt = world.time
+})
+
+/**
+ * The casting pose: his own "reading from the spellbook" frames, played when a
+ * big spell goes off. Only spells with a real recharge get it — a bolt every
+ * second would keep him in the pose permanently, and the aura and orbit tick
+ * many times a second.
+ */
+let castPoseAt = -Infinity
+const castsSeen = new Map<string, number>()
+function noticeCasts(): void {
+  for (const weapon of world.weapons) {
+    const seen = castsSeen.get(weapon.def.id) ?? 0
+    if (weapon.timesCast > seen && (weapon.def.stats.cooldown ?? 0) >= config.render.castPoseMinCooldown) castPoseAt = world.time
+    castsSeen.set(weapon.def.id, weapon.timesCast)
+  }
+}
 gameEvents.on('enemyDamaged', (event) => damageNumbers.record(event))
 
 gameEvents.on('died', ({ time }) => {
@@ -97,6 +120,9 @@ function startRun(starterId?: string): void {
   world = createWorld(seed, lastStarterId)
   resetInfluenceClock()
   damageNumbers.clear()
+  castsSeen.clear()
+  castPoseAt = -Infinity
+  bankedAt = -Infinity
   deathElapsed = 0
   renderer.camera.x = world.character.x
   renderer.camera.y = world.character.y
@@ -152,6 +178,7 @@ function update(dt: number): void {
   updateVitals(world, dt)
   updateContactDamage(world, dt)
   damageNumbers.update(dt)
+  noticeCasts()
 
   const k = 1 - Math.exp(-config.render.cameraFollowRate * dt)
   renderer.camera.x += (world.character.x - renderer.camera.x) * k
@@ -248,17 +275,8 @@ function render(): void {
   // otherwise churn out a few hundred throwaway objects per frame.
   frame.length = 0
 
-  if (config.shop.enabled) {
-    const size = config.shop.drawSize
-    frame.push({
-      x: world.shopX,
-      y: world.shopY,
-      w: size,
-      h: size,
-      // Brightens once he's actually interested in going.
-      colour: shopEagerness(world) > 0 ? '#ffd76b' : '#5c6b78',
-    })
-  }
+  // Trees, stumps and the shop camp.
+  pushWorldProps(frame, renderer, world, bankedAt)
 
   const coins = getSheet('coins')
   for (const pickup of world.pickups) {
@@ -303,7 +321,24 @@ function render(): void {
 
   const heroSheet = getSheet(config.character.sprite)
   const heroHeight = config.character.drawHeight
-  frame.push({
+  const castSheet = getSheet('hero_cast')
+  const casting = castSheet && world.state === 'running' && world.time - castPoseAt < config.render.castPoseSeconds
+  if (casting) {
+    // Same pixel scale as his walk frames, so the larger pose frame is drawn
+    // larger rather than squeezed to his usual height.
+    const pixel = config.render.pixelScale
+    frame.push({
+      x: world.character.x,
+      y: world.character.y,
+      w: castSheet.frameWidth * pixel,
+      h: castSheet.frameHeight * pixel,
+      colour: '#e8c468',
+      sheet: castSheet,
+      shadowRadius: config.character.radius,
+      frameRow: 0,
+      frameCol: Math.min(2, Math.floor(((world.time - castPoseAt) / config.render.castPoseSeconds) * 3)),
+    })
+  } else frame.push({
     x: world.character.x,
     y: world.character.y,
     w: heroSheet ? heroHeight * heroSheet.aspect : config.character.radius * 2,

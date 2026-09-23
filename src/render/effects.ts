@@ -3,6 +3,7 @@ import { orbitPositions } from '../sim/orbit'
 import { weaponStat } from '../sim/stats'
 import type { World } from '../sim/world'
 import type { Renderer } from './renderer'
+import { getSheet } from './sprites'
 
 /**
  * Draws the spell flourishes. Placeholder art, but the timing is real — a
@@ -104,10 +105,25 @@ function drawZones(renderer: Renderer, world: World, loudness: number): void {
 /** How high off the ground bolts and orbs fly, in world units: about hand height. */
 const FLIGHT_HEIGHT = 16
 
-/** Bolts in flight, as glowing balls rather than the squares they started as. */
+/** Orb art by element. Anything without art is drawn as a glowing ball. */
+const ORB_ART: Record<string, string> = { fire: 'orb_fire', frost: 'orb_ice' }
+
+/**
+ * Bolts in flight: the elemental orb sprites where there are some, a glow for
+ * the rest. Sized from the bolt's own radius, so Frozen Orb is a big ball.
+ */
 function drawProjectiles(renderer: Renderer, world: World, loudness: number): void {
-  for (const projectile of world.projectiles) {
-    renderer.drawWorldOrb(projectile.x, projectile.y, projectile.radius, FLIGHT_HEIGHT, projectile.colour, loudness)
+  for (let i = 0; i < world.projectiles.length; i++) {
+    const projectile = world.projectiles[i]
+    const element = projectile.tags.find((tag) => tag in ORB_ART)
+    const sheet = element ? getSheet(ORB_ART[element]) : undefined
+    if (!sheet) {
+      renderer.drawWorldOrb(projectile.x, projectile.y, projectile.radius, FLIGHT_HEIGHT, projectile.colour, loudness)
+      continue
+    }
+    const h = Math.max(14, projectile.radius * 3.4)
+    const frame = Math.floor(world.time * 10 + i) % 4
+    renderer.drawWorldSprite(sheet, frame, projectile.x, projectile.y, FLIGHT_HEIGHT, h * sheet.aspect, h, loudness)
   }
 }
 

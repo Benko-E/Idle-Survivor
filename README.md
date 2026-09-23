@@ -364,6 +364,23 @@ Worth knowing:
   reliable starters and 4-9% of damage by the end, against area spells in a
   horde of hundreds. Meteor is still the heaviest hitter when owned (41%).
 
+## The world
+
+Trees, stumps and logs are grown from the run's seed, square by square, so
+the world stays endless and a new run is a new landscape
+(`sim/obstacles.ts`, `data/obstacles.ts`). A slower noise makes groves and
+clearings; the start and the shop are always clear.
+
+They're solid. He and the enemies collide with the trunk, not the canopy;
+enemies slide round one side or the other so a crowd parts around a tree,
+and the flow treats trunks as walls, so he routes round groves instead of
+bumping along them. Trees fade when he walks behind them. Measured over six
+four-minute runs: never stuck, no enemy ever inside a trunk, about 5% more
+simulation cost. `obstacles.enabled` turns them off.
+
+The shop is a merchant camp — tent, campfire, barrels, crates, a keeper —
+and its pieces are solid too. The chest pops open when he banks.
+
 ## Upgrades
 
 All 22 live in `src/data/upgrades.ts`, as data. Each one is a list of
@@ -468,6 +485,10 @@ That completes the spec's definition of done for the prototype. Past it:
   per-spell switches and live tuning. See "Spells".
 - [x] **12 — balance pass.** Bank trips no longer suicidal, base regeneration,
   caution when hurt, a late-game ramp, spell tuning. See "Balance pass".
+- [x] **14 — the world.** Trees and stumps grown from the seed in groves and
+  clearings, solid to him and the enemies and routed around by the flow; the
+  shop as a merchant camp with a campfire, keeper and a chest that opens when
+  he banks; his spellbook casting pose; fire and ice orb sprites for bolts.
 - [x] **13 — spell tiers.** A random seed per run; a 3x3 grid of spells by
   tier and element, one exclusive pick per tier; Frozen Orb, Ball Lightning
   and Blizzard; the spell bar with icons; level-up cards that lean by slot;

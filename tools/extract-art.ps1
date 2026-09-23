@@ -30,6 +30,10 @@ $monsterSht2 = Join-Path $PackRoot 'monsterstimefantasyrpgspritepack_windows\mon
 $terrainSht  = Join-Path $PackRoot 'fantasyrpgtilesetpack_windows\fantasyrpgtilesetpack\Assets\TILESETS\terrain.png'
 $iconDir     = Join-Path $PackRoot 'rpginventoryiconspackvol1_windows\rpginventoryiconspackvol1\Assets\Icons 64x64\Misc'
 $skillDir    = Join-Path $PackRoot 'skilliconpack_windows\skilliconpack'
+$tileDir     = Join-Path $PackRoot 'fantasyrpgtilesetpack_windows\fantasyrpgtilesetpack\Assets\TILESETS'
+$framesDir   = Join-Path $PackRoot 'over80characterswithanimations_windows\timefantasy_characters\frames'
+$animSheet   = Join-Path $PackRoot 'over80characterswithanimations_windows\timefantasy_characters\sheets\animation1.png'
+$elemSheet   = Join-Path $PackRoot 'monsterstimefantasyrpgspritepack_windows\monsterstimefantasyrpgspritepack\Assets\1x\elemental.png'
 
 foreach ($p in @($charaSheet, $monsterSht, $monsterSht2, $terrainSht)) {
   if (-not (Test-Path $p)) { throw "Missing source sheet: $p" }
@@ -206,6 +210,115 @@ foreach ($id in $spellIcons.Keys) {
   $dst.Dispose()
   "  icons/{0,-20} from {1}" -f "$id.png", $rel
 }
+
+# --- world props ---------------------------------------------------------------
+# Trees, rocks and the shop camp, from the Time Fantasy outdoor tileset.
+#
+# Each rectangle is a rough box around the object on the sheet; CropTight then
+# shrinks it to the object's real edges, so a sprite's bottom row is the
+# ground it stands on and nothing is off-centre by a stray empty column.
+function CropTight($sourcePath, $x, $y, $w, $h, $outName) {
+  $src = [System.Drawing.Bitmap]::FromFile($sourcePath)
+  $minX = $w; $minY = $h; $maxX = -1; $maxY = -1
+  for ($py = 0; $py -lt $h; $py++) {
+    for ($px = 0; $px -lt $w; $px++) {
+      if ($src.GetPixel($x + $px, $y + $py).A -gt 20) {
+        if ($px -lt $minX) { $minX = $px }; if ($px -gt $maxX) { $maxX = $px }
+        if ($py -lt $minY) { $minY = $py }; if ($py -gt $maxY) { $maxY = $py }
+      }
+    }
+  }
+  $src.Dispose()
+  if ($maxX -lt 0) { throw "Nothing in the box for $outName" }
+  Crop $sourcePath ($x + $minX) ($y + $minY) ($maxX - $minX + 1) ($maxY - $minY + 1) $outName
+}
+
+$outside = Join-Path $tileDir 'outside.png'
+$propOut = Join-Path $OutDir 'props'
+New-Item -ItemType Directory -Force -Path $propOut | Out-Null
+# Written into props/ by prefixing the name; Crop writes into $OutDir.
+$props = [ordered]@{
+  'props/tree_oak.png'      = @(272, 48, 64, 64)
+  'props/tree_great.png'    = @(528, 0, 96, 112)
+  'props/tree_pine.png'     = @(400, 48, 48, 64)
+  'props/tree_small.png'    = @(272, 112, 48, 64)
+  'props/tree_fir.png'      = @(320, 112, 32, 64)
+  'props/tree_fir2.png'     = @(352, 112, 32, 64)
+  'props/tree_round.png'    = @(384, 112, 48, 64)
+  'props/tree_autumn.png'   = @(432, 112, 48, 64)
+  'props/tree_gold.png'     = @(480, 112, 48, 64)
+  'props/tree_blossom.png'  = @(464, 176, 48, 64)
+  'props/tree_blossom2.png' = @(512, 176, 48, 64)
+  'props/tree_dead.png'     = @(496, 64, 32, 48)
+  'props/stump.png'         = @(336, 16, 32, 32)
+  'props/stump_flowers.png' = @(368, 16, 32, 32)
+  'props/stump_shrooms.png' = @(400, 16, 32, 32)
+  'props/log.png'           = @(288, 16, 48, 32)
+  'props/boulder.png'       = @(16, 144, 16, 16)
+  'props/boulder2.png'      = @(32, 144, 16, 16)
+  'props/stone.png'         = @(16, 160, 16, 16)
+  'props/stone2.png'        = @(32, 160, 16, 16)
+  'props/spire.png'         = @(128, 144, 16, 16)
+  'props/spires.png'        = @(144, 144, 16, 16)
+  # The shop camp.
+  'props/tent.png'          = @(16, 192, 48, 64)
+  'props/campfire_logs.png' = @(16, 288, 48, 32)
+  'props/barrel.png'        = @(192, 16, 16, 32)
+  'props/barrel_apples.png' = @(240, 16, 16, 32)
+  'props/crates.png'        = @(112, 16, 16, 32)
+  'props/sack.png'          = @(80, 48, 16, 16)
+}
+foreach ($name in $props.Keys) {
+  $r = $props[$name]
+  CropTight $outside $r[0] $r[1] $r[2] $r[3] $name
+}
+
+# --- animation strips ------------------------------------------------------------
+# Frames laid side by side, each frame the same size and in the same place,
+# which is why these don't go through CropTight: tightening each frame on its
+# own would make the animation wobble.
+function Strip($frames, $fw, $fh, $outName) {
+  $dst = New-Object System.Drawing.Bitmap(($frames.Count * $fw), $fh)
+  $g = [System.Drawing.Graphics]::FromImage($dst)
+  $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::NearestNeighbor
+  $g.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::Half
+  for ($i = 0; $i -lt $frames.Count; $i++) {
+    $f = $frames[$i]
+    $img = [System.Drawing.Image]::FromFile($f[0])
+    $g.DrawImage($img, (New-Object System.Drawing.Rectangle(($i * $fw), 0, $fw, $fh)),
+                 (New-Object System.Drawing.Rectangle($f[1], $f[2], $fw, $fh)), [System.Drawing.GraphicsUnit]::Pixel)
+    $img.Dispose()
+  }
+  $g.Dispose()
+  $dst.Save((Join-Path $OutDir $outName), [System.Drawing.Imaging.ImageFormat]::Png)
+  "  {0,-24} {1} frames of {2}x{3}" -f $outName, $frames.Count, $fw, $fh
+  $dst.Dispose()
+}
+
+# The hero reading from his spellbook: his own 3-frame action pose, from the
+# right half of animation1.png, row 4. Same pixel scale as his walk sheet.
+Strip @(@($animSheet, 423, 150), @($animSheet, 470, 150), @($animSheet, 517, 150)) 47 50 'hero_cast.png'
+
+# Flames for the campfire: the first column of fireplace.png, four frames.
+$fireplace = Join-Path $tileDir 'animated\fireplace.png'
+Strip @(@($fireplace, 0, 0), @($fireplace, 0, 20), @($fireplace, 0, 40), @($fireplace, 0, 60)) 16 20 'flames.png'
+
+# The bank chest opening, four frames.
+$chest = Join-Path $framesDir 'chests\chest5'
+$chestImg = [System.Drawing.Image]::FromFile((Join-Path $chest '1.png')); $cw = $chestImg.Width; $ch = $chestImg.Height; $chestImg.Dispose()
+Strip @(@((Join-Path $chest '1.png'), 0, 0), @((Join-Path $chest '2.png'), 0, 0), @((Join-Path $chest '3.png'), 0, 0), @((Join-Path $chest '4.png'), 0, 0)) $cw $ch 'chest.png'
+
+# The shopkeeper, standing facing the camera.
+$keeper = Join-Path $framesDir 'npc\npc1_5\down_stand.png'
+$keeperImg = [System.Drawing.Image]::FromFile($keeper); $kw = $keeperImg.Width; $kh = $keeperImg.Height; $keeperImg.Dispose()
+# The leading comma keeps a one-frame list a list; PowerShell would
+# otherwise unwrap it and hand Strip the path itself.
+Strip @(,@($keeper, 0, 0)) $kw $kh 'shopkeeper.png'
+
+# Spell projectiles: the ice and fire orbs from elemental.png, four frames
+# each, cropped above the shadow baked into the sheet (the game draws its own).
+Strip @(@($elemSheet, 78, 290), @($elemSheet, 78, 354), @($elemSheet, 78, 418), @($elemSheet, 78, 482)) 22 24 'orb_ice.png'
+Strip @(@($elemSheet, 256, 286), @($elemSheet, 256, 350), @($elemSheet, 256, 414), @($elemSheet, 256, 478)) 26 28 'orb_fire.png'
 
 # --- contact sheet, for eyeballing the casting -------------------------------
 $names = @('hero.png','shambler.png','hulk.png','stalker.png')

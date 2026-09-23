@@ -32,6 +32,8 @@ export interface Drawable {
    * things lying flat on the ground.
    */
   shadowRadius?: number
+  /** 0 to 1. Used to fade a tree he's standing behind. */
+  alpha?: number
 }
 
 export class Renderer {
@@ -353,6 +355,7 @@ export class Renderer {
 
       if (item.sheet) {
         const { image, frameWidth, frameHeight } = item.sheet
+        if (item.alpha !== undefined) ctx.globalAlpha = item.alpha
         ctx.drawImage(
           image,
           (item.frameCol ?? 0) * frameWidth,
@@ -364,6 +367,7 @@ export class Renderer {
           Math.ceil(w),
           Math.ceil(h),
         )
+        ctx.globalAlpha = 1
         continue
       }
 
@@ -456,6 +460,22 @@ export class Renderer {
     ctx.beginPath()
     ctx.arc(sx, sy, r * 0.45, 0, Math.PI * 2)
     ctx.fill()
+    ctx.globalAlpha = 1
+  }
+
+  /**
+   * One frame of a sprite sheet standing on a point, lifted `lift` world units
+   * off the ground — a bolt in flight drawn with real art rather than a glow.
+   * Width and height are world units.
+   */
+  drawWorldSprite(sheet: SpriteSheet, frame: number, worldX: number, worldY: number, lift: number, w: number, h: number, alpha = 1): void {
+    const { ctx } = this
+    const sw = w * this.scale
+    const sh = h * this.scale
+    const sx = this.worldToScreenX(worldX) - sw / 2
+    const sy = this.worldToScreenY(worldY) - lift * this.scale - sh / 2
+    ctx.globalAlpha = alpha
+    ctx.drawImage(sheet.image, frame * sheet.frameWidth, 0, sheet.frameWidth, sheet.frameHeight, Math.round(sx), Math.round(sy), Math.ceil(sw), Math.ceil(sh))
     ctx.globalAlpha = 1
   }
 

@@ -77,6 +77,15 @@ export const config = {
      */
     cameraFollowRate: 6,
     /**
+     * World units per pixel of pixel art, so props, poses and effects sit at
+     * the same scale as the hero: his 36-pixel frame is drawn 46 units tall.
+     */
+    pixelScale: 46 / 36,
+    /** Seconds his spellbook pose plays for when a big spell goes off. */
+    castPoseSeconds: 0.45,
+    /** Only spells with at least this recharge trigger the pose. */
+    castPoseMinCooldown: 2,
+    /**
      * Degrees past a diagonal a heading must go before a sprite switches to
      * the next of its four facings. Without it, walking near a diagonal flips
      * the sprite back and forth and reads as stutter-stepping.
@@ -331,6 +340,12 @@ export const config = {
        * README.
        */
       staleness: { weight: -0.8, radius: 135, falloff: 'smooth' },
+      /**
+       * "Don't walk into that tree." Radius is added to each obstacle's own,
+       * so a big trunk pushes further. Short: the flow does the routing,
+       * this only keeps the steering from brushing past bark.
+       */
+      obstacle: { weight: -2.5, radius: 30, falloff: 'sharp' },
 
       /**
        * "You're carrying enough to be worth a trip." Also applied per cell,
@@ -471,7 +486,6 @@ export const config = {
      * dodges around beats a strong routed one.
      */
     maxEagerness: 1.5,
-    drawSize: 46,
   },
 
   /**
@@ -654,6 +668,28 @@ export const config = {
      * a rule, so the draft still surprises.
      */
     slotBias: 0.75,
+  },
+
+  /** Trees and other things standing in the world. See sim/obstacles.ts. */
+  obstacles: {
+    enabled: true,
+    /** Size of the squares obstacles are scattered over; at most one each. */
+    cellSize: 150,
+    /** Average chance a square has one. */
+    density: 0.32,
+    /**
+     * How much density swings between groves and clearings, 0 to 1. At 0 the
+     * trees are an even sprinkle; at 1 thick groves sit beside open meadows.
+     */
+    groveContrast: 0.9,
+    /** Squares across one swing from grove to clearing. */
+    groveSize: 5,
+    /** Kept clear around where a run starts, in world units. */
+    clearStart: 260,
+    /** Kept clear around the shop, so the camp always has its meadow. */
+    clearShop: 240,
+    /** How hard enemies slide sideways round a trunk instead of stopping. */
+    enemySlide: 0.6,
   },
 
   /**
