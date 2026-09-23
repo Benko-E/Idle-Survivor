@@ -125,6 +125,46 @@ export function facingRow(dx: number, dy: number): number {
   return dy > 0 ? FACE_DOWN : FACE_UP
 }
 
+/** Unit vector each row faces, indexed by row. */
+const ROW_DIRECTIONS: [number, number][] = []
+ROW_DIRECTIONS[FACE_DOWN] = [0, 1]
+ROW_DIRECTIONS[FACE_LEFT] = [-1, 0]
+ROW_DIRECTIONS[FACE_RIGHT] = [1, 0]
+ROW_DIRECTIONS[FACE_UP] = [0, -1]
+
+/** Remembered row per thing drawn. Weak, so dead enemies don't linger in it. */
+const lastRow = new WeakMap<object, number>()
+
+/**
+ * facingRow, but reluctant to change its mind.
+ *
+ * With four facings, anything walking near a diagonal sits on the boundary
+ * between two of them, and the smallest wobble flips the sprite from one to
+ * the other and back — measured at about once a second for him, and it reads
+ * as stutter-stepping even when the path itself is smooth. Here the current
+ * row is kept until the heading is `slackDegrees` past the diagonal.
+ *
+ * `owner` is whatever is being drawn; its last row is remembered against it.
+ */
+export function stickyFacingRow(owner: object, dx: number, dy: number, slackDegrees: number): number {
+  const fresh = facingRow(dx, dy)
+  const previous = lastRow.get(owner)
+  if (previous === undefined || previous === fresh) {
+    lastRow.set(owner, fresh)
+    return fresh
+  }
+
+  const length = Math.hypot(dx, dy)
+  if (length === 0) return previous
+  const [rx, ry] = ROW_DIRECTIONS[previous]
+  const cosine = (dx * rx + dy * ry) / length
+  // Still within 45° plus the slack of the old facing: keep it.
+  if (cosine >= Math.cos(((45 + slackDegrees) * Math.PI) / 180)) return previous
+
+  lastRow.set(owner, fresh)
+  return fresh
+}
+
 /**
  * Which walk frame to draw.
  *

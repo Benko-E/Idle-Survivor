@@ -42,13 +42,6 @@ export interface LayerSettings {
   falloff: string
 }
 
-interface Kernel {
-  /** Half-width in cells. The stamp is (2 * radiusCells + 1) square. */
-  radiusCells: number
-  size: number
-  values: Float32Array
-}
-
 /** `t` runs 1 at the source down to 0 at the radius. */
 function applyFalloff(t: number, falloff: string): number {
   switch (falloff) {
@@ -64,36 +57,6 @@ function applyFalloff(t: number, falloff: string): number {
   }
 }
 
-/**
- * Stamps are identical for every source in a layer, so they're computed once
- * and reused. Cached against a signature of the settings rather than built
- * once at startup, so the debug panel can retune radius and falloff live and
- * see the result immediately.
- */
-const kernelCache = new Map<string, { signature: string; kernel: Kernel }>()
-
-function kernelFor(layerName: string, settings: LayerSettings, cellSize: number): Kernel {
-  const signature = `${settings.radius}|${settings.falloff}|${cellSize}`
-  const cached = kernelCache.get(layerName)
-  if (cached && cached.signature === signature) return cached.kernel
-
-  const radiusCells = Math.max(1, Math.ceil(settings.radius / cellSize))
-  const size = radiusCells * 2 + 1
-  const values = new Float32Array(size * size)
-
-  for (let iy = -radiusCells; iy <= radiusCells; iy++) {
-    for (let ix = -radiusCells; ix <= radiusCells; ix++) {
-      const distance = Math.hypot(ix, iy) * cellSize
-      const t = 1 - distance / settings.radius
-      values[(iy + radiusCells) * size + (ix + radiusCells)] = t <= 0 ? 0 : applyFalloff(t, settings.falloff)
-    }
-  }
-
-  const kernel: Kernel = { radiusCells, size, values }
-  kernelCache.set(layerName, { signature, kernel })
-  return kernel
-}
-
 export class InfluenceMap {
   readonly size: number
   readonly scores: Float32Array
@@ -107,6 +70,15 @@ export class InfluenceMap {
    * and is exactly the sort of place value must not flow through.
    */
   readonly hazard: Float32Array
+
+  /**
+   * Value that exists *only* to be routed by the flow pass, never read raw.
+   *
+   * A reward placed straight into `scores` is felt along every straight line
+   * through the world, including the one through the middle of a pack. Placed
+   * here instead, the only way it reaches him is by flowing around danger.
+   */
+  private readonly seeds: Float32Array
 
   /** Scratch for the flow pass, allocated once. */
   private readonly flow: Float32Array
@@ -124,6 +96,7 @@ export class InfluenceMap {
     const cells = this.size * this.size
     this.scores = new Float32Array(cells)
     this.hazard = new Float32Array(cells)
+    this.seeds = new Float32Array(cells)
     this.flow = new Float32Array(cells)
     this.passability = new Float32Array(cells)
   }
@@ -142,6 +115,23 @@ export class InfluenceMap {
     this.originY = snappedY - this.halfCells * this.cellSize
     this.scores.fill(0)
     this.hazard.fill(0)
+    this.seeds.fill(0)
+  }
+
+  /**
+   * Add a point of value for the flow pass to route, and nothing else.
+   *
+   * Placed whole in the nearest cell rather than split across four. The flow
+   * keeps the *best* value reachable, not the sum, so a coin split four ways
+   * read as a quarter of a coin whenever it sat near a cell corner. Nearest
+   * cell does snap, but seeds are loot lying still, and the grid only ever
+   * shifts by whole cells, so nothing is seen to jump.
+   */
+  seed(x: number, y: number, amount: number): void {
+    const ix = Math.round((x - this.originX) / this.cellSize)
+    const iy = Math.round((y - this.originY) / this.cellSize)
+    if (ix < 0 || iy < 0 || ix >= this.size || iy >= this.size) return
+    this.seeds[iy * this.size + ix] += amount
   }
 
   /**
@@ -151,28 +141,35 @@ export class InfluenceMap {
    * how a Hulk can be more frightening than a Shambler using the same layer,
    * driven by a number in the enemy's data entry rather than by a branch.
    */
-  stamp(layerName: string, settings: LayerSettings, x: number, y: number, strength = 1, isHazard = false): void {
-    const kernel = kernelFor(layerName, settings, this.cellSize)
+  stamp(settings: LayerSettings, x: number, y: number, strength = 1, isHazard = false): void {
+    const { radius, falloff } = settings
+    if (radius <= 0) return
     const amount = settings.weight * strength
+    if (amount === 0) return
 
-    const cx = Math.round((x - this.originX) / this.cellSize)
-    const cy = Math.round((y - this.originY) / this.cellSize)
-
-    const k = kernel.radiusCells
-    // Clip to the grid rather than skipping the source entirely: something
-    // just off the edge still influences the cells inside it.
-    const minIy = Math.max(-k, -cy)
-    const maxIy = Math.min(k, this.size - 1 - cy)
-    const minIx = Math.max(-k, -cx)
-    const maxIx = Math.min(k, this.size - 1 - cx)
+    // Evaluated at each cell's true distance from the source, not from the
+    // cell the source happens to be in. Snapping sources to cells (as a
+    // precomputed kernel does) made an enemy's danger jump a whole cell at a
+    // time as it walked, and every jump could flip which way he wanted to go.
+    const gx = (x - this.originX) / this.cellSize
+    const gy = (y - this.originY) / this.cellSize
+    const reach = radius / this.cellSize
+    const minIy = Math.max(0, Math.ceil(gy - reach))
+    const maxIy = Math.min(this.size - 1, Math.floor(gy + reach))
+    const minIx = Math.max(0, Math.ceil(gx - reach))
+    const maxIx = Math.min(this.size - 1, Math.floor(gx + reach))
+    const invReachSquared = 1 / (reach * reach)
 
     for (let iy = minIy; iy <= maxIy; iy++) {
-      const kernelRow = (iy + k) * kernel.size + k
-      const scoreRow = (cy + iy) * this.size + cx
+      const dy = iy - gy
+      const row = iy * this.size
       for (let ix = minIx; ix <= maxIx; ix++) {
-        const contribution = kernel.values[kernelRow + ix] * amount
-        this.scores[scoreRow + ix] += contribution
-        if (isHazard) this.hazard[scoreRow + ix] += Math.abs(contribution)
+        const dx = ix - gx
+        const distanceSquared = (dx * dx + dy * dy) * invReachSquared
+        if (distanceSquared >= 1) continue
+        const contribution = applyFalloff(1 - Math.sqrt(distanceSquared), falloff) * amount
+        this.scores[row + ix] += contribution
+        if (isHazard) this.hazard[row + ix] += Math.abs(contribution)
       }
     }
   }
@@ -222,12 +219,12 @@ export class InfluenceMap {
    */
   computeFlow(): void {
     const { sweeps, decay, hazardResistance, minPassability, weight } = config.influence.flow
-    const { size, scores, hazard, flow, passability } = this
+    const { size, scores, hazard, seeds, flow, passability } = this
 
     for (let i = 0; i < flow.length; i++) {
       // Only rewards seed the flood. Negative cells are obstacles to route
       // around, not sources of anything.
-      flow[i] = scores[i] > 0 ? scores[i] : 0
+      flow[i] = (scores[i] > 0 ? scores[i] : 0) + seeds[i]
       passability[i] = Math.max(minPassability, 1 / (1 + hazard[i] * hazardResistance))
     }
 
@@ -295,6 +292,17 @@ export class InfluenceMap {
     const s11 = this.at(x0 + 1, y0 + 1)
 
     return s00 * (1 - fx) * (1 - fy) + s10 * fx * (1 - fy) + s01 * (1 - fx) * fy + s11 * fx * fy
+  }
+
+  /**
+   * How much danger has been stamped at a world position so far this rebuild,
+   * as a positive magnitude. Only meaningful after the hazards are stamped.
+   */
+  hazardAt(x: number, y: number): number {
+    const ix = Math.round((x - this.originX) / this.cellSize)
+    const iy = Math.round((y - this.originY) / this.cellSize)
+    if (ix < 0 || iy < 0 || ix >= this.size || iy >= this.size) return 0
+    return this.hazard[iy * this.size + ix]
   }
 
   /** Out of bounds reads as neutral, so the edge of the grid isn't a cliff. */

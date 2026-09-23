@@ -76,6 +76,12 @@ export const config = {
      * follows; there are no bounds to clamp against.
      */
     cameraFollowRate: 6,
+    /**
+     * Degrees past a diagonal a heading must go before a sprite switches to
+     * the next of its four facings. Without it, walking near a diagonal flips
+     * the sprite back and forth and reads as stutter-stepping.
+     */
+    facingSlackDegrees: 15,
   },
 
   world: {
@@ -140,8 +146,10 @@ export const config = {
      *
      * This has to comfortably exceed the furthest look-ahead distance. Outside
      * the grid every read returns a neutral zero, and zero looks *attractive*
-     * next to a soured camping zone — so a character who can see past the edge
-     * of his own map will run at it forever, chasing an artefact.
+     * next to soured ground — so a character who can see past the edge of his
+     * own map will run at it forever, chasing an artefact. It also bounds how
+     * far away loot can be and still call him: the flow can't route from a
+     * cell that doesn't exist.
      */
     gridRadiusCells: 30,
     /**
@@ -181,7 +189,29 @@ export const config = {
       minPassability: 0.02,
       /** How much the routed field counts against the raw local one. */
       weight: 1,
+      /**
+       * What each pickup is worth as a destination, times its pull.
+       *
+       * This is the whole of the long-range "there's loot over there" signal.
+       * It used to be a wide blob stamped straight onto the map as well, and
+       * that blob was felt along every straight line — including the one
+       * through the middle of a pack. Measured over six seeded runs, it was
+       * most of why he dived into mobs: removing it took damage taken from 28
+       * to 4 hp a minute. Routed only, loot reaches him around danger or not
+       * at all.
+       */
+      pickupValue: 7,
     },
+
+    /**
+     * How much enemies near a pickup mute its short-range "grab me" pull.
+     *
+     * Loot drops where enemies die, which is where the rest of the pack is
+     * still standing — so an unmuted pickup pull is a pull into the crowd.
+     * Higher makes him leave guarded pickups for later; 0 treats a coin in
+     * a mob exactly like one lying in the open.
+     */
+    guardFear: 3,
 
     /**
      * Each layer is weight + how far it reaches + the shape of its falloff.
@@ -209,10 +239,11 @@ export const config = {
      */
     layers: {
       enemyDanger: { weight: -3, radius: 140, falloff: 'sharp' },
-      /** "Loot is broadly over there." Long reach, very shallow slope. */
-      pickupWide: { weight: 1.6, radius: 620, falloff: 'linear' },
-      /** "One is right there, take it." Short reach, steep enough to act on. */
-      pickupNear: { weight: 3, radius: 90, falloff: 'sharp' },
+      /**
+       * "One is right there, take it." Short reach, steep enough to act on.
+       * The long-range pull is `flow.pickupValue`, not a layer — see there.
+       */
+      pickupNear: { weight: 5, radius: 90, falloff: 'sharp' },
       /**
        * "You've just been here." Ground he recently stood on, going sour.
        *
@@ -241,27 +272,15 @@ export const config = {
       staleness: { weight: -0.8, radius: 135, falloff: 'smooth' },
 
       /**
-       * "You have been standing here far too long." Applied per cell from the
-       * occupancy grid rather than stamped, so radius and falloff don't apply.
-       *
-       * Sized from measurement, not taste. Standing in the middle of his loop
-       * scored +4.5 while open ground 400 away scored +2 to +5 — a coin flip,
-       * which is exactly why he never left. This has to be large enough to
-       * turn a thoroughly camped patch decisively negative, so it wins the
-       * comparison outright instead of nudging it.
-       */
-      camping: { weight: -12, radius: 0, falloff: 'linear' },
-
-      /**
        * "You're carrying enough to be worth a trip." Also applied per cell,
        * because the shop is usually nowhere near him — stamping a blob at a
        * point 1500 units away would land entirely outside the grid and pull
        * on nothing at all.
        *
        * This is the thing every other attempt was missing: a reason to be
-       * somewhere else. Camping pressure can make where he stands unpleasant,
-       * but it cannot invent a destination, and he was correct to stay put
-       * while all the value in the world sat under his feet.
+       * somewhere else. A penalty can make where he stands unpleasant, but it
+       * cannot invent a destination, and he was correct to stay put while all
+       * the value in the world sat under his feet.
        */
       shop: { weight: 14, radius: 0, falloff: 'linear' },
     },
@@ -276,9 +295,9 @@ export const config = {
      *
      * Short again, now that the flow pass exists.
      *
-     * They were stretched to 560 because a uniform camping penalty across
-     * everything he could see is a constant that changes no comparison, so he
-     * needed to see past it. But long straight probes have their own failure:
+     * They were stretched to 560 because a uniform penalty across everything
+     * he could see is a constant that changes no comparison, so he needed to
+     * see past it. But long straight probes have their own failure:
      * they average over terrain the route would avoid, and they overshoot
      * anything nearby — which is why he walked past shops he wanted, three of
      * his four probes landing beyond the door where the value drops again.
@@ -313,14 +332,6 @@ export const config = {
     contactScale: 1,
   },
 
-  /**
-   * The breadcrumb trail behind him, which feeds the staleness layer.
-   *
-   * Spacing and memory together decide how big a loop he has to make before
-   * it stops feeling stale. Tight circling piles overlapping marks into one
-   * spot and makes it genuinely unpleasant; roaming spreads them thin and
-   * costs him almost nothing.
-   */
   /**
    * The bank: a single square somewhere on the map that he walks to once he's
    * carrying enough. Arriving deposits his carried gold, which is then kept
@@ -372,13 +383,14 @@ export const config = {
      */
     gradientLength: 1000,
     /**
-     * What the long-range loot signal is worth while he's on a banking run.
+     * What the long-range loot signal (`flow.pickupValue`) is worth while
+     * he's on a banking run.
      *
      * Turned down so a cluster off to one side can't restart the argument he
      * has already settled. The short-range pickup layer is untouched, so he
      * still takes whatever he walks over — he just stops detouring for it.
      */
-    bankingWideScale: 0.25,
+    bankingLootScale: 0.25,
     /**
      * Cap on eagerness, in multiples of the threshold.
      *
@@ -397,27 +409,13 @@ export const config = {
   },
 
   /**
-   * Dwell time per patch of ground, feeding the `camping` layer.
+   * The breadcrumb trail behind him, which feeds the staleness layer.
    *
-   * The knobs together answer "how long may he loiter, and how long must he
-   * stay away before it's forgiven".
+   * Spacing and memory together decide how big a loop he has to make before
+   * it stops feeling stale. Tight circling piles overlapping marks into one
+   * spot and makes it genuinely unpleasant; roaming spreads them thin and
+   * costs him almost nothing.
    */
-  occupancy: {
-    /** Size of a patch. Roughly how precisely "here" is defined. */
-    cellSize: 60,
-    /** Seconds of dwell in one patch before it's as bad as it gets. */
-    saturationSeconds: 4,
-    /**
-     * Seconds for a patch to forget half of what it remembers. This is what
-     * lets him come back later — which he needs to, because globes keep
-     * dropping on ground he abandoned.
-     */
-    halfLifeSeconds: 20,
-    /** Cells below this many remembered seconds get dropped. */
-    pruneBelow: 0.05,
-    maxCells: 800,
-  },
-
   trail: {
     /** How far he must travel before dropping the next mark. */
     spacing: 45,

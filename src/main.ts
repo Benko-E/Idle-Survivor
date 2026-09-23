@@ -4,7 +4,7 @@ import { drawCandidates, drawFootprint, drawHeatmap, drawTrail } from './render/
 import { loadProfile, saveProfile } from './meta/profile'
 import { drawEffects } from './render/effects'
 import { Renderer, type Drawable } from './render/renderer'
-import { coinFrame, facingRow, getSheet, loadSprites, walkFrame } from './render/sprites'
+import { coinFrame, getSheet, loadSprites, stickyFacingRow, walkFrame } from './render/sprites'
 import { updateCombat } from './sim/combat'
 import { updateContactDamage } from './sim/damage'
 import { hpMultiplier, spawnsPerSecond } from './sim/difficulty'
@@ -12,7 +12,6 @@ import { updateEnemies } from './sim/enemyMovement'
 import { gameEvents } from './sim/events'
 import { resetInfluenceClock, updateInfluence } from './sim/influence'
 import { updateCharacterMovement } from './sim/movement'
-import { occupancySaturation, updateOccupancy } from './sim/occupancy'
 import { pickupColour, pickupSize } from './sim/pickupTiers'
 import { updatePickups } from './sim/pickups'
 import { levelProgress } from './sim/progression'
@@ -127,9 +126,8 @@ function update(dt: number): void {
   // it, and finally we find out whether that was a good idea.
   updateInfluence(world, dt)
   updateCharacterMovement(world, dt)
-  // After moving, so both land on where he now is.
+  // After moving, so the mark lands where he now is.
   updateTrail(world)
-  updateOccupancy(world, dt)
   updateShop(world)
   updateCombat(world, dt)
   updateContactDamage(world, dt)
@@ -271,7 +269,9 @@ function render(): void {
       shadowRadius: enemy.def.radius,
       // Enemies always walk straight at him, so their heading is simply the
       // direction to the character.
-      frameRow: sheet ? facingRow(world.character.x - enemy.x, world.character.y - enemy.y) : undefined,
+      frameRow: sheet
+        ? stickyFacingRow(enemy, world.character.x - enemy.x, world.character.y - enemy.y, config.render.facingSlackDegrees)
+        : undefined,
       frameCol: sheet ? walkFrame(enemy.stride, enemy.id, config.character.stepLength) : undefined,
     })
   }
@@ -296,7 +296,9 @@ function render(): void {
     colour: world.state === 'dead' ? '#6b5a34' : '#e8c468',
     sheet: heroSheet,
     shadowRadius: config.character.radius,
-    frameRow: heroSheet ? facingRow(world.character.facingX, world.character.facingY) : undefined,
+    frameRow: heroSheet
+      ? stickyFacingRow(world.character, world.character.facingX, world.character.facingY, config.render.facingSlackDegrees)
+      : undefined,
     // Frozen on the standing frame once he's dead.
     frameCol:
       heroSheet && world.state === 'running'
@@ -341,7 +343,6 @@ function render(): void {
       `missed       ${world.pickupsMissed}`,
       `spawn rate   ${spawnsPerSecond(world.time).toFixed(1)}/s`,
       `enemy hp     x${hpMultiplier(world.time).toFixed(2)}`,
-      `camped here  ${(occupancySaturation(world, world.character.x, world.character.y) * 100).toFixed(0)}%`,
       `to bank at   ${config.shop.spendThreshold} gold`,
       `shop         ${distanceToShop(world).toFixed(0)} away, ${world.shopVisits} visits`,
       `doing        ${world.intent}`,

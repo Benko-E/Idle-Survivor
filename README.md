@@ -108,7 +108,7 @@ are a list in `ui/menu/entries.ts`, and each screen is its own file in
 `ui/menu/screens/` — adding one (a hall of fame, say) means writing the screen
 and adding a line to the list.
 
-## Partly solved: he used to settle into small circles
+## History: he used to settle into small circles
 
 Late in a run he would orbit one small area until overwhelmed. Measured by
 *roam efficiency* — net displacement divided by distance travelled, over 15
@@ -147,6 +147,69 @@ is a tuning problem:
 Note also that straight-line probes cannot represent going *around* something,
 however far they reach. Routing through a thin sector needs a diffusion pass
 over the grid so value flows around danger rather than through it.
+
+**Later:** the flow field and the shop trips fixed this properly, and the
+camping layer has since been removed — see the movement pass below. Roam
+efficiency is now about 0.5.
+
+## Movement pass: the stutter and the dives
+
+He stutter-stepped, and he'd run into a mob for gold further away while
+ignoring gold at his feet. Measured with a headless benchmark (six fixed seeds,
+five-minute runs, first draft card always taken), before and after:
+
+| | Before | After |
+| --- | --- | --- |
+| Runs alive at 5:00 | 1 of 6 | 6 of 6 |
+| Damage taken / min | 28.5 | 7.9 |
+| Heading wobbles / min | 90 | 43 |
+| Sprite facing flips / min | 65 | 31 |
+| Roam efficiency | 0.33 | 0.51 |
+| Nearby coins left behind / min | 7.7 | 5.7 |
+| Gold / min | 62 | 54 |
+| Gold per run | ~1380 | ~1630 |
+
+A *wobble* is turning one way then the other within a fifth of a second.
+
+What fixed it, each measured on its own:
+
+- **The long-range loot layer was removed.** It was a wide blob stamped
+  straight onto the map, felt along every straight line — including the one
+  through the middle of a pack. Loot now only reaches him through the flow
+  pass, which routes around danger. This alone took damage from 28 to about
+  6 hp a minute.
+- **Stamps are evaluated at the source's exact position.** They used to snap
+  to the nearest cell, so an enemy's danger jumped 30 units at a time as it
+  walked, and each jump could flip his choice. Wobble 86 → 62.
+- **The chosen heading is refined between candidates.** Candidates are 15°
+  apart, so a route at 37° was walked as 30°, 45°, 30°, 45°. A parabola
+  through the winner and its neighbours finds the real peak. Wobble 62 → 50.
+- **The camping layer was removed.** With the flow and the shop in place it no
+  longer changed roam efficiency at all (0.51 either way), and it was a
+  constant source of twitching. Wobble 54 → 43.
+- **Guarded pickups are muted.** The short-range "grab it" pull is scaled
+  down by danger already stamped on the pickup, since loot drops where the rest
+  of the pack is standing. Lets that pull be stronger without it pulling him
+  into crowds.
+- **Flow seeds go whole into one cell.** Splitting a coin across four cells
+  made it read as a quarter of a coin, because the flow keeps the best value,
+  not the sum.
+- **Sprites keep their facing until 15° past the diagonal.** Four-way sprites
+  near a diagonal flipped back and forth on the smallest wobble.
+
+Tried and **didn't** help, so not worth retrying:
+
+- Heading bonus 0.35 → 0.6, 1.0, 1.5: within noise once the above were in.
+- Folding the flow in as log(value), so distance rather than size drives the
+  slope: no better at moderate weight, far worse at high weight (deaths).
+- Wider or stronger short-range pickup pull: more gold, but more damage, and
+  no change in coins left behind.
+- Smoothing the camping layer's cells instead of removing it: barely moved
+  wobble. It was the layer itself, not its edges.
+
+Known, remaining: about 3 coins a minute in open ground are still left behind.
+Traced one by one, most are legitimate — he has just committed to banking, or
+a fresh drop elsewhere changed the picture mid-approach.
 
 ## Fixed by the flow field: walking past the shop
 
@@ -229,3 +292,5 @@ That completes the spec's definition of done for the prototype. Past it:
 
 - [x] **8 — banking and the menu.** Carried gold lost on death, banked gold
   saved between runs; a main menu with placeholder Options and Upgrades screens.
+- [x] **9 — movement pass.** Loot routed around danger only, exact stamps,
+  refined heading, sticky sprite facing; camping layer removed. See above.

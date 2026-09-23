@@ -40,6 +40,7 @@ export function updateCharacterMovement(world: World, dt: number): void {
   const sampleDirections = Math.max(1, Math.round(config.movement.sampleDirections))
 
   let bestScore = -Infinity
+  let bestIndex = -1
   let bestX = character.facingX
   let bestY = character.facingY
 
@@ -76,8 +77,26 @@ export function updateCharacterMovement(world: World, dt: number): void {
 
     if (score > bestScore) {
       bestScore = score
+      bestIndex = i
       bestX = dx
       bestY = dy
+    }
+  }
+
+  // Refine the winner to somewhere between its neighbours. The candidates are
+  // 15° apart, so a route at 37° used to be walked as 30°, 45°, 30°, 45° —
+  // the winner flipping between the two nearest candidates every few frames,
+  // which is most of what read as stutter-stepping. A parabola through the
+  // winner and its two neighbours puts the peak where the scores say it is.
+  if (bestIndex >= 0 && sampleDirections >= 3) {
+    const left = movementDebug.scores[(bestIndex - 1 + sampleDirections) % sampleDirections]
+    const right = movementDebug.scores[(bestIndex + 1) % sampleDirections]
+    const curvature = left - 2 * bestScore + right
+    if (curvature < 0) {
+      const offset = Math.max(-0.5, Math.min(0.5, (0.5 * (left - right)) / curvature))
+      const angle = ((bestIndex + offset) / sampleDirections) * Math.PI * 2
+      bestX = Math.cos(angle)
+      bestY = Math.sin(angle)
     }
   }
 

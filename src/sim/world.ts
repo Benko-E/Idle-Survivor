@@ -107,11 +107,6 @@ export interface World {
   trail: VisitMark[]
   lastMarkX: number
   lastMarkY: number
-  /**
-   * Dwell time per patch of ground, keyed by packed cell coordinates. On the
-   * world rather than at module level so restarting a run clears it for free.
-   */
-  occupancy: Map<number, { amount: number; updated: number }>
 
   weapons: WeaponInstance[]
   /** Every stat change in play, from upgrades taken in the draft. */
@@ -191,7 +186,6 @@ export function createWorld(seed: number = config.world.seed): World {
     trail: [],
     lastMarkX: 0,
     lastMarkY: 0,
-    occupancy: new Map(),
     weapons: config.character.startingWeaponIds.map((id) => ({
       def: findWeaponDef(id),
       // Ready almost at once. There's only one starting spell, and since a

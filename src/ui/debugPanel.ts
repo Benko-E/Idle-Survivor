@@ -48,7 +48,6 @@ const INTEGER_PATHS = new Set([
   'influence.gridRadiusCells',
   'influence.flow.sweeps',
   'movement.sampleDirections',
-  'occupancy.maxCells',
   'trail.maxMarks',
   'pickups.maxAlive',
   'pickups.merge.count',
