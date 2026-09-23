@@ -348,6 +348,7 @@ function render(): void {
 
   // Flat effects under everyone's feet, standing ones over them.
   drawGroundEffects(renderer, world)
+  enemyLooks.drawGround(renderer, world)
   renderer.drawScene(frame)
 
   drawEffects(renderer, world)

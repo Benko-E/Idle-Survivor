@@ -398,15 +398,42 @@ the Time Fantasy monster pack via `tools/extract-art.ps1` into
 | Enemy | From | Job |
 |---|---|---|
 | Scuttler (crab) | start | the crowd |
-| Stalker (bat) | 0:30 | fast |
-| Bee | 0:45 | swarms of eight, each one feeble |
+| Stalker (bat) | 0:30 | fast, flies over trees |
+| Bee | 0:45 | swarms of eight, each one feeble; flies |
+| Stinkcap | 1:00 | stands still; leaves damaging gas where it dies |
 | Cave Spider | 1:15 | heavy |
 | Wolf | 2:00 | packs of four from one side |
 | Treant | 3:00 | a slow walking wall worth a big pile of gold |
+| Boar | 2:30 | paws the ground, then charges in a straight line |
+| Redcap | 3:20 | stands still; bursts into four sporelings |
+| Sporeling | — | only from a Redcap; runs at him and explodes on arrival or when killed |
+| Fire Wisp | 4:30 | flies; close to him it lights, swells, and goes off |
 
 A group (`groupSize`) pays for its extra members out of the spawns still to
 come, so the difficulty curve's enemy count means the same thing whether they
 arrive one at a time or eight at once.
+
+What they do besides walk is all data on the entry, handled in
+`sim/enemyBehaviours.ts`: `charge` (windup, charge, recovery, one impact
+per charge), `fuse` (lights in range, bangs when it runs out; going off is
+not a kill), `onDeath` (explode, spawn, leave a hazard), `stationary`,
+`flying` and a per-kind `maxAlive`. Death effects run from a queue after the
+combat step, so a blast that kills things that blast in turn just keeps
+going — a clump of sporelings goes up together, and can take a crowd with
+it. Blasts hurt enemies too, and those kills are his.
+
+The movement AI sees the danger that belongs to a place rather than to
+whoever is standing on it: gas, a lit fuse's blast radius, and a boar's lane
+from the moment its windup starts (`influence.hazardFear`). He also has a
+thing or two to say about being blown up.
+
+Every point of damage he takes is booked against its source in
+`world.damageTakenBy` (try `world().damageTakenBy` in the console). That is
+how the first fire wisps were caught doing a quarter of all his damage: lit,
+they kept chasing him at nearly his pace, so the blast almost always landed.
+Now a lit wisp stops where it is. Over fifteen 15-minute bot runs, deaths
+went 8 → 6 (3 with step 17's roster); the bot never takes a tier 2 or 3
+spell, so real runs are easier.
 
 Every enemy is drawn at one pixel density (`render.enemyPixelScale`), so their
 sizes relative to each other are the artist's, and the sprite now matches the
@@ -537,3 +564,6 @@ That completes the spec's definition of done for the prototype. Past it:
 - [x] **17 — enemy looks.** One sheet per creature, drawn at one pixel
   density; hit flash, death puff, fade in; bees, wolves and treants, with
   swarms and packs arriving together. See "Enemies".
+- [x] **18 — enemy behaviours.** Charging boars, exploding fire wisps,
+  mushrooms that stand still and gas him or burst into sporelings, fliers
+  over trees; the danger map knows about all of it. See "Enemies".

@@ -43,6 +43,28 @@ function rebuild(world: World): void {
     influenceMap.stamp(layers.enemyDanger, enemy.x, enemy.y, enemy.def.dangerWeight * fear, true)
   }
 
+  // Danger that belongs to a place rather than to whoever's standing on it:
+  // gas on the ground, a lit fuse about to go, the lane a boar is about to
+  // run down. Stamped as hazard too, so the flow routes round them.
+  const { hazardFear } = config.influence
+  const danger = layers.enemyDanger
+  for (const hazard of world.hazards) {
+    influenceMap.stamp({ ...danger, radius: hazard.radius + danger.radius * 0.5 }, hazard.x, hazard.y, hazardFear * fear, true)
+  }
+  for (const enemy of world.enemies) {
+    const { fuse, charge } = enemy.def
+    if (fuse && enemy.fuseLeft !== undefined && enemy.hp > 0) {
+      influenceMap.stamp({ ...danger, radius: fuse.radius + danger.radius * 0.5 }, enemy.x, enemy.y, hazardFear * fear, true)
+    }
+    if (charge && (enemy.mode === 'windup' || enemy.mode === 'charge')) {
+      const run = enemy.mode === 'charge' ? (enemy.modeTime ?? 0) * charge.speed : charge.distance
+      for (let k = 1; k <= 4; k++) {
+        const along = (run * k) / 4
+        influenceMap.stamp(danger, enemy.x + (enemy.dirX ?? 0) * along, enemy.y + (enemy.dirY ?? 0) * along, hazardFear * 0.6 * fear, true)
+      }
+    }
+  }
+
   // The pull of the shop, applied per cell rather than stamped: the shop is
   // usually well outside the grid, where a stamped blob would land nowhere.
   //

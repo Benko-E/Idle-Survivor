@@ -93,6 +93,65 @@ export interface EnemyDef {
   groupSize?: number
   /** How far the group is scattered around its spawn point, in world units. */
   groupSpread?: number
+
+  /** Flies: straight over trees rather than round them. */
+  flying?: boolean
+  /**
+   * Never moves, and isn't shoved by the crowd: rooted to the spot like the
+   * scenery it passes for. Its baseSpeed is ignored.
+   */
+  stationary?: boolean
+  /**
+   * At most this many alive at once. Things that never move would otherwise
+   * pile up out of sight, and every one is a place in spawn.maxAlive.
+   */
+  maxAlive?: number
+
+  /** Stops, paws the ground, then charges in a straight line. See sim/enemyBehaviours.ts. */
+  charge?: ChargeDef
+  /** Lights a fuse when it gets close to him, and blows up. */
+  fuse?: FuseDef
+  /** What happens where it dies. */
+  onDeath?: DeathDef
+}
+
+export interface ChargeDef {
+  /** Starts a charge when he's within this range. */
+  range: number
+  /** Seconds standing still, pawing the ground, before it goes: his warning. */
+  windup: number
+  /** World units per second while charging. Not scaled by the difficulty curve. */
+  speed: number
+  /** How far one charge runs. */
+  distance: number
+  /** Damage when a charge runs into him, once per charge. */
+  impact: number
+  /** Seconds standing dazed after a charge. */
+  recover: number
+  /** Seconds between charges. */
+  cooldown: number
+}
+
+export interface BlastDef {
+  radius: number
+  /** To him, before the difficulty curve. Enemies caught in it take this scaled like their health. */
+  damage: number
+}
+
+export interface FuseDef extends BlastDef {
+  /** Lights when he's this close, edge to edge. */
+  range: number
+  /** Seconds from lit to bang. Zero goes off on the spot. */
+  seconds: number
+}
+
+export interface DeathDef {
+  /** Blows up: hurts him and every other enemy caught in it. */
+  explode?: BlastDef
+  /** Bursts into these, scattered within `spread`. */
+  spawn?: { enemyId: string; count: number; spread: number }
+  /** Leaves a patch of ground that hurts him while he stands in it. */
+  hazard?: { radius: number; dps: number; seconds: number; colour: string }
 }
 
 export interface DropEntry {

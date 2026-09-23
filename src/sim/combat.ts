@@ -1,4 +1,5 @@
 import { config } from '../config'
+import { resolveDeaths } from './enemyBehaviours'
 import { BEHAVIOURS } from './behaviours'
 import { updateProjectiles } from './projectiles'
 import { weaponStat } from './stats'
@@ -84,4 +85,9 @@ export function updateCombat(world: World, dt: number): void {
   updateStatusEffects(world, dt)
   updateVfx(world, dt)
   removeDead(world)
+  if (world.dying.length > 0) {
+    resolveDeaths(world)
+    // Whatever the blasts just killed.
+    removeDead(world)
+  }
 }

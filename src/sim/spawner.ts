@@ -46,8 +46,26 @@ function spawnRingRadii(worldHalfWidth: number, worldHalfHeight: number): { rx: 
   }
 }
 
+/** A weight of zero means it only ever comes from something else — a Redcap's sporelings. */
 function eligibleDefs(time: number): EnemyDef[] {
-  return ENEMY_DEFS.filter((def) => time >= def.unlockAtSeconds)
+  return ENEMY_DEFS.filter((def) => def.spawnWeight > 0 && time >= def.unlockAtSeconds)
+}
+
+/** One enemy of this kind, here, at the strength the run has reached. */
+export function spawnEnemyAt(world: World, def: EnemyDef, x: number, y: number): void {
+  if (world.enemies.length >= config.spawn.maxAlive) return
+  const hp = def.baseHp * hpMultiplier(world.time)
+  world.enemies.push({
+    id: world.nextEnemyId++,
+    def,
+    x,
+    y,
+    hp,
+    maxHp: hp,
+    speed: def.stationary ? 0 : def.baseSpeed * speedMultiplier(world.time),
+    effects: [],
+    stride: 0,
+  })
 }
 
 function pickWeighted(defs: EnemyDef[], roll: number): EnemyDef {
@@ -68,12 +86,14 @@ function spawnOne(world: World, halfViewWidth: number, halfViewHeight: number): 
 
   const def = pickWeighted(defs, world.rng())
   const { rx, ry } = spawnRingRadii(halfViewWidth, halfViewHeight)
+  // At its cap, the spawn is simply spent: the draws below still happen, so
+  // a cap never shifts the random stream for everything after it.
+  const capped = def.maxAlive !== undefined && world.enemies.filter((e) => e.def === def).length >= def.maxAlive
 
   const angle = world.rng() * Math.PI * 2
   const jitter = 1 + world.rng() * config.spawn.radiusJitter
 
-  const hp = def.baseHp * hpMultiplier(world.time)
-  const speed = def.baseSpeed * speedMultiplier(world.time)
+  if (capped) return
   const x = world.character.x + Math.cos(angle) * rx * jitter
   const y = world.character.y + Math.sin(angle) * ry * jitter
 
@@ -84,17 +104,7 @@ function spawnOne(world: World, halfViewWidth: number, halfViewHeight: number): 
   for (let i = 0; i < count; i++) {
     const a = world.rng() * Math.PI * 2
     const r = i === 0 ? 0 : Math.sqrt(world.rng()) * spread
-    world.enemies.push({
-      id: world.nextEnemyId++,
-      def,
-      x: x + Math.cos(a) * r,
-      y: y + Math.sin(a) * r,
-      hp,
-      maxHp: hp,
-      speed,
-      effects: [],
-      stride: 0,
-    })
+    spawnEnemyAt(world, def, x + Math.cos(a) * r, y + Math.sin(a) * r)
   }
   world.spawnCredit -= count - 1
 }

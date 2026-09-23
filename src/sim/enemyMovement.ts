@@ -1,4 +1,5 @@
 import { config } from '../config'
+import { busy, updateEnemyBehaviours } from './enemyBehaviours'
 import { forEachEnemyNear, LARGEST_ENEMY_RADIUS, rebuildEnemyGrid } from './enemyGrid'
 import { pushOutOfObstacles } from './obstacles'
 import { slowMultiplier } from './statusEffects'
@@ -7,15 +8,17 @@ import type { World } from './world'
 /**
  * Enemy movement: walk at the character, and don't stand inside each other.
  *
- * That's the whole behaviour, deliberately. The interesting movement in this
- * game belongs to the character — enemies are the pressure he has to read, and
- * pressure is easier to read when it's predictable.
+ * That's the whole walk, deliberately. The interesting movement in this game
+ * belongs to the character — enemies are the pressure he has to read, and
+ * pressure is easier to read when it's predictable. The exceptions (charges,
+ * fuses) are in enemyBehaviours.ts, and anything busy there is skipped here.
  */
 
 function seekCharacter(world: World, dt: number): void {
   const { x: cx, y: cy } = world.character
 
   for (const enemy of world.enemies) {
+    if (enemy.def.stationary || busy(enemy)) continue
     const dx = cx - enemy.x
     const dy = cy - enemy.y
     const distance = Math.hypot(dx, dy)
@@ -62,29 +65,37 @@ function resolveOverlaps(world: World): void {
       if (squared >= minDistance * minDistance || squared === 0) return
 
       const distance = Math.sqrt(squared)
-      // Each of the pair moves half the overlap, scaled by strength.
+      // Each of the pair moves half the overlap, scaled by strength — or all
+      // of it, if the other one is rooted to the spot.
+      const aFixed = a.def.stationary === true
+      const bFixed = b.def.stationary === true
+      if (aFixed && bFixed) return
       const push = ((minDistance - distance) / distance) * 0.5 * strength
+      const aShare = aFixed ? 0 : bFixed ? 2 : 1
+      const bShare = bFixed ? 0 : aFixed ? 2 : 1
 
-      a.x -= dx * push
-      a.y -= dy * push
-      b.x += dx * push
-      b.y += dy * push
+      a.x -= dx * push * aShare
+      a.y -= dy * push * aShare
+      b.x += dx * push * bShare
+      b.y += dy * push * bShare
     })
   }
 }
 
 /**
  * Keep them out of trees. Odd and even ids slide opposite ways, so a crowd
- * meeting a trunk parts round both sides of it.
+ * meeting a trunk parts round both sides of it. Fliers go straight over.
  */
 function avoidObstacles(world: World): void {
   const slide = config.obstacles.enemySlide
   for (const enemy of world.enemies) {
+    if (enemy.def.flying) continue
     pushOutOfObstacles(world, enemy, enemy.def.radius, enemy.id % 2 === 0 ? slide : -slide)
   }
 }
 
 export function updateEnemies(world: World, dt: number): void {
+  updateEnemyBehaviours(world, dt)
   seekCharacter(world, dt)
   // Rebuilt after they move, then shared with spell targeting for the rest of
   // the frame.

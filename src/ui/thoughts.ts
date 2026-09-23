@@ -43,6 +43,8 @@ interface Seen {
   bigLoot: number
   bonus: boolean
   dead: boolean
+  blasts: number
+  inGas: boolean
 }
 
 export class ThoughtBubbles {
@@ -91,6 +93,8 @@ export class ThoughtBubbles {
     let bigLoot = 0
     for (const p of world.pickups) if (p.tier >= 2 && (p.x - c.x) ** 2 + (p.y - c.y) ** 2 < 360 * 360) bigLoot++
     const hp = c.hp / Math.max(1, c.maxHp)
+    let inGas = false
+    for (const h of world.hazards) if ((h.x - c.x) ** 2 + (h.y - c.y) ** 2 < h.radius * h.radius) inGas = true
     return {
       level: world.level,
       spells: world.weapons.length,
@@ -103,6 +107,8 @@ export class ThoughtBubbles {
       bigLoot,
       bonus: world.buildBonus !== null,
       dead: world.state === 'dead',
+      blasts: world.blastsTaken,
+      inGas,
     }
   }
 
@@ -119,6 +125,8 @@ export class ThoughtBubbles {
     else if (now.level > before.level) this.consider('levelUp', world)
     else if (now.intent === 'banking' && before.intent !== 'banking') this.consider('goingToBank', world)
     else if (now.visits > before.visits) this.consider('banked', world)
+    else if (now.blasts > before.blasts) this.consider('blasted', world)
+    else if (now.inGas && !before.inGas) this.consider('gassed', world)
     else if (now.wasLow && !before.wasLow) this.consider('lowHealth', world)
     else if (now.crowded && !before.crowded) this.consider('crowd', world)
     else if (now.bigLoot > before.bigLoot) this.consider('bigLoot', world)

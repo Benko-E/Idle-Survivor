@@ -1,5 +1,9 @@
 import type { EnemyDef } from './types'
 
+export function findEnemyDef(id: string): EnemyDef | undefined {
+  return ENEMY_DEFS.find((def) => def.id === id)
+}
+
 /**
  * The entire enemy roster. (spec 5.1)
  *
@@ -49,6 +53,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     ],
     sprite: 'bat',
     colour: '#5f7a4a',
+    flying: true,
   },
   {
     id: 'enemy_brute_01',
@@ -94,6 +99,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     drops: [{ pickupId: 'pickup_gold_01', chance: 0.15 }],
     sprite: 'bee',
     colour: '#d8b040',
+    flying: true,
   },
   {
     id: 'enemy_pack_01',
@@ -140,5 +146,118 @@ export const ENEMY_DEFS: EnemyDef[] = [
     sprite: 'treant',
     colour: '#5a7a3a',
     scale: 1.9,
+  },
+  {
+    id: 'enemy_gasshroom_01',
+    displayName: 'Stinkcap',
+    tags: ['plant', 'stationary'],
+    baseHp: 18,
+    baseSpeed: 0,
+    contactDamage: 3,
+    xpValue: 4,
+    radius: 8,
+    // Harmless where it stands. The danger is the gas it leaves, and the gas
+    // puts itself on the danger map.
+    dangerWeight: 0.2,
+    spawnWeight: 5,
+    unlockAtSeconds: 60,
+    stationary: true,
+    maxAlive: 12,
+    onDeath: { hazard: { radius: 55, dps: 12, seconds: 5, colour: '#9ac43a' } },
+    drops: [{ pickupId: 'pickup_gold_01', chance: 0.6 }],
+    sprite: 'mushroom_purple',
+    colour: '#8a5ab0',
+    scale: 1.4,
+  },
+  {
+    id: 'enemy_charger_01',
+    displayName: 'Boar',
+    tags: ['melee', 'beast', 'charger'],
+    baseHp: 30,
+    baseSpeed: 38,
+    contactDamage: 8,
+    xpValue: 6,
+    radius: 11,
+    dangerWeight: 1.5,
+    spawnWeight: 6,
+    unlockAtSeconds: 150,
+    charge: { range: 230, windup: 0.8, speed: 250, distance: 300, impact: 16, recover: 0.7, cooldown: 3 },
+    drops: [
+      { pickupId: 'pickup_gold_01', chance: 0.1, tier: 1 },
+      { pickupId: 'pickup_gold_01', chance: 0.55 },
+    ],
+    sprite: 'boar',
+    colour: '#8a5a3a',
+    scale: 1.2,
+  },
+  {
+    id: 'enemy_broodshroom_01',
+    displayName: 'Redcap',
+    tags: ['plant', 'stationary'],
+    baseHp: 30,
+    baseSpeed: 0,
+    contactDamage: 3,
+    xpValue: 6,
+    radius: 10,
+    dangerWeight: 0.3,
+    spawnWeight: 4,
+    unlockAtSeconds: 200,
+    stationary: true,
+    maxAlive: 8,
+    // Kill it and it bursts into sporelings that come for him.
+    onDeath: { spawn: { enemyId: 'enemy_sporeling_01', count: 4, spread: 22 } },
+    drops: [
+      { pickupId: 'pickup_gold_01', chance: 0.2, tier: 1 },
+      { pickupId: 'pickup_gold_01', chance: 0.6 },
+    ],
+    sprite: 'mushroom_red',
+    colour: '#c03a3a',
+    scale: 1.3,
+  },
+  {
+    id: 'enemy_sporeling_01',
+    displayName: 'Sporeling',
+    tags: ['plant', 'exploder'],
+    baseHp: 4,
+    // Slower than him, so backing off and picking them off works; at 85 they
+    // matched him by minute five and every Redcap cost him a quarter of his health.
+    baseSpeed: 70,
+    contactDamage: 0,
+    xpValue: 1,
+    radius: 6,
+    dangerWeight: 1.6,
+    // Never spawns by itself; only a Redcap's death makes these.
+    spawnWeight: 0,
+    unlockAtSeconds: 0,
+    // Goes off on reaching him, and when killed. Shoot them early.
+    // Seven each, because they come in fours and set each other off: a clump
+    // arriving together is three or four blasts at once.
+    fuse: { range: 2, seconds: 0, radius: 38, damage: 7 },
+    onDeath: { explode: { radius: 38, damage: 7 } },
+    drops: [],
+    sprite: 'mushroom_red',
+    colour: '#c03a3a',
+    scale: 0.7,
+  },
+  {
+    id: 'enemy_bomber_01',
+    displayName: 'Fire Wisp',
+    tags: ['elemental', 'fire', 'exploder'],
+    baseHp: 10,
+    baseSpeed: 66,
+    contactDamage: 0,
+    xpValue: 4,
+    radius: 7,
+    dangerWeight: 2,
+    spawnWeight: 5,
+    unlockAtSeconds: 270,
+    flying: true,
+    // Close in, it stops, lights up and swells; nearly a second later it goes
+    // off. Time enough to walk clear, if he doesn't dawdle.
+    fuse: { range: 45, seconds: 0.9, radius: 60, damage: 18 },
+    drops: [{ pickupId: 'pickup_gold_01', chance: 0.5 }],
+    sprite: 'wisp',
+    colour: '#ff8a3a',
+    scale: 1.2,
   },
 ]

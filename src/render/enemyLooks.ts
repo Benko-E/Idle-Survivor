@@ -8,7 +8,9 @@ import { getSheet, stickyFacingRow, walkFrame } from './sprites'
 /**
  * How enemies look from moment to moment: fading in when they appear, a white
  * flash when something hits them, and a squash, fade and puff of dust when
- * they die.
+ * they die. Also what they're up to: a boar shaking as it paws the ground and
+ * kicking up dust as it charges, a lit wisp pulsing and swelling, and the gas
+ * a Stinkcap leaves behind.
  *
  * All render-side and fed by the `enemyDamaged` event, like the damage
  * numbers — the simulation removes a dead enemy the same step it dies and
@@ -69,10 +71,29 @@ export class EnemyLooks {
       const item = drawable(enemy.def, enemy.x, enemy.y)
       const sheet = item.sheet
       if (sheet) {
-        // Enemies always walk straight at him, so their heading is simply the
-        // direction to the character.
-        item.frameRow = stickyFacingRow(enemy, world.character.x - enemy.x, world.character.y - enemy.y, config.render.facingSlackDegrees)
-        item.frameCol = walkFrame(enemy.stride, enemy.id, config.character.stepLength)
+        // Walkers head straight at him, so their heading is simply the
+        // direction to the character; a charge faces down its own lane.
+        const charging = enemy.mode !== undefined && enemy.dirX !== undefined
+        const hx = charging ? (enemy.dirX ?? 0) : world.character.x - enemy.x
+        const hy = charging ? (enemy.dirY ?? 0) : world.character.y - enemy.y
+        item.frameRow = stickyFacingRow(enemy, hx, hy, config.render.facingSlackDegrees)
+        // Things that never walk still breathe, slowly, so they read as alive.
+        item.frameCol = enemy.def.stationary
+          ? walkFrame(world.time * 20, enemy.id, config.character.stepLength)
+          : walkFrame(enemy.stride, enemy.id, config.character.stepLength)
+      }
+
+      // Pawing the ground: a shiver on the spot, the warning a charge is coming.
+      if (enemy.mode === 'windup') item.x += Math.sin(world.time * 70 + enemy.id) * 1.5
+
+      // A lit fuse pulses white, faster and bigger as it runs down.
+      const fuse = enemy.def.fuse
+      let fuseFlash = 0
+      if (fuse && enemy.fuseLeft !== undefined) {
+        const burnt = fuse.seconds > 0 ? 1 - Math.max(0, enemy.fuseLeft) / fuse.seconds : 1
+        fuseFlash = 0.35 + 0.35 * Math.sin(world.time * (18 + 30 * burnt))
+        item.w *= 1 + 0.3 * burnt
+        item.h *= 1 + 0.3 * burnt
       }
 
       let born = this.bornAt.get(enemy)
@@ -89,6 +110,7 @@ export class EnemyLooks {
         if (since >= flashSeconds || since < 0) this.hitAt.delete(enemy.id)
         else item.flash = 1 - since / flashSeconds
       }
+      if (fuseFlash > (item.flash ?? 0)) item.flash = fuseFlash
       frame.push(item)
     }
 
@@ -109,8 +131,42 @@ export class EnemyLooks {
     }
   }
 
-  /** Dust thrown up by the dying. Drawn over the scene. */
+  /**
+   * Gas on the ground: a sickly haze with slow, turning puffs in it, fading
+   * in when it's released and out as it thins. Drawn under everyone's feet.
+   */
+  drawGround(renderer: Renderer, world: World): void {
+    for (const hazard of world.hazards) {
+      const age = hazard.total - hazard.remaining
+      const alpha = Math.min(1, age / 0.3, hazard.remaining / 0.8)
+      renderer.fillWorldCircle(hazard.x, hazard.y, hazard.radius, hazard.colour, 0.28 * alpha)
+      for (let i = 0; i < 6; i++) {
+        const turn = world.time * 0.6 * (i % 2 === 0 ? 1 : -1)
+        const angle = (i / 6) * Math.PI * 2 + turn
+        const out = hazard.radius * 0.5
+        const puff = hazard.radius * (0.38 + 0.08 * Math.sin(world.time * 2 + i))
+        renderer.fillWorldCircle(hazard.x + Math.cos(angle) * out, hazard.y + Math.sin(angle) * out, puff, hazard.colour, 0.22 * alpha)
+      }
+    }
+  }
+
+  /** Dust thrown up by the dying and by charges. Drawn over the scene. */
   drawDust(renderer: Renderer, world: World): void {
+    // A charge kicks up a trail behind it; a windup scuffs the ground.
+    for (const enemy of world.enemies) {
+      if (enemy.mode !== 'charge' && enemy.mode !== 'windup') continue
+      const size = enemy.def.radius
+      const back = enemy.mode === 'charge' ? 1 : 0.4
+      for (let i = 0; i < 3; i++) {
+        const phase = (world.time * 4 + i / 3 + enemy.id * 0.13) % 1
+        const behind = size * (0.6 + 2.2 * phase * back)
+        const side = (i - 1) * size * 0.5
+        const x = enemy.x - (enemy.dirX ?? 0) * behind - (enemy.dirY ?? 0) * side
+        const y = enemy.y - (enemy.dirY ?? 0) * behind + (enemy.dirX ?? 0) * side
+        renderer.fillWorldCircle(x, y, size * (0.25 + 0.35 * phase), '#cbbfa6', 0.5 * (1 - phase))
+      }
+    }
+
     const { deathSeconds } = config.render.enemyFx
     for (const corpse of this.corpses) {
       const t = Math.max(0, Math.min(1, (world.time - corpse.at) / deathSeconds))

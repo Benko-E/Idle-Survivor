@@ -58,4 +58,8 @@ export function damageEnemy(world: World, enemy: Enemy, amount: number, source: 
   grantXp(world, characterStat(world, 'xpGain', enemy.def.xpValue, enemy.def.tags))
 
   rollDrops(world, enemy)
+
+  // Blasts, bursts and gas wait until the fight this step is over; see
+  // resolveDeaths in enemyBehaviours.ts.
+  if (enemy.def.onDeath) world.dying.push(enemy)
 }

@@ -91,7 +91,11 @@ $enemySheets = @(
   @('spider', 'monster1.png',  2,  0),
   @('bee',    'monster1.png',  2,  1),
   @('wolf',   'monster_wolf2.png',  -1, 0),
-  @('treant', 'monster_treant.png', -1, 0)
+  @('treant', 'monster_treant.png', -1, 0),
+  @('boar',   'monster_boar.png',   -1, 0),
+  @('wisp',   'monster3.png',  1,  1),
+  @('mushroom_purple', 'monster3.png', 0, 0),
+  @('mushroom_red',    'monster3.png', 1, 0)
 )
 foreach ($e in $enemySheets) {
   $path = Join-Path $monDir $e[1]

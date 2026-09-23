@@ -11,6 +11,7 @@ import type { StatusEffect } from './statusEffects'
 import type { VisitMark } from './trail'
 import type { Vfx } from './vfx'
 import type { Zone } from './zones'
+import type { Hazard } from './enemyBehaviours'
 
 /**
  * All mutable game state, in one object.
@@ -64,6 +65,20 @@ export interface Enemy {
   markedBy?: string
   /** World time that mark wears off. */
   markedUntil?: number
+
+  /** A charger's current move, when it's doing more than walking. See sim/enemyBehaviours.ts. */
+  mode?: 'windup' | 'charge' | 'recover'
+  /** Seconds left in the current mode. */
+  modeTime?: number
+  /** The heading a charge runs along. */
+  dirX?: number
+  dirY?: number
+  /** Seconds before it may charge again. */
+  chargeReady?: number
+  /** Whether this charge has already hit him. */
+  chargeHit?: boolean
+  /** Seconds left on a lit fuse; unset until lit. */
+  fuseLeft?: number
 }
 
 export interface Pickup {
@@ -124,6 +139,10 @@ export interface World {
   projectiles: Projectile[]
   /** Ground a spell has claimed: strikes on their way down, vortices, roots. */
   zones: Zone[]
+  /** Ground that hurts him: gas left by a Stinkcap. */
+  hazards: Hazard[]
+  /** Killed this step and with something to do about it. See resolveDeaths. */
+  dying: Enemy[]
   vfx: Vfx[]
   /** Where he's recently been. Oldest first. */
   trail: VisitMark[]
@@ -175,6 +194,10 @@ export interface World {
   incomingDps: number
   kills: number
   damageDealt: number
+  /** Times a blast has caught him, for his thoughts on the matter. */
+  blastsTaken: number
+  /** Damage he's taken this run, by source, for tuning. */
+  damageTakenBy: Record<string, number>
 }
 
 /**
@@ -212,6 +235,8 @@ export function createWorld(seed: number = config.world.seed, starterId?: string
     pickups: [],
     projectiles: [],
     zones: [],
+    hazards: [],
+    dying: [],
     vfx: [],
     trail: [],
     lastMarkX: 0,
@@ -249,6 +274,8 @@ export function createWorld(seed: number = config.world.seed, starterId?: string
     incomingDps: 0,
     kills: 0,
     damageDealt: 0,
+    blastsTaken: 0,
+    damageTakenBy: {},
   }
 }
 

@@ -299,6 +299,13 @@ export const config = {
     hurtFear: 2,
 
     /**
+     * How strongly danger tied to a place is stamped, next to an enemy's
+     * dangerWeight: gas on the ground, a lit fuse, the lane a charge is about
+     * to run down.
+     */
+    hazardFear: 2.5,
+
+    /**
      * Each layer is weight + how far it reaches + the shape of its falloff.
      * Weight is signed: negative repels, positive attracts. Danger is not a
      * special case in the code, it's just a layer with a negative weight.
@@ -787,6 +794,11 @@ export const config = {
      * twitchy. This is a look-at-it-and-decide number.
      */
     separationStrength: 0.6,
+    /**
+     * Blasts (fire wisps, sporelings) hurt other enemies too, at this times
+     * their damage to him, scaled like enemy health so it keeps up with the run.
+     */
+    blastEnemyScale: 1,
   },
 
   debug: {

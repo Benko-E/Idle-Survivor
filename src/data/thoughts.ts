@@ -104,6 +104,22 @@ export const THOUGHTS: Record<string, ThoughtMoment> = {
       'Maybe running is a spell too?',
     ],
   },
+  blasted: {
+    chance: 0.7,
+    cooldown: 20,
+    urgent: true,
+    lines: [
+      'My eyebrows! Where are my eyebrows?',
+      "Note to self: don't hug the glowy ones.",
+      'That was LOUD.',
+      'Who teaches mushrooms to explode?!',
+    ],
+  },
+  gassed: {
+    chance: 0.6,
+    cooldown: 30,
+    lines: ['Ugh, what IS that smell?', 'Spores. Wonderful. Hold your breath, wizard.', 'Mushroom gas. Of course it is.'],
+  },
   closeCall: {
     chance: 0.8,
     cooldown: 40,
