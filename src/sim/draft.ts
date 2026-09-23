@@ -114,7 +114,7 @@ export function takeOffer(world: World, offer: Offer): void {
   world.draftOffers = null
 
   if (offer.kind === 'weapon') {
-    world.weapons.push({ def: offer.def, cooldownRemaining: 0.1, timesCast: 0, idleSeconds: 0 })
+    world.weapons.push({ def: offer.def, cooldownRemaining: 0.1, timesCast: 0, idleSeconds: 0, damageDealt: 0 })
   } else {
     world.modifiers.push(...offer.def.modifiers)
     world.upgradesTaken[offer.id] = (world.upgradesTaken[offer.id] ?? 0) + 1

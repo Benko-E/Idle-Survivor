@@ -30,6 +30,7 @@ function castReadySpells(world: World, dt: number): void {
 
     const landed = behaviour({
       world,
+      weapon,
       def: weapon.def,
       stat: (key) => weaponStat(world, weapon, key),
     })

@@ -1,7 +1,8 @@
 import { config } from '../config'
 import { damageEnemy } from './damageEnemy'
 import { forEachEnemyNear, LARGEST_ENEMY_RADIUS } from './enemyGrid'
-import type { World } from './world'
+import { applyEffect } from './statusEffects'
+import type { WeaponInstance, World } from './world'
 
 /**
  * Travelling projectiles — the fireball half of the spellbook.
@@ -27,6 +28,13 @@ export interface Projectile {
   life: number
   /** Enemy ids already hit, so one pass can't tick the same target twice. */
   hits: Set<number>
+  /** The spell that fired it. */
+  source: WeaponInstance
+  /**
+   * Lingering effect left on whatever it hits — a chill, a burn — or none.
+   * Resolved at the moment of casting, like the damage.
+   */
+  onHit: { kind: 'slow' | 'dot'; magnitude: number; duration: number } | null
 }
 
 export function updateProjectiles(world: World, dt: number): void {
@@ -52,7 +60,9 @@ export function updateProjectiles(world: World, dt: number): void {
         if (dx * dx + dy * dy > hitRange * hitRange) return
 
         projectile.hits.add(enemy.id)
-        damageEnemy(world, enemy, projectile.damage)
+        damageEnemy(world, enemy, projectile.damage, projectile.source)
+        const onHit = projectile.onHit
+        if (onHit && enemy.hp > 0) applyEffect(enemy, onHit.kind, onHit.magnitude, onHit.duration, projectile.source)
 
         if (projectile.pierce <= 0) spent = true
         else projectile.pierce--

@@ -1,7 +1,11 @@
 import { rollDrops } from './drops'
+import { gameEvents, type GameEvents } from './events'
 import { grantXp } from './progression'
 import { characterStat } from './stats'
-import type { Enemy, World } from './world'
+import type { Enemy, WeaponInstance, World } from './world'
+
+/** Reused for every emit; this fires thousands of times a second. */
+const payload: GameEvents['enemyDamaged'] = { enemyId: 0, x: 0, y: 0, amount: 0, colour: '', killed: false }
 
 /**
  * The single place an enemy loses health.
@@ -10,20 +14,32 @@ import type { Enemy, World } from './world'
  * everything that hurts things routes through it — projectiles, novas, chains,
  * damage over time — and so does everything that should happen on a kill.
  *
- * Right now that's one consumer, so it's a direct call. If a second thing ever
- * needs to know about deaths (life steal, corpses that explode, a kill
- * counter for a quest) this becomes the place to emit an event instead. One
- * consumer does not justify an event bus. (spec 5.6)
+ * `source` is the spell responsible, however indirectly — the bolt it fired,
+ * the curse it laid, the zone it left behind. It's how each spell's share of
+ * the damage is known, and it's what colours the damage numbers.
  *
  * Dead enemies are left in the array and swept up at the end of the combat
  * step. Removing mid-iteration would invalidate the neighbour grid that the
  * chain currently jumping between them is using.
  */
-export function damageEnemy(world: World, enemy: Enemy, amount: number): void {
-  if (enemy.hp <= 0) return
+export function damageEnemy(world: World, enemy: Enemy, amount: number, source: WeaponInstance | null): void {
+  if (enemy.hp <= 0 || amount <= 0) return
 
+  // Overkill doesn't count. A 400-damage meteor landing on a 10 hp enemy
+  // dealt 10, and counting 400 would make slow heavy hitters look far better
+  // than they are next to spells that spread their damage around.
+  const dealt = Math.min(amount, enemy.hp)
   enemy.hp -= amount
-  world.damageDealt += amount
+  world.damageDealt += dealt
+  if (source) source.damageDealt += dealt
+
+  payload.enemyId = enemy.id
+  payload.x = enemy.x
+  payload.y = enemy.y
+  payload.amount = amount
+  payload.colour = source?.def.colour ?? '#ffffff'
+  payload.killed = enemy.hp <= 0
+  gameEvents.emit('enemyDamaged', payload)
 
   if (enemy.hp > 0) return
 

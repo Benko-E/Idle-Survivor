@@ -2,6 +2,7 @@ import { config } from './config'
 import { startLoop, stats } from './core/loop'
 import { drawCandidates, drawFootprint, drawHeatmap, drawTrail } from './render/debugOverlay'
 import { loadProfile, saveProfile } from './meta/profile'
+import { DamageNumbers } from './render/damageNumbers'
 import { drawEffects } from './render/effects'
 import { Renderer, type Drawable } from './render/renderer'
 import { coinFrame, getSheet, loadSprites, stickyFacingRow, walkFrame } from './render/sprites'
@@ -67,6 +68,9 @@ gameEvents.on('banked', ({ amount }) => {
   saveProfile(profile)
 })
 
+const damageNumbers = new DamageNumbers()
+gameEvents.on('enemyDamaged', (event) => damageNumbers.record(event))
+
 gameEvents.on('died', ({ time }) => {
   lastTime = time
   if (time > bestTime) bestTime = time
@@ -81,6 +85,7 @@ const menu = new Menu(MENU_ENTRIES, {
 function startRun(): void {
   world = createWorld()
   resetInfluenceClock()
+  damageNumbers.clear()
   deathElapsed = 0
   renderer.camera.x = world.character.x
   renderer.camera.y = world.character.y
@@ -135,6 +140,7 @@ function update(dt: number): void {
   // against his health after this step's regeneration.
   updateVitals(world, dt)
   updateContactDamage(world, dt)
+  damageNumbers.update(dt)
 
   const k = 1 - Math.exp(-config.render.cameraFollowRate * dt)
   renderer.camera.x += (world.character.x - renderer.camera.x) * k
@@ -313,6 +319,7 @@ function render(): void {
   renderer.drawScene(frame)
 
   drawEffects(renderer, world)
+  damageNumbers.draw(renderer)
 
   if (showCandidates) {
     drawTrail(renderer, world)
@@ -362,8 +369,11 @@ function render(): void {
       // silently never finding a target. Idle time only builds while a spell is
       // ready with nothing in reach, so a lot of it means its range is too short
       // for how he plays.
+      // And what share of the damage each is doing — the question behind
+      // every balance change, answered live.
       ...world.weapons.map(
-        (weapon) => `  ${weapon.def.displayName.padEnd(11)}${weapon.timesCast} cast, ${weapon.idleSeconds.toFixed(0)}s idle`,
+        (weapon) =>
+          `  ${weapon.def.displayName.padEnd(18)}${String(Math.round((weapon.damageDealt / Math.max(1, world.damageDealt)) * 100)).padStart(3)}% dmg, ${weapon.timesCast} cast, ${weapon.idleSeconds.toFixed(0)}s idle`,
       ),
       ...(stats.errors > 0 ? [`ERRORS       ${stats.errors} (see console)`] : []),
       `F1 F2 F3     panel / heatmap / fan`,

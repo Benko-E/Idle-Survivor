@@ -82,6 +82,31 @@ export const config = {
      * the sprite back and forth and reads as stutter-stepping.
      */
     facingSlackDegrees: 15,
+
+    /** Numbers floating off enemies as they take damage. */
+    damageNumbers: {
+      enabled: true,
+      /**
+       * Hits on one enemy within this many seconds become one number. Damage
+       * over time lands every frame, so without this a burning crowd would
+       * be a fountain of digits.
+       */
+      mergeSeconds: 0.35,
+      /** Seconds a number stays up. */
+      lifetime: 0.8,
+      /** Screen pixels, before bigger hits grow it a little. */
+      fontSize: 15,
+      /** World units above the enemy's feet where a number starts. */
+      headHeight: 34,
+      /** How far it floats up over its life, in world units. */
+      rise: 26,
+      /** Random sideways offset, so simultaneous numbers don't stack. */
+      scatter: 14,
+      /** Past this many on screen, the oldest are dropped. */
+      maxOnScreen: 80,
+      /** Merged totals below this aren't shown at all. */
+      minShown: 0.5,
+    },
   },
 
   world: {

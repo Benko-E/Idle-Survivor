@@ -406,6 +406,32 @@ export class Renderer {
     ctx.globalAlpha = 1
   }
 
+  /**
+   * Text standing up off a point on the ground, `lift` world units above it.
+   *
+   * Lift is a height, so it isn't squashed by yScale the way ground distances
+   * are. Outlined in near-black so it stays readable over grass, sprites and
+   * spell effects alike. `size` is in screen pixels and deliberately doesn't
+   * zoom: numbers that shrank with the camera would be unreadable zoomed out.
+   */
+  drawWorldText(worldX: number, worldY: number, lift: number, text: string, colour: string, size: number, alpha = 1): void {
+    const { ctx } = this
+    const sx = this.worldToScreenX(worldX)
+    const sy = this.worldToScreenY(worldY) - lift * this.scale
+    ctx.globalAlpha = alpha
+    ctx.font = `bold ${Math.round(size)}px ui-monospace, Consolas, monospace`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'bottom'
+    ctx.lineJoin = 'round'
+    ctx.lineWidth = 3
+    ctx.strokeStyle = '#0b0f13'
+    ctx.strokeText(text, sx, sy)
+    ctx.fillStyle = colour
+    ctx.fillText(text, sx, sy)
+    ctx.textAlign = 'left'
+    ctx.globalAlpha = 1
+  }
+
   /** Squashed by yScale, so it reads as a circle lying on the ground. */
   strokeWorldCircle(worldX: number, worldY: number, radius: number, colour: string, width = 2, alpha = 1): void {
     const { ctx } = this

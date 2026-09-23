@@ -82,6 +82,11 @@ export interface WeaponInstance {
    * time and few casts has a range too short for how he plays.
    */
   idleSeconds: number
+  /**
+   * Damage this spell has dealt this run, overkill excluded. Everything it
+   * caused counts: its bolts, its effects ticking later, its zones.
+   */
+  damageDealt: number
 }
 
 export interface World {
@@ -194,6 +199,7 @@ export function createWorld(seed: number = config.world.seed): World {
       cooldownRemaining: 0.15,
       timesCast: 0,
       idleSeconds: 0,
+      damageDealt: 0,
     })),
     modifiers: [],
     xp: 0,

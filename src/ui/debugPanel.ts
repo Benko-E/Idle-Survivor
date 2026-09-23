@@ -54,6 +54,7 @@ const INTEGER_PATHS = new Set([
   'spawn.maxAlive',
   'draft.choices',
   'draft.maxWeapons',
+  'render.damageNumbers.maxOnScreen',
 ])
 
 /** Where the automatic range is a poor fit. */

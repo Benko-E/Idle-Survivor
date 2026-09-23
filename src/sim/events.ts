@@ -17,6 +17,12 @@ export interface GameEvents extends Record<string, unknown> {
   banked: { amount: number }
   /** Contact damage finished him off. Carried gold dies with him. */
   died: { time: number; goldLost: number }
+  /**
+   * An enemy took damage. Fires for every hit and every tick of damage over
+   * time, so it's frequent — the payload object is reused between emits and
+   * must be copied, not kept.
+   */
+  enemyDamaged: { enemyId: number; x: number; y: number; amount: number; colour: string; killed: boolean }
 }
 
 export const gameEvents = new EventBus<GameEvents>()

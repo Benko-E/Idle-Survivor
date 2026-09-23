@@ -4,7 +4,7 @@ import { damageEnemy } from './damageEnemy'
 import { applyEffect } from './statusEffects'
 import { enemiesInRadius, nearestEnemies, nearestEnemy } from './targeting'
 import { spawnLine, spawnRing } from './vfx'
-import type { Enemy, World } from './world'
+import type { Enemy, WeaponInstance, World } from './world'
 
 /**
  * The behaviour registry. (agreed extension to spec 5.1)
@@ -21,6 +21,8 @@ import type { Enemy, World } from './world'
 
 export interface CastContext {
   world: World
+  /** The spell being cast, credited with everything it causes. */
+  weapon: WeaponInstance
   def: WeaponDef
   /** Base value from the data entry, resolved through all active modifiers. */
   stat: (key: string) => number
@@ -50,7 +52,7 @@ const scratchTargets: Enemy[] = []
  * strongest pick in the draft, and nothing like what it says. Only once there
  * are more bolts than targets do they double up, fanned by `spread`.
  */
-const projectile: Behaviour = ({ world, def, stat }) => {
+const projectile: Behaviour = ({ world, weapon, def, stat }) => {
   const caster = world.character
   const range = stat('range')
   const count = Math.max(1, Math.round(stat('count')))
@@ -83,6 +85,8 @@ const projectile: Behaviour = ({ world, def, stat }) => {
       tags: def.tags,
       life: speed > 0 ? range / speed : 0,
       hits: new Set(),
+      source: weapon,
+      onHit: null,
     })
   }
 
@@ -93,7 +97,7 @@ const projectile: Behaviour = ({ world, def, stat }) => {
  * A burst centred on the caster that damages and chills everything caught in
  * it. Frost Nova, and any other "get away from me" spell.
  */
-const nova: Behaviour = ({ world, def, stat }) => {
+const nova: Behaviour = ({ world, weapon, def, stat }) => {
   const caster = world.character
   const area = stat('area')
   const damage = stat('damage')
@@ -106,8 +110,8 @@ const nova: Behaviour = ({ world, def, stat }) => {
   if (targets.length === 0) return false
 
   for (const enemy of targets) {
-    damageEnemy(world, enemy, damage)
-    if (slow > 0 && duration > 0) applyEffect(enemy, 'slow', slow, duration)
+    damageEnemy(world, enemy, damage, weapon)
+    if (slow > 0 && duration > 0) applyEffect(enemy, 'slow', slow, duration, weapon)
   }
 
   spawnRing(world, caster.x, caster.y, area, def.colour, config.combat.ringVfxSeconds)
@@ -118,7 +122,7 @@ const nova: Behaviour = ({ world, def, stat }) => {
  * Strikes the nearest enemy, then leaps to the nearest enemy to *that* one,
  * losing power with each jump. Chain Lightning.
  */
-const chain: Behaviour = ({ world, def, stat }) => {
+const chain: Behaviour = ({ world, weapon, def, stat }) => {
   const caster = world.character
   const jumps = Math.max(1, Math.round(stat('count')))
   const jumpRange = stat('jumpRange')
@@ -134,7 +138,7 @@ const chain: Behaviour = ({ world, def, stat }) => {
 
   for (let jump = 0; jump < jumps && current; jump++) {
     struck.add(current.id)
-    damageEnemy(world, current, damage)
+    damageEnemy(world, current, damage, weapon)
     spawnLine(world, fromX, fromY, current.x, current.y, def.colour, config.combat.lineVfxSeconds)
 
     fromX = current.x
@@ -150,7 +154,7 @@ const chain: Behaviour = ({ world, def, stat }) => {
  * Lays a lingering affliction on everything nearby. No immediate damage — it
  * all arrives over the duration. Curse of Withering.
  */
-const curse: Behaviour = ({ world, def, stat }) => {
+const curse: Behaviour = ({ world, weapon, def, stat }) => {
   const caster = world.character
   const area = stat('area')
   const dotDamage = stat('dotDamage')
@@ -160,7 +164,7 @@ const curse: Behaviour = ({ world, def, stat }) => {
   if (targets.length === 0) return false
 
   for (const enemy of targets) {
-    applyEffect(enemy, 'dot', dotDamage, duration)
+    applyEffect(enemy, 'dot', dotDamage, duration, weapon)
   }
 
   spawnRing(world, caster.x, caster.y, area, def.colour, config.combat.ringVfxSeconds)
