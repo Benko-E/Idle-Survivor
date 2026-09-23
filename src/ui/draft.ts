@@ -127,7 +127,9 @@ export class DraftUi {
 
   /** Called every frame. Keeps the button's label and visibility honest. */
   update(): void {
-    const pending = this.getWorld().pendingLevelUps
+    // Nothing to spend once he's dead: the levels die with the run.
+    const world = this.getWorld()
+    const pending = world.state === 'running' ? world.pendingLevelUps : 0
 
     this.button.hidden = pending <= 0 || this.open
     if (pending > 0) {

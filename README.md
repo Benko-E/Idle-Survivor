@@ -55,7 +55,7 @@ without rebuilding and the live site keeps showing the old version.
 | `F1` | Stats panel |
 | `F2` | The influence map as a heatmap — green attracts, red repels |
 | `F3` | The fan of candidate directions, with the chosen one in yellow |
-| `R` | Restart the run |
+| `R` | Restart the run (during a run; the menu has Play) |
 
 Runs use a fixed seed, so the same run repeats exactly. Change one weight in
 `config.ts` and the survival time is a real before/after measurement.
@@ -81,6 +81,32 @@ world().weapons.map(w => [w.def.displayName, w.timesCast, w.idleSeconds])
 
 `idleSeconds` is how long a spell has sat ready with nothing in reach. A spell
 with a lot of idle time and few casts has too short a range for how he plays.
+
+`profile` is the save file. Edit it and call `save()` to write it back:
+
+```js
+profile.bankedGold = 5000; save()
+```
+
+For long unattended tuning sessions, set `debug.autoRestartSeconds` above 0 and
+each death starts the next run by itself instead of going back to the menu.
+
+## Banking, and the save file
+
+Gold he's carrying is lost when he dies. Gold he deposits at the shop is
+**banked**, and banked gold is kept between runs — it will pay for permanent
+upgrades. So every trip to the shop is a wager: bank now, or keep farming and
+risk it.
+
+The save lives in the browser's localStorage. It survives closing the tab, but
+it belongs to one browser on one machine, and the local dev server and the
+published page are separate sites with separate saves. Clearing the site's data
+in the browser wipes it.
+
+The page opens on the main menu, and every death returns to it. Menu entries
+are a list in `ui/menu/entries.ts`, and each screen is its own file in
+`ui/menu/screens/` — adding one (a hall of fame, say) means writing the screen
+and adding a line to the list.
 
 ## Partly solved: he used to settle into small circles
 
@@ -160,9 +186,15 @@ src/
   core/         engine plumbing that knows nothing about this game
   data/         weapons, enemies, upgrades — content as data, not code
   sim/          the simulation. never imports from render/ or ui/
+  meta/         what outlives a run: the save file
   render/       all drawing. swappable without touching the simulation
-  ui/           menus and the level-up draft
+  ui/           the main menu, the level-up draft, the tuning panel
 ```
+
+The simulation announces what happens — `banked`, `died` — on a small event
+channel (`sim/events.ts`), and never listens to it. Anything else can subscribe
+without the code that caused the event knowing about it: the save file hears
+about banking this way, and the shop has no idea the save file exists.
 
 Four rules that everything else follows from:
 
@@ -193,4 +225,7 @@ Each step is tagged, so `git checkout step-2` gets you exactly that state back.
 - [x] **6 — the draft.** Non-blocking level-up offers of spells and upgrades.
 - [x] **7 — tuning panel.** Generated from the config; sliders, toggles, dropdowns.
 
-That completes the spec's definition of done for the prototype, and the plan.
+That completes the spec's definition of done for the prototype. Past it:
+
+- [x] **8 — banking and the menu.** Carried gold lost on death, banked gold
+  saved between runs; a main menu with placeholder Options and Upgrades screens.

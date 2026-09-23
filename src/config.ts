@@ -322,20 +322,14 @@ export const config = {
    * costs him almost nothing.
    */
   /**
-   * TEMPORARY SCAFFOLDING.
+   * The bank: a single square somewhere on the map that he walks to once he's
+   * carrying enough. Arriving deposits his carried gold, which is then kept
+   * between runs; whatever he's still carrying when he dies is lost.
    *
-   * A single square somewhere on the map that he walks to once he's carrying
-   * enough. There is no gold, no shop inventory and nothing to buy — arriving
-   * simply zeroes what he's carrying. It exists to answer one question: does
-   * giving him a destination outside the loot cloud make him travel?
-   *
-   * Every previous attempt failed for the same reason. Camping penalties,
-   * longer sight and stronger weights can all make standing still unpleasant,
-   * but none of them can invent somewhere to go, and he was right to stay
-   * while every scrap of value sat under his feet.
-   *
-   * When gold and real shops exist this becomes a proper system. If the
-   * experiment doesn't work it gets deleted and we do pathfinding instead.
+   * It began as an experiment in giving him a destination outside the loot
+   * cloud. Camping penalties, longer sight and stronger weights can all make
+   * standing still unpleasant, but none of them can invent somewhere to go,
+   * and he was right to stay while every scrap of value sat under his feet.
    */
   shop: {
     enabled: true,
@@ -635,11 +629,21 @@ export const config = {
      */
     nearMissDistance: 70,
     /**
-     * Seconds on the death screen before a new run starts by itself. Runs use
-     * a fixed seed, so an identical run repeats every time — change one weight
-     * and the survival time is a real before/after measurement rather than a
-     * guess. Set to 0 to require a click.
+     * Skip the menu and start a new run by itself this many seconds after
+     * death. 0 (the default) means off: death goes back to the menu.
+     *
+     * For leaving tuning sessions unattended. Runs use a fixed seed, so an
+     * identical run repeats every time — change one weight and the survival
+     * time is a real before/after measurement rather than a guess.
      */
-    autoRestartSeconds: 4,
+    autoRestartSeconds: 0,
+  },
+
+  menu: {
+    /**
+     * How long the death banner stays up before the menu opens by itself.
+     * A click skips the wait.
+     */
+    afterDeathSeconds: 4,
   },
 }

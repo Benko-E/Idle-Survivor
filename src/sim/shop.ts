@@ -1,12 +1,16 @@
 import { config } from '../config'
+import { gameEvents } from './events'
 import type { World } from './world'
 
 /**
- * TEMPORARY SCAFFOLDING — see the note in config.shop.
+ * The shop, where carried gold becomes banked gold.
  *
- * A destination. He accumulates carried value, and once it crosses a
- * threshold the shop starts pulling on him; arriving spends it all and the
- * pull switches off, at which point the loot he abandoned becomes the most
+ * Gold in his pocket dies with him; gold deposited here is kept between runs
+ * (the save file listens for the `banked` event — see meta/profile.ts). That
+ * makes every trip a wager: bank now and be safe, or keep farming and risk it.
+ *
+ * He accumulates carried gold, and once it crosses a threshold the shop starts
+ * pulling on him; arriving deposits it all and the pull switches off, at which point the loot he abandoned becomes the most
  * interesting thing in the world again and he heads back for it.
  *
  * The round trip is the point. Nothing here tells him to return — that falls
@@ -43,7 +47,7 @@ export function distanceToShop(world: World): number {
 }
 
 /**
- * The two-state loop: farm until full, walk to the shop, spend, farm again.
+ * The two-state loop: farm until full, walk to the shop, bank, farm again.
  *
  * Deliberately the whole of the "decision making" in the game, and
  * deliberately this boring. Everything about *how* he gets anywhere is still
@@ -60,10 +64,12 @@ export function updateShop(world: World): void {
 
   if (distanceToShop(world) > config.shop.radius) return
 
+  const amount = world.gold
   world.intent = 'farming'
-  world.spentAtShop += world.gold
+  world.bankedThisRun += amount
   world.gold = 0
   world.shopVisits++
+  gameEvents.emit('banked', { amount })
 
   // Move it somewhere new, measured from where he is now.
   //
@@ -71,7 +77,7 @@ export function updateShop(world: World): void {
   // in seconds and never leaves its neighbourhood — measured at 3 visits with
   // his distance to it never exceeding 581. Relocating means every visit ends
   // with a fresh destination somewhere else, so the loop is farm, travel,
-  // spend, travel again.
+  // bank, travel again.
   const angle = world.rng() * Math.PI * 2
   world.shopX = world.character.x + Math.cos(angle) * config.shop.distanceFromStart
   world.shopY = world.character.y + Math.sin(angle) * config.shop.distanceFromStart

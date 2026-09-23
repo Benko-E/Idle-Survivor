@@ -1,6 +1,7 @@
 import { config } from './config'
 import { startLoop, stats } from './core/loop'
 import { drawCandidates, drawFootprint, drawHeatmap, drawTrail } from './render/debugOverlay'
+import { loadProfile, saveProfile } from './meta/profile'
 import { drawEffects } from './render/effects'
 import { Renderer, type Drawable } from './render/renderer'
 import { coinFrame, facingRow, getSheet, loadSprites, walkFrame } from './render/sprites'
@@ -8,6 +9,7 @@ import { updateCombat } from './sim/combat'
 import { updateContactDamage } from './sim/damage'
 import { hpMultiplier, spawnsPerSecond } from './sim/difficulty'
 import { updateEnemies } from './sim/enemyMovement'
+import { gameEvents } from './sim/events'
 import { resetInfluenceClock, updateInfluence } from './sim/influence'
 import { updateCharacterMovement } from './sim/movement'
 import { occupancySaturation, updateOccupancy } from './sim/occupancy'
@@ -20,10 +22,13 @@ import { updateTrail } from './sim/trail'
 import { createWorld } from './sim/world'
 import { DebugPanel } from './ui/debugPanel'
 import { DraftUi } from './ui/draft'
+import { MENU_ENTRIES } from './ui/menu/entries'
+import { Menu } from './ui/menu/menu'
 
 /**
  * The composition root: builds the world and the renderer, runs the fixed-step
- * loop, and turns world state into a draw list each frame.
+ * loop, and turns world state into a draw list each frame. Also the switch
+ * between the menu and a run, and the only place the save file is touched.
  *
  * The simulation lives entirely under sim/ and never imports anything from
  * render/ or ui/. This file is the only place the two meet — the spawner is
@@ -37,6 +42,7 @@ if (!(canvas instanceof HTMLCanvasElement)) throw new Error('Missing #game canva
 
 const renderer = new Renderer(canvas)
 
+// Behind the menu until Play is pressed: a fresh world, drawn but not updated.
 let world = createWorld()
 // A getter, because restarting replaces the world object entirely.
 const draftUi = new DraftUi(() => world)
@@ -45,30 +51,60 @@ let bestTime = 0
 let lastTime = 0
 let deathElapsed = 0
 
-function restart(): void {
+/**
+ * Menu or run. While the menu is up the simulation doesn't step at all — the
+ * world behind it is a still picture, whether that's the last run's death or
+ * a fresh one waiting to start.
+ */
+let mode: 'menu' | 'playing' = 'menu'
+
+const profile = loadProfile()
+
+// Banked gold is written the moment it's deposited, not at the end of the
+// run, so closing the tab mid-run keeps everything already banked.
+gameEvents.on('banked', ({ amount }) => {
+  profile.bankedGold += amount
+  saveProfile(profile)
+})
+
+gameEvents.on('died', ({ time }) => {
+  lastTime = time
+  if (time > bestTime) bestTime = time
+})
+
+const menu = new Menu(MENU_ENTRIES, {
+  play: startRun,
+  bankedGold: () => profile.bankedGold,
+})
+
+/** A fresh run: new world, camera on him, menu away. */
+function startRun(): void {
   world = createWorld()
   resetInfluenceClock()
   deathElapsed = 0
+  renderer.camera.x = world.character.x
+  renderer.camera.y = world.character.y
+  mode = 'playing'
+  menu.hide()
 }
 
-/**
- * Called on the frame contact damage finishes him off. Separate function
- * rather than inline, because the early return at the top of update() has
- * already convinced the type checker he's still alive by that point.
- */
-function recordDeathIfNeeded(): void {
-  if (world.state !== 'dead') return
-  lastTime = world.time
-  if (world.time > bestTime) bestTime = world.time
+function openMenu(): void {
+  mode = 'menu'
+  menu.show()
 }
 
 // --- simulation --------------------------------------------------------------
 
 function update(dt: number): void {
+  if (mode === 'menu') return
+
   if (world.state === 'dead') {
     deathElapsed += dt
-    if (config.debug.autoRestartSeconds > 0 && deathElapsed >= config.debug.autoRestartSeconds) {
-      restart()
+    const autoRestart = config.debug.autoRestartSeconds
+    if (autoRestart > 0) {
+      if (deathElapsed >= autoRestart) startRun()
+    } else if (deathElapsed >= config.menu.afterDeathSeconds) {
+      openMenu()
     }
     return
   }
@@ -97,8 +133,6 @@ function update(dt: number): void {
   updateShop(world)
   updateCombat(world, dt)
   updateContactDamage(world, dt)
-
-  recordDeathIfNeeded()
 
   const k = 1 - Math.exp(-config.render.cameraFollowRate * dt)
   renderer.camera.x += (world.character.x - renderer.camera.x) * k
@@ -140,13 +174,15 @@ window.addEventListener('keydown', (e) => {
       break
     case 'r':
     case 'R':
-      restart()
+      // A quick restart during a run. Not from the menu — that has Play.
+      if (mode === 'playing') startRun()
       break
   }
 })
 
+// Clicking the death banner skips the wait for the menu.
 canvas.addEventListener('pointerdown', () => {
-  if (world.state === 'dead') restart()
+  if (mode === 'playing' && world.state === 'dead') openMenu()
 })
 
 // Dev aids. `world()` returns live game state — a getter rather than a
@@ -155,6 +191,10 @@ canvas.addEventListener('pointerdown', () => {
 const devGlobals = window as unknown as Record<string, unknown>
 devGlobals.world = () => world
 devGlobals.config = config
+// The live save. Edit it and call save() to write it, e.g. to test the menu
+// with a big bank: `profile.bankedGold = 5000; save()`.
+devGlobals.profile = profile
+devGlobals.save = () => saveProfile(profile)
 
 // --- rendering ---------------------------------------------------------------
 
@@ -278,8 +318,11 @@ function render(): void {
     renderer.drawOffscreenMarker(world.shopX, world.shopY, shopEagerness(world) > 0 ? '#ffd76b' : '#3f4a54')
   }
 
-  renderer.drawXpBar(levelProgress(world), world.level)
-  renderer.drawHealthBar(world.character.hp / world.character.maxHp)
+  // The bars and banner belong to a run; over the menu they're just clutter.
+  if (mode === 'playing') {
+    renderer.drawXpBar(levelProgress(world), world.level)
+    renderer.drawHealthBar(world.character.hp / world.character.maxHp)
+  }
 
   if (showOverlay) {
     const elapsed = Math.max(world.time, 0.001)
@@ -291,7 +334,8 @@ function render(): void {
       `kills        ${world.kills}`,
       `dealing      ${(world.damageDealt / elapsed).toFixed(0)} dps`,
       `level        ${world.level}  (${world.pendingLevelUps} unspent)`,
-      `gold         ${world.gold.toFixed(0)} carried, ${world.goldEarned.toFixed(0)} earned`,
+      `gold         ${world.gold.toFixed(0)} carried, ${world.bankedThisRun.toFixed(0)} banked`,
+      `bank total   ${profile.bankedGold.toFixed(0)}  (${world.goldEarned.toFixed(0)} earned this run)`,
       `pickups      ${world.pickups.length} down, ${world.pickupsCollected} taken`,
       `by tier      ${tierHistogram()}`,
       `missed       ${world.pickupsMissed}`,
@@ -321,11 +365,12 @@ function render(): void {
     ])
   }
 
-  if (world.state === 'dead') {
+  if (mode === 'playing' && world.state === 'dead') {
     renderer.drawBanner(`Died at ${formatTime(world.time)}`, [
       `${world.kills} kills, ${world.xp.toFixed(0)} xp`,
+      `banked ${world.bankedThisRun.toFixed(0)} gold, lost ${world.gold.toFixed(0)}`,
       `best so far ${formatTime(bestTime)}`,
-      'click or press R to restart',
+      'click to continue',
     ])
   }
 }
@@ -345,4 +390,5 @@ loadSprites()
   })
   .finally(() => {
     startLoop(update, render)
+    openMenu()
   })

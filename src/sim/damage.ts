@@ -1,4 +1,5 @@
 import { config } from '../config'
+import { gameEvents } from './events'
 import type { World } from './world'
 
 /**
@@ -31,5 +32,6 @@ export function updateContactDamage(world: World, dt: number): void {
   if (character.hp <= 0) {
     character.hp = 0
     world.state = 'dead'
+    gameEvents.emit('died', { time: world.time, goldLost: world.gold })
   }
 }

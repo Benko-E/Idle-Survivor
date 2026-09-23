@@ -127,7 +127,7 @@ export interface World {
   /** How many times each upgrade has been taken, for maxStacks. */
   upgradesTaken: Record<string, number>
 
-  /** Gold in his pocket right now, zeroed at the shop. */
+  /** Gold in his pocket right now. Zeroed at the shop, lost if he dies. */
   gold: number
   /** Lifetime gold this run, for the readout. */
   goldEarned: number
@@ -139,7 +139,8 @@ export interface World {
   shopX: number
   shopY: number
   shopVisits: number
-  spentAtShop: number
+  /** Deposited at the shop this run, and so safe. */
+  bankedThisRun: number
 
   /** Fractional spawns carried between frames, so rates aren't rounded away. */
   spawnCredit: number
@@ -212,7 +213,7 @@ export function createWorld(seed: number = config.world.seed): World {
     shopX: Math.cos(shopAngle) * config.shop.distanceFromStart,
     shopY: Math.sin(shopAngle) * config.shop.distanceFromStart,
     shopVisits: 0,
-    spentAtShop: 0,
+    bankedThisRun: 0,
     spawnCredit: 0,
     mergeCredit: 0,
     nextEnemyId: 1,
