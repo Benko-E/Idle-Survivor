@@ -1,5 +1,7 @@
 import { currentOffers, takeOffer, type Offer } from '../sim/draft'
 import type { World } from '../sim/world'
+import { hudActions } from './skin'
+import { spellIcon } from './spellIcons'
 
 /**
  * The level-up draft. The only interactive thing in the game.
@@ -17,8 +19,7 @@ import type { World } from '../sim/world'
 
 const STYLES = `
 .draft-button {
-  position: fixed; right: 18px; bottom: 18px; z-index: 10;
-  padding: 10px 16px; border: 1px solid #e8c468; border-radius: 6px;
+  padding: 6px 14px; border: 1px solid #e8c468; border-radius: 6px;
   background: #1a2028; color: #e8c468; cursor: pointer;
   font: 13px ui-monospace, Consolas, monospace; letter-spacing: 0.04em;
 }
@@ -33,14 +34,18 @@ const STYLES = `
 .draft-panel[hidden] { display: none; }
 
 .draft-card {
-  width: 210px; min-height: 130px; padding: 16px;
+  width: 210px; min-height: 130px; padding: 6px 8px;
   display: flex; flex-direction: column; gap: 8px;
   border: 1px solid #3a4a58; border-radius: 8px;
   background: #121820; cursor: pointer; text-align: left;
   font: 13px ui-monospace, Consolas, monospace; color: #9fb3c2;
 }
-.draft-card:hover { border-color: #e8c468; background: #18202a; }
-.draft-card .kind { font-size: 11px; color: #5f7a4a; text-transform: uppercase; }
+.draft-card:hover { border-color: #e8c468; background: #18202a; filter: brightness(1.2); }
+/* One height for all three, so a long name doesn't make its card the odd one out. */
+.draft-card.skin-panel { height: 112px; min-height: 0; justify-content: flex-start; }
+.draft-card .kind { font-size: 11px; color: #7f9a6a; text-transform: uppercase; }
+.draft-card .head { display: flex; gap: 10px; align-items: center; }
+.draft-card .head img, .draft-card .head > span:first-child { width: 44px; height: 44px; flex: none; border-radius: 4px; }
 .draft-card .name { font-size: 15px; color: #e8c468; }
 .draft-card .desc { line-height: 1.45; }
 
@@ -62,10 +67,10 @@ export class DraftUi {
     document.head.appendChild(style)
 
     this.button = document.createElement('button')
-    this.button.className = 'draft-button'
+    this.button.className = 'draft-button skin-button'
     this.button.hidden = true
     this.button.addEventListener('click', () => this.show())
-    document.body.appendChild(this.button)
+    hudActions().appendChild(this.button)
 
     this.panel = document.createElement('div')
     this.panel.className = 'draft-panel'
@@ -97,7 +102,7 @@ export class DraftUi {
 
   private card(offer: Offer): HTMLElement {
     const card = document.createElement('button')
-    card.className = 'draft-card'
+    card.className = 'draft-card skin-panel'
 
     const kind = document.createElement('span')
     kind.className = 'kind'
@@ -112,7 +117,13 @@ export class DraftUi {
     desc.className = 'desc'
     desc.textContent = offer.description
 
-    card.append(kind, name, desc)
+    const head = document.createElement('span')
+    head.className = 'head'
+    const label = document.createElement('span')
+    label.style.cssText = 'display:flex;flex-direction:column;gap:3px'
+    label.append(kind, name)
+    head.append(spellIcon(offer.id, '#e8c468', 44), label)
+    card.append(head, desc)
     card.addEventListener('click', () => {
       takeOffer(this.getWorld(), offer)
       this.hide()

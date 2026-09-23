@@ -493,6 +493,10 @@ That completes the spec's definition of done for the prototype. Past it:
   per-spell switches and live tuning. See "Spells".
 - [x] **12 — balance pass.** Bank trips no longer suicidal, base regeneration,
   caution when hurt, a late-game ramp, spell tuning. See "Balance pass".
+- [x] **15 — effects and interface.** Generated spell effects; a pixel-art
+  UI skin (7 Souls UI pack) on the menu, cards, buttons, spell bar and bars;
+  icons for every upgrade; the wizard's thought bubbles (data/thoughts.ts);
+  the Level up and New spell! buttons at the bottom centre.
 - [x] **14 — the world.** Trees and stumps grown from the seed in groves and
   clearings, solid to him and the enemies and routed around by the flow; the
   shop as a merchant camp with a campfire, keeper and a chest that opens when

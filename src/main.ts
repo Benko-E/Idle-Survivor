@@ -25,7 +25,9 @@ import { createWorld } from './sim/world'
 import { DebugPanel } from './ui/debugPanel'
 import { DraftUi } from './ui/draft'
 import { MENU_ENTRIES } from './ui/menu/entries'
+import { installSkin } from './ui/skin'
 import { SpellBar } from './ui/spellBar'
+import { ThoughtBubbles } from './ui/thoughts'
 import { SpellChoiceUi } from './ui/spellChoice'
 import { Menu } from './ui/menu/menu'
 
@@ -45,6 +47,7 @@ const canvas = document.getElementById('game')
 if (!(canvas instanceof HTMLCanvasElement)) throw new Error('Missing #game canvas.')
 
 const renderer = new Renderer(canvas)
+installSkin()
 
 // Behind the menu until Play is pressed: a fresh world, drawn but not updated.
 let world = createWorld()
@@ -52,6 +55,7 @@ let world = createWorld()
 const draftUi = new DraftUi(() => world)
 const spellChoiceUi = new SpellChoiceUi(() => world)
 const spellBar = new SpellBar(() => world, () => spellChoiceUi.show())
+const thoughts = new ThoughtBubbles()
 new DebugPanel()
 let bestTime = 0
 let lastTime = 0
@@ -266,6 +270,7 @@ function render(): void {
   draftUi.update()
   spellChoiceUi.update()
   spellBar.update(mode === 'playing')
+  thoughts.update(world, renderer, mode === 'playing')
   renderer.beginFrame()
 
   // Under the sprites, so it reads as ground rather than fog.

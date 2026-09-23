@@ -2,6 +2,7 @@ import { bonusFor, describeBonus, elementOf } from '../sim/buildBonus'
 import { pendingSpellTier, spellsOfTier, takeSpell, tierCount } from '../sim/spellTiers'
 import type { WeaponDef } from '../data/types'
 import type { World } from '../sim/world'
+import { hudActions } from './skin'
 import { spellIcon } from './spellIcons'
 
 /**
@@ -14,8 +15,7 @@ import { spellIcon } from './spellIcons'
 
 const STYLES = `
 .spell-button {
-  position: fixed; right: 18px; bottom: 64px; z-index: 10;
-  padding: 10px 16px; border: 1px solid #c9a6ff; border-radius: 6px;
+  padding: 6px 14px; border: 1px solid #c9a6ff; border-radius: 6px;
   background: #1f1830; color: #e6d6ff; cursor: pointer;
   font: 13px ui-monospace, Consolas, monospace; letter-spacing: 0.04em;
   animation: spell-glow 1.6s ease-in-out infinite;
@@ -37,13 +37,13 @@ const STYLES = `
 .spell-warning { margin: 0 0 6px; color: #d9a0a0; }
 .spell-cards { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
 .spell-card {
-  width: 220px; min-height: 170px; padding: 16px;
+  width: 220px; min-height: 170px; padding: 8px 10px;
   display: flex; flex-direction: column; gap: 8px; text-align: left;
   border: 2px solid var(--element); border-radius: 8px;
   background: #121820; color: #9fb3c2; cursor: pointer;
   font: 13px ui-monospace, Consolas, monospace;
 }
-.spell-card:hover { background: #18202a; box-shadow: 0 0 14px var(--element); }
+.spell-card:hover { background: #18202a; box-shadow: 0 0 14px var(--element); filter: brightness(1.2); }
 .spell-card .element { font-size: 11px; text-transform: uppercase; color: var(--element); }
 .spell-card img { width: 56px; height: 56px; border-radius: 6px; border: 1px solid var(--element); }
 .spell-card .name { font-size: 16px; color: #e8c468; }
@@ -71,11 +71,11 @@ export class SpellChoiceUi {
     document.head.appendChild(style)
 
     this.button = document.createElement('button')
-    this.button.className = 'spell-button'
+    this.button.className = 'spell-button skin-button'
     this.button.textContent = 'New spell!'
     this.button.hidden = true
     this.button.addEventListener('click', () => this.show())
-    document.body.appendChild(this.button)
+    hudActions().appendChild(this.button)
 
     this.panel = document.createElement('div')
     this.panel.className = 'spell-panel'
@@ -114,7 +114,7 @@ export class SpellChoiceUi {
 
   private card(def: WeaponDef, all: WeaponDef[]): HTMLElement {
     const card = document.createElement('button')
-    card.className = 'spell-card'
+    card.className = 'spell-card skin-gold'
     card.dataset.spell = def.id
     card.style.setProperty('--element', def.colour)
 

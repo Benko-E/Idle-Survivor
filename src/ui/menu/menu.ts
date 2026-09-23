@@ -23,6 +23,10 @@ const STYLES = `
 .menu-title { margin: 0 0 4px; font-size: 28px; font-weight: normal; color: #e8c468; letter-spacing: 0.06em; }
 .menu-subtitle { margin: 0 0 14px; }
 .menu-view { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.menu-box {
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  padding: 18px 26px; background: #121820; border-radius: 8px;
+}
 .menu-view[hidden] { display: none; }
 .menu-button {
   width: 220px; padding: 11px 16px;
@@ -96,7 +100,10 @@ export class Menu {
     back.classList.add('menu-back')
     this.screenView.append(this.screenTitle, this.screenBody, back)
 
-    this.root.append(this.heading, this.subtitle, this.entryView, this.screenView)
+    const box = document.createElement('div')
+    box.className = 'menu-box skin-panel'
+    box.append(this.heading, this.subtitle, this.entryView, this.screenView)
+    this.root.append(box)
     document.body.appendChild(this.root)
 
     // Escape backs out of a screen. Listening on the menu itself, so the key
@@ -143,7 +150,7 @@ export class Menu {
 
   private button(label: string, onClick: () => void, id?: string): HTMLButtonElement {
     const button = document.createElement('button')
-    button.className = 'menu-button'
+    button.className = 'menu-button skin-button'
     button.textContent = label
     if (id) button.dataset.entry = id
     button.addEventListener('click', onClick)

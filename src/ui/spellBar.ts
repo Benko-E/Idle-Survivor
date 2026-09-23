@@ -23,7 +23,7 @@ const STYLES = `
 }
 .spell-bar[hidden] { display: none; }
 .spell-slot {
-  position: relative; width: 44px; height: 44px; border-radius: 7px;
+  position: relative; width: 44px; height: 44px; border-radius: 7px; box-sizing: content-box;
   border: 2px solid #2a3540; background: #0d1218cc; overflow: hidden;
   display: flex; align-items: center; justify-content: center; color: #6f8090;
 }
@@ -106,7 +106,7 @@ export class SpellBar {
 
     for (let tier = 1; tier <= tierCount(); tier++) {
       const slot = document.createElement('div')
-      slot.className = 'spell-slot'
+      slot.className = 'spell-slot skin-slot'
       const weapon = world.weapons.find((w) => w.def.tier === tier)
 
       if (weapon) {
@@ -144,7 +144,7 @@ export class SpellBar {
 
     const { name, effect } = describeBonus(bonus)
     const badge = document.createElement('div')
-    badge.className = 'build-badge'
+    badge.className = 'build-badge skin-button'
     if (bonus.kind === 'prismatic') badge.classList.add('prismatic')
     else badge.style.setProperty('--badge', ELEMENT_COLOURS[bonus.element] ?? '#e8c468')
 

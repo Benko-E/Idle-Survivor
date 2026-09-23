@@ -24,6 +24,9 @@ const PROP_FILES = import.meta.glob('../../art-source/props/*.png', { eager: tru
  * has to be known here because the file doesn't carry it. A missing file just
  * means that effect is drawn with plain shapes.
  */
+/** Interface pieces drawn on the canvas — the health and XP bars. `ui:<name>`. */
+const UI_FILES = import.meta.glob('../../art-source/ui/bar_*.png', { eager: true, import: 'default' }) as Record<string, string>
+
 const FX_FILES = import.meta.glob('../../art-source/fx/*.png', { eager: true, import: 'default' }) as Record<string, string>
 const FX_FRAMES: Record<string, number> = {
   strike: 4,
@@ -138,6 +141,7 @@ export async function loadSprites(): Promise<void> {
     loadStrip('shopkeeper', shopkeeperUrl, 1),
     loadStrip('orb_ice', orbIceUrl, 4),
     loadStrip('orb_fire', orbFireUrl, 4),
+    ...Object.entries(UI_FILES).map(([path, url]) => loadStrip(`ui:${path.split('/').pop()!.replace(/\.png$/, '')}`, url, 1)),
     ...Object.entries(FX_FILES).map(([path, url]) => {
       const name = path.split('/').pop()!.replace(/\.png$/, '')
       return loadStrip(`fx:${name}`, url, FX_FRAMES[name] ?? 1)

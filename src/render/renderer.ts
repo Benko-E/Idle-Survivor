@@ -1,5 +1,5 @@
 import { config } from '../config'
-import { getGroundStrip, type SpriteSheet } from './sprites'
+import { getGroundStrip, getSheet, type SpriteSheet } from './sprites'
 
 /**
  * Everything the renderer knows how to draw.
@@ -117,6 +117,11 @@ export class Renderer {
     const { visibleWorldHeight, minScale, maxScale, yScale } = config.render
     const fitted = this.viewH / (visibleWorldHeight * yScale)
     this.scale = Math.max(minScale, Math.min(maxScale, fitted))
+  }
+
+  /** Screen pixels per world unit, for placing page elements over the world. */
+  get unitScale(): number {
+    return this.scale
   }
 
   worldToScreenX(worldX: number): number {
@@ -588,44 +593,83 @@ export class Renderer {
   drawXpBar(fraction: number, level: number): void {
     const { ctx } = this
     const w = Math.min(420, this.viewW - 80)
-    const h = 5
     const x = (this.viewW - w) / 2
-    const y = this.viewH - 44
-
-    ctx.globalAlpha = 0.5
-    ctx.fillStyle = '#000000'
-    ctx.fillRect(x, y, w, h)
-    ctx.globalAlpha = 1
-
-    ctx.fillStyle = '#7dc4ff'
-    ctx.fillRect(x, y, w * Math.max(0, Math.min(1, fraction)), h)
+    const frame = getSheet('ui:bar_xp_frame')
+    const fill = getSheet('ui:bar_xp_fill')
+    const h = frame ? 12 : 5
+    const y = this.viewH - 50
+    if (frame && fill) {
+      this.drawPixelBar(frame, fill, x, y, w, h, fraction)
+    } else {
+      ctx.globalAlpha = 0.5
+      ctx.fillStyle = '#000000'
+      ctx.fillRect(x, y, w, h)
+      ctx.globalAlpha = 1
+      ctx.fillStyle = '#7dc4ff'
+      ctx.fillRect(x, y, w * Math.max(0, Math.min(1, fraction)), h)
+    }
 
     ctx.fillStyle = '#9fb3c2'
     ctx.font = '11px ui-monospace, Consolas, monospace'
-    ctx.textBaseline = 'bottom'
-    ctx.fillText(`lv ${level}`, x - 34, y + h + 2)
+    ctx.textBaseline = 'middle'
+    ctx.fillText(`lv ${level}`, x - 38, y + h / 2)
   }
 
   /** Fixed health bar along the bottom of the screen. */
   drawHealthBar(fraction: number): void {
     const { ctx } = this
     const w = Math.min(420, this.viewW - 80)
-    const h = 10
     const x = (this.viewW - w) / 2
-    const y = this.viewH - 34
+    const frame = getSheet('ui:bar_hp_frame')
+    const fill = getSheet('ui:bar_hp_fill')
+    const h = frame ? 16 : 10
+    const y = this.viewH - 32
+    const clamped = Math.max(0, Math.min(1, fraction))
+    if (frame && fill) {
+      this.drawPixelBar(frame, fill, x, y, w, h, clamped)
+      return
+    }
 
     ctx.globalAlpha = 0.5
     ctx.fillStyle = '#000000'
     ctx.fillRect(x, y, w, h)
     ctx.globalAlpha = 1
-
-    const clamped = Math.max(0, Math.min(1, fraction))
     ctx.fillStyle = clamped > 0.5 ? '#3ddc84' : clamped > 0.2 ? '#e8c468' : '#ff4d5e'
     ctx.fillRect(x, y, w * clamped, h)
-
     ctx.strokeStyle = '#3a4a58'
     ctx.lineWidth = 1
     ctx.strokeRect(x + 0.5, y + 0.5, w, h)
+  }
+
+  /**
+   * A bar from pixel-art pieces: the empty frame stretched to the width, then
+   * the fill over it, cut off at the fraction. Stretched in three parts so the
+   * rounded ends keep their shape and only the middle grows.
+   */
+  private drawPixelBar(frame: SpriteSheet, fill: SpriteSheet, x: number, y: number, w: number, h: number, fraction: number): void {
+    const { ctx } = this
+    ctx.imageSmoothingEnabled = false
+    this.drawThreeSlice(frame, x, y, w, h)
+    const shown = Math.max(0, Math.min(1, fraction)) * w
+    if (shown > 0) {
+      ctx.save()
+      ctx.beginPath()
+      ctx.rect(x, y, shown, h)
+      ctx.clip()
+      this.drawThreeSlice(fill, x, y, w, h)
+      ctx.restore()
+    }
+  }
+
+  private drawThreeSlice(sheet: SpriteSheet, x: number, y: number, w: number, h: number): void {
+    const cap = 3
+    const scale = h / sheet.frameHeight
+    const capW = cap * scale
+    const middle = sheet.frameWidth - cap * 2
+    const { ctx, } = this
+    ctx.drawImage(sheet.image, 0, 0, cap, sheet.frameHeight, Math.round(x), y, Math.ceil(capW), h)
+    ctx.drawImage(sheet.image, cap, 0, middle, sheet.frameHeight, Math.round(x + capW), y, Math.ceil(w - capW * 2), h)
+    ctx.drawImage(sheet.image, sheet.frameWidth - cap, 0, cap, sheet.frameHeight, Math.round(x + w - capW), y, Math.ceil(capW), h)
   }
 
   /** Centred panel, for the death screen. */

@@ -171,16 +171,16 @@ $coins.Save((Join-Path $OutDir 'coins.png'), [System.Drawing.Imaging.ImageFormat
 "  {0,-14} {1}x{2} ({3} tiers)" -f 'coins.png', $coins.Width, $coins.Height, $coinSources.Count
 $coins.Dispose()
 
-# --- spell icons --------------------------------------------------------------
-# Painted 256x256 icons from the skill icon pack, for the spell bar and the
-# spell choice cards. Not pixel art, and that's fine for interface: they sit
+# --- spell and upgrade icons -----------------------------------------------------
+# Painted 256x256 icons from the skill icon pack, for the spell bar, the
+# spell choice cards and the level-up cards. Not pixel art, and that's fine for interface: they sit
 # in the HUD and on cards, never in the world beside the sprites.
 #
 # Shrunk to 64x64 so the page stays small — nine at full size would add well
 # over a megabyte to a single-file build. Bicubic here, unlike the coins:
 # these are painted, and nearest neighbour would shred them.
 #
-# Keyed by spell id. A spell with no icon here gets a plain coloured badge.
+# Keyed by spell or upgrade id. Anything with no icon here gets a plain badge.
 $spellIcons = [ordered]@{
   'spell_bolt_01'      = 'red\red_20'      # streaking fireballs
   'spell_frostbolt_01' = 'blue\blue_21'    # ice shard in flight
@@ -191,6 +191,29 @@ $spellIcons = [ordered]@{
   'spell_meteor_01'    = 'red\red_16'      # a flaming comet
   'spell_blizzard_01'  = 'blue\blue_04'    # a snowflake
   'spell_storm_01'     = 'blue\blue_42'    # lightning from the sky
+  # Upgrades.
+  'up_damage_01'       = 'yellow\yellow_10' # a clenched fist
+  'up_haste_01'        = 'blue\blue_11'     # a quickening swirl
+  'up_range_01'        = 'blue\blue_19'     # an eye
+  'up_area_01'         = 'yellow\yellow_31' # a spiral sigil
+  'up_multishot_01'    = 'yellow\yellow_03' # splitting rays
+  'up_pierce_01'       = 'red\red_13'       # a spear
+  'up_chain_01'        = 'violet\violet_28' # forked lightning
+  'up_conduct_01'      = 'violet\violet_09' # an energy beam
+  'up_chill_01'        = 'blue\blue_32'     # ice crystals
+  'up_wither_01'       = 'green\green_12'   # poison
+  'up_strike_01'       = 'blue\blue_41'     # a tornado
+  'up_root_01'         = 'green\green_02'   # vines
+  'up_fire_01'         = 'red\red_36'       # flames
+  'up_frost_01'        = 'blue\blue_31'     # a wolf howling
+  'up_storm_01'        = 'blue\blue_23'     # a lightning bolt
+  'up_vigour_01'       = 'red\red_17'       # a heart
+  'up_regen_01'        = 'green\green_20'   # a healing cross
+  'up_ward_01'         = 'red\red_18'       # a shield
+  'up_reach_01'        = 'yellow\yellow_11' # a hand grasping sparks
+  'up_swift_01'        = 'blue\blue_05'     # wind
+  'up_scholar_01'      = 'red\red_27'       # a spellbook
+  'up_greed_01'        = 'yellow\yellow_01' # a golden burst
 }
 $iconOut = Join-Path $OutDir 'icons'
 New-Item -ItemType Directory -Force -Path $iconOut | Out-Null
@@ -319,6 +342,48 @@ Strip @(,@($keeper, 0, 0)) $kw $kh 'shopkeeper.png'
 # each, cropped above the shadow baked into the sheet (the game draws its own).
 Strip @(@($elemSheet, 78, 290), @($elemSheet, 78, 354), @($elemSheet, 78, 418), @($elemSheet, 78, 482)) 22 24 'orb_ice.png'
 Strip @(@($elemSheet, 256, 286), @($elemSheet, 256, 350), @($elemSheet, 256, 414), @($elemSheet, 256, 478)) 26 28 'orb_fire.png'
+
+# --- interface ---------------------------------------------------------------------
+# Window frames and bars from the 7 Souls UI pack, which is still zipped:
+# the handful of files needed are read straight out of the zip.
+#
+#   panel.png       the dark window with a rounded gold frame (style 19)
+#   panel_gold.png  the dark window with a studded double gold frame (style 7)
+#   button.png      style 19's wide pill, for buttons
+#   slot.png        style 19's gold item slot, for the spell bar
+#   bar_*.png       frame and fill pieces for the health and XP bars
+$uiZip = Join-Path (Split-Path $PackRoot -Parent) '7soulsrpggraphics_uipack_windows.zip'
+if (Test-Path $uiZip) {
+  Add-Type -AssemblyName System.IO.Compression.FileSystem
+  $uiOut = Join-Path $OutDir 'ui'
+  New-Item -ItemType Directory -Force -Path $uiOut | Out-Null
+  $tmp = Join-Path $uiOut '_zip'
+  New-Item -ItemType Directory -Force -Path $tmp | Out-Null
+  $wanted = @{
+    '7soulsrpggraphics_uipack/Assets/Windows/_sheet_window_19.png' = 'window19.png'
+    '7soulsrpggraphics_uipack/Assets/Windows/_sheet_window_07.png' = 'window07.png'
+    '7soulsrpggraphics_uipack/Assets/Bars/bar_01.png'  = 'bar_hp_frame.png'
+    '7soulsrpggraphics_uipack/Assets/Bars/bar_04.png'  = 'bar_hp_fill.png'
+    '7soulsrpggraphics_uipack/Assets/Bars/bar_223.png' = 'bar_xp_frame.png'
+    '7soulsrpggraphics_uipack/Assets/Bars/bar_226.png' = 'bar_xp_fill.png'
+  }
+  $zip = [System.IO.Compression.ZipFile]::OpenRead($uiZip)
+  foreach ($entry in $zip.Entries) {
+    if ($wanted.ContainsKey($entry.FullName)) {
+      $target = if ($entry.FullName -like '*Bars*') { Join-Path $uiOut $wanted[$entry.FullName] } else { Join-Path $tmp $wanted[$entry.FullName] }
+      [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $target, $true)
+    }
+  }
+  $zip.Dispose()
+  Crop (Join-Path $tmp 'window19.png') 0 0 48 48 'ui/panel.png'
+  Crop (Join-Path $tmp 'window19.png') 0 48 48 16 'ui/button.png'
+  Crop (Join-Path $tmp 'window19.png') 64 32 16 16 'ui/slot.png'
+  Crop (Join-Path $tmp 'window07.png') 0 0 48 48 'ui/panel_gold.png'
+  Remove-Item -Recurse -Force $tmp
+  "  ui/bar_*.png          health and XP bar pieces"
+} else {
+  "  UI pack zip not found at $uiZip : the interface keeps its plain look"
+}
 
 # --- generated effects -------------------------------------------------------------
 # Spell effects no pack had, made with an image generator from the prompts in

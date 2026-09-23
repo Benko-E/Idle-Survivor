@@ -670,6 +670,19 @@ export const config = {
     slotBias: 0.75,
   },
 
+  /** His thought bubble. The lines are in data/thoughts.ts. */
+  thoughts: {
+    enabled: true,
+    /** Seconds a thought stays up, plus a little for long lines. */
+    showSeconds: 3.2,
+    /** Least time between any two thoughts, so he isn't a chatterbox. */
+    minGapSeconds: 9,
+    /** The same for the big moments: a new spell, a close call, dying. */
+    urgentGapSeconds: 2,
+    /** Quiet for this long, and he muses about something. */
+    idleSeconds: 45,
+  },
+
   /** Trees and other things standing in the world. See sim/obstacles.ts. */
   obstacles: {
     enabled: true,
