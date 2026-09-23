@@ -32,17 +32,20 @@ const STYLES = `
   background: rgba(6, 9, 12, 0.72); padding: 20px; flex-wrap: wrap;
 }
 .draft-panel[hidden] { display: none; }
+/* The cards' own row: stretch makes every card as tall as the tallest, so they
+   line up without a fixed height that long text could overflow. */
+.draft-row { display: flex; gap: 14px; align-items: stretch; justify-content: center; flex-wrap: wrap; }
 
 .draft-card {
-  width: 210px; min-height: 130px; padding: 6px 8px;
+  width: 250px; min-height: 130px; padding: 6px 8px; box-sizing: border-box;
   display: flex; flex-direction: column; gap: 8px;
   border: 1px solid #3a4a58; border-radius: 8px;
   background: #121820; cursor: pointer; text-align: left;
   font: 13px ui-monospace, Consolas, monospace; color: #9fb3c2;
 }
 .draft-card:hover { border-color: #e8c468; background: #18202a; filter: brightness(1.2); }
-/* One height for all three, so a long name doesn't make its card the odd one out. */
-.draft-card.skin-panel { height: 112px; min-height: 0; justify-content: flex-start; }
+/* Skinned, the frame is part of the card's size, so the plain minimum is plenty. */
+.draft-card.skin-panel { min-height: 0; justify-content: flex-start; }
 .draft-card .kind { font-size: 11px; color: #7f9a6a; text-transform: uppercase; }
 .draft-card .head { display: flex; gap: 10px; align-items: center; }
 .draft-card .head img, .draft-card .head > span:first-child { width: 44px; height: 44px; flex: none; border-radius: 4px; }
@@ -86,9 +89,10 @@ export class DraftUi {
     if (offers.length === 0) return
 
     this.panel.replaceChildren()
-    for (const offer of offers) {
-      this.panel.appendChild(this.card(offer))
-    }
+    const row = document.createElement('div')
+    row.className = 'draft-row'
+    for (const offer of offers) row.appendChild(this.card(offer))
+    this.panel.appendChild(row)
 
     const dismiss = document.createElement('button')
     dismiss.className = 'draft-dismiss'
