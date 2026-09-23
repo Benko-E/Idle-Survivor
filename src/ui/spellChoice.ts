@@ -1,6 +1,7 @@
 import { pendingSpellTier, spellsOfTier, takeSpell } from '../sim/spellTiers'
 import type { WeaponDef } from '../data/types'
 import type { World } from '../sim/world'
+import { spellIcon } from './spellIcons'
 
 /**
  * The tier choice: the one decision in a run that can't be taken back.
@@ -43,6 +44,7 @@ const STYLES = `
 }
 .spell-card:hover { background: #18202a; box-shadow: 0 0 14px var(--element); }
 .spell-card .element { font-size: 11px; text-transform: uppercase; color: var(--element); }
+.spell-card img { width: 56px; height: 56px; border-radius: 6px; border: 1px solid var(--element); }
 .spell-card .name { font-size: 16px; color: #e8c468; }
 .spell-card .desc { line-height: 1.45; flex: 1; }
 .spell-card .locks { font-size: 11px; color: #7a8a96; }
@@ -78,7 +80,8 @@ export class SpellChoiceUi {
     document.body.appendChild(this.panel)
   }
 
-  private show(): void {
+  /** Open the choice, if one is waiting. The spell bar's empty slot uses this too. */
+  show(): void {
     const tier = pendingSpellTier(this.getWorld())
     if (tier === null) return
     const choices = spellsOfTier(tier)
@@ -129,7 +132,7 @@ export class SpellChoiceUi {
     const others = all.filter((other) => other !== def).map((other) => other.displayName)
     locks.textContent = others.length ? `Locks out ${others.join(' and ')}` : ''
 
-    card.append(element, name, desc, locks)
+    card.append(spellIcon(def.id, def.colour, 56), element, name, desc, locks)
     card.addEventListener('click', () => {
       takeSpell(this.getWorld(), def)
       this.hide()

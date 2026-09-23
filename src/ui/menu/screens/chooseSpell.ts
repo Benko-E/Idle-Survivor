@@ -1,5 +1,6 @@
 import type { WeaponDef } from '../../../data/types'
 import { spellsOfTier } from '../../../sim/spellTiers'
+import { spellIcon } from '../../spellIcons'
 import type { Screen } from '../types'
 
 /** The starting pick: every enabled tier-1 spell. */
@@ -23,7 +24,10 @@ export const chooseSpellScreen: Screen = {
       const description = document.createElement('span')
       description.className = 'menu-choice-desc'
       description.textContent = def.description
-      card.append(name, description)
+      const text = document.createElement('span')
+      text.className = 'menu-choice-text'
+      text.append(name, description)
+      card.append(spellIcon(def.id, def.colour, 48), text)
       card.addEventListener('click', () => nav.play(def.id))
       list.append(card)
     }

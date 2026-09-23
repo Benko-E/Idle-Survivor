@@ -35,7 +35,9 @@ const STYLES = `
 .menu-placeholder { color: #5f7a8a; }
 .menu-back { margin-top: 10px; }
 .menu-choices { display: flex; flex-direction: column; gap: 10px; }
-.menu-choice { width: 320px; display: flex; flex-direction: column; gap: 4px; text-align: left; }
+.menu-choice { width: 360px; display: flex; flex-direction: row; gap: 12px; align-items: center; text-align: left; }
+.menu-choice img { width: 48px; height: 48px; border-radius: 6px; flex: none; }
+.menu-choice-text { display: flex; flex-direction: column; gap: 4px; }
 .menu-choice-name { font-size: 15px; color: #e8c468; }
 .menu-choice-desc { font-size: 12px; color: #9fb3c2; line-height: 1.4; }
 `

@@ -1,4 +1,4 @@
-# Crops the frames this game actually uses out of the purchased asset packs
+﻿# Crops the frames this game actually uses out of the purchased asset packs
 # and writes them into art-source/ (gitignored).
 #
 # Why this exists rather than importing the packs directly: the GameDev Market
@@ -29,6 +29,7 @@ $monsterSht  = Join-Path $PackRoot 'monsterstimefantasyrpgspritepack_windows\mon
 $monsterSht2 = Join-Path $PackRoot 'monsterstimefantasyrpgspritepack_windows\monsterstimefantasyrpgspritepack\Assets\1x\monster2.png'
 $terrainSht  = Join-Path $PackRoot 'fantasyrpgtilesetpack_windows\fantasyrpgtilesetpack\Assets\TILESETS\terrain.png'
 $iconDir     = Join-Path $PackRoot 'rpginventoryiconspackvol1_windows\rpginventoryiconspackvol1\Assets\Icons 64x64\Misc'
+$skillDir    = Join-Path $PackRoot 'skilliconpack_windows\skilliconpack'
 
 foreach ($p in @($charaSheet, $monsterSht, $monsterSht2, $terrainSht)) {
   if (-not (Test-Path $p)) { throw "Missing source sheet: $p" }
@@ -165,6 +166,46 @@ for ($py = 0; $py -lt $coins.Height; $py++) {
 $coins.Save((Join-Path $OutDir 'coins.png'), [System.Drawing.Imaging.ImageFormat]::Png)
 "  {0,-14} {1}x{2} ({3} tiers)" -f 'coins.png', $coins.Width, $coins.Height, $coinSources.Count
 $coins.Dispose()
+
+# --- spell icons --------------------------------------------------------------
+# Painted 256x256 icons from the skill icon pack, for the spell bar and the
+# spell choice cards. Not pixel art, and that's fine for interface: they sit
+# in the HUD and on cards, never in the world beside the sprites.
+#
+# Shrunk to 64x64 so the page stays small — nine at full size would add well
+# over a megabyte to a single-file build. Bicubic here, unlike the coins:
+# these are painted, and nearest neighbour would shred them.
+#
+# Keyed by spell id. A spell with no icon here gets a plain coloured badge.
+$spellIcons = [ordered]@{
+  'spell_bolt_01'      = 'red\red_20'      # streaking fireballs
+  'spell_frostbolt_01' = 'blue\blue_21'    # ice shard in flight
+  'spell_chain_01'     = 'violet\violet_01' # forked purple lightning
+  'spell_aura_01'      = 'red\red_05'      # a ring of fire
+  'spell_orb_01'       = 'blue\blue_35'    # a ball of ice
+  'spell_ball_01'      = 'blue\blue_18'    # a crackling energy ball
+  'spell_meteor_01'    = 'red\red_16'      # a flaming comet
+  'spell_blizzard_01'  = 'blue\blue_04'    # a snowflake
+  'spell_storm_01'     = 'blue\blue_42'    # lightning from the sky
+}
+$iconOut = Join-Path $OutDir 'icons'
+New-Item -ItemType Directory -Force -Path $iconOut | Out-Null
+$iconSize = 64
+foreach ($id in $spellIcons.Keys) {
+  $rel = $spellIcons[$id]
+  $src = Get-ChildItem (Join-Path $skillDir (Split-Path $rel -Parent)) -File |
+    Where-Object { $_.BaseName -eq (Split-Path $rel -Leaf) } | Select-Object -First 1
+  if (-not $src) { throw "Missing spell icon: $rel" }
+  $img = [System.Drawing.Image]::FromFile($src.FullName)
+  $dst = New-Object System.Drawing.Bitmap($iconSize, $iconSize)
+  $ig = [System.Drawing.Graphics]::FromImage($dst)
+  $ig.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+  $ig.DrawImage($img, (New-Object System.Drawing.Rectangle(0, 0, $iconSize, $iconSize)))
+  $ig.Dispose(); $img.Dispose()
+  $dst.Save((Join-Path $iconOut "$id.png"), [System.Drawing.Imaging.ImageFormat]::Png)
+  $dst.Dispose()
+  "  icons/{0,-20} from {1}" -f "$id.png", $rel
+}
 
 # --- contact sheet, for eyeballing the casting -------------------------------
 $names = @('hero.png','shambler.png','hulk.png','stalker.png')
