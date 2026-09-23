@@ -638,6 +638,22 @@ export const config = {
   draft: {
     /** Options offered per level-up. Upgrades only — spells come in tiers. */
     choices: 3,
+    /**
+     * What each card slot leans towards, left to right. Names from
+     * `slotThemes`; anything else (like 'any') leans nowhere.
+     */
+    slots: ['fight', 'any', 'comfort'],
+    /** Which upgrade tags each theme draws from. */
+    slotThemes: {
+      fight: ['offence', 'defence'],
+      comfort: ['utility'],
+    },
+    /**
+     * How often a slot keeps to its theme, 0 to 1. At 1 the left card is
+     * always a fighting card; at 0 the slots mean nothing. A lean rather than
+     * a rule, so the draft still surprises.
+     */
+    slotBias: 0.75,
   },
 
   /** How spells are gained. See sim/spellTiers.ts. */

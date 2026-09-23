@@ -52,28 +52,58 @@ function candidates(world: World): { offer: Offer; weight: number }[] {
   return pool
 }
 
-/** Weighted pick without replacement, so one draft never repeats an option. */
+type Entry = { offer: Offer; weight: number }
+
+/** Whether an upgrade belongs to a slot's theme, by its tags. */
+function fitsTheme(entry: Entry, theme: string): boolean {
+  const tags = (config.draft.slotThemes as Record<string, string[]>)[theme]
+  if (!tags) return true
+  return entry.offer.def.tags.some((tag) => tags.includes(tag))
+}
+
+/** One weighted pick from `entries`, removed from `pool` so it can't repeat. */
+function pickWeighted(world: World, pool: Entry[], entries: Entry[]): Offer {
+  let total = 0
+  for (const entry of entries) total += entry.weight
+
+  let cursor = world.draftRng() * total
+  let chosen = entries[entries.length - 1]
+  for (const entry of entries) {
+    cursor -= entry.weight
+    if (cursor <= 0) {
+      chosen = entry
+      break
+    }
+  }
+
+  pool.splice(pool.indexOf(chosen), 1)
+  return chosen.offer
+}
+
+/**
+ * Deal the cards, left to right, one per slot.
+ *
+ * Each slot leans towards a theme (`draft.slots`, `draft.slotThemes`): the
+ * left one towards fighting and surviving, the right one towards comfort —
+ * XP, gold, reach, speed — and the middle towards nothing. So each level-up
+ * asks a readable question: do I need more power, or can I afford comfort?
+ *
+ * A lean, not a rule: a slot keeps to its theme with `draft.slotBias`
+ * probability, otherwise it draws from everything. And a theme that has run
+ * dry — every comfort upgrade maxed out — quietly draws from everything too.
+ */
 function buildOffers(world: World): Offer[] {
   const pool = candidates(world)
   const chosen: Offer[] = []
   const wanted = Math.min(Math.max(1, Math.round(config.draft.choices)), pool.length)
 
-  while (chosen.length < wanted) {
-    let total = 0
-    for (const entry of pool) total += entry.weight
-
-    let cursor = world.draftRng() * total
-    let index = pool.length - 1
-    for (let i = 0; i < pool.length; i++) {
-      cursor -= pool[i].weight
-      if (cursor <= 0) {
-        index = i
-        break
-      }
-    }
-
-    chosen.push(pool[index].offer)
-    pool.splice(index, 1)
+  for (let slot = 0; slot < wanted; slot++) {
+    const theme = config.draft.slots[slot] ?? 'any'
+    // Rolled every time, even when there's no theme, so the random stream
+    // doesn't shift depending on which slots have one.
+    const leans = world.draftRng() < config.draft.slotBias
+    const themed = leans ? pool.filter((entry) => fitsTheme(entry, theme)) : pool
+    chosen.push(pickWeighted(world, pool, themed.length > 0 ? themed : pool))
   }
 
   return chosen

@@ -75,6 +75,7 @@ function snapshotSpells(): Record<string, SpellSnapshot> {
 const RANGE_OVERRIDES: Record<string, [number, number]> = {
   'render.yScale': [0.3, 1],
   'render.effectsAlpha': [0, 1],
+  'draft.slotBias': [0, 1],
   'render.visibleWorldHeight': [400, 3000],
   'render.cameraFollowRate': [1, 20],
   'influence.updateHz': [5, 60],

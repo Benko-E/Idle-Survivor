@@ -101,7 +101,8 @@ export class DraftUi {
 
     const kind = document.createElement('span')
     kind.className = 'kind'
-    kind.textContent = 'upgrade'
+    // Which kind of card, so the slots' leanings read at a glance.
+    kind.textContent = offer.def.tags.includes('defence') ? 'defence' : offer.def.tags.includes('utility') ? 'utility' : 'power'
 
     const name = document.createElement('span')
     name.className = 'name'
