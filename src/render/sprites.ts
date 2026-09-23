@@ -19,6 +19,29 @@ import orbFireUrl from '../../art-source/orb_fire.png'
 const PROP_FILES = import.meta.glob('../../art-source/props/*.png', { eager: true, import: 'default' }) as Record<string, string>
 
 /**
+ * Spell effects from art-source/fx/ (made by tools/GeneratedArt.cs from the
+ * generated art), loaded as `fx:<name>`. Each is a strip of frames; the count
+ * has to be known here because the file doesn't carry it. A missing file just
+ * means that effect is drawn with plain shapes.
+ */
+const FX_FILES = import.meta.glob('../../art-source/fx/*.png', { eager: true, import: 'default' }) as Record<string, string>
+const FX_FRAMES: Record<string, number> = {
+  strike: 4,
+  storm_cloud: 3,
+  arc: 3,
+  ball_lightning: 4,
+  meteor: 4,
+  explosion: 6,
+  scorch: 4,
+  ice_shard: 5,
+  frost_ground: 1,
+  holy_flames: 4,
+  hit_fire: 3,
+  hit_frost: 3,
+  hit_lightning: 3,
+}
+
+/**
  * Sprite loading.
  *
  * The images live in art-source/, which is gitignored — the licence lets us
@@ -39,6 +62,8 @@ export interface SpriteSheet {
   frameHeight: number
   /** Width over height, so callers can size by height and keep proportions. */
   aspect: number
+  /** Frames across: walk frames for a character sheet, the whole strip otherwise. */
+  frames: number
 }
 
 const COLUMNS = 3
@@ -83,7 +108,7 @@ async function loadSheet(name: string, url: string): Promise<void> {
   const image = await loadImage(url)
   const frameWidth = image.width / COLUMNS
   const frameHeight = image.height / ROWS
-  sheets.set(name, { image, frameWidth, frameHeight, aspect: frameWidth / frameHeight })
+  sheets.set(name, { image, frameWidth, frameHeight, aspect: frameWidth / frameHeight, frames: COLUMNS })
 }
 
 /** A single row of frames, for things that don't walk. */
@@ -95,6 +120,7 @@ async function loadStrip(name: string, url: string, frames: number): Promise<voi
     frameWidth,
     frameHeight: image.height,
     aspect: frameWidth / image.height,
+    frames,
   })
 }
 
@@ -112,6 +138,10 @@ export async function loadSprites(): Promise<void> {
     loadStrip('shopkeeper', shopkeeperUrl, 1),
     loadStrip('orb_ice', orbIceUrl, 4),
     loadStrip('orb_fire', orbFireUrl, 4),
+    ...Object.entries(FX_FILES).map(([path, url]) => {
+      const name = path.split('/').pop()!.replace(/\.png$/, '')
+      return loadStrip(`fx:${name}`, url, FX_FRAMES[name] ?? 1)
+    }),
     ...Object.entries(PROP_FILES).map(([path, url]) => loadStrip(`prop:${path.split('/').pop()!.replace(/\.png$/, '')}`, url, 1)),
     loadImage(groundUrl).then((image) => {
       ground = image

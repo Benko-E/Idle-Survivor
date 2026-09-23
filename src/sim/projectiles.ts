@@ -2,6 +2,7 @@ import { config } from '../config'
 import { damageEnemy } from './damageEnemy'
 import { forEachEnemyNear, LARGEST_ENEMY_RADIUS } from './enemyGrid'
 import { applyEffect } from './statusEffects'
+import { HIT_SPARK_SECONDS, HIT_SPARK_SIZE, spawnSprite } from './vfx'
 import type { WeaponInstance, World } from './world'
 
 /**
@@ -61,6 +62,8 @@ export function updateProjectiles(world: World, dt: number): void {
 
         projectile.hits.add(enemy.id)
         damageEnemy(world, enemy, projectile.damage, projectile.source)
+        const spark = projectile.source.def.fx?.hit
+        if (spark) spawnSprite(world, spark, enemy.x, enemy.y, HIT_SPARK_SIZE, HIT_SPARK_SECONDS, false)
         const onHit = projectile.onHit
         if (onHit && enemy.hp > 0) applyEffect(enemy, onHit.kind, onHit.magnitude, onHit.duration, projectile.source)
 

@@ -252,6 +252,24 @@ export interface WeaponDef {
    */
   targeting?: 'densest' | 'random' | 'nearest'
 
+  /**
+   * Effect art, by name from art-source/fx/. All optional: anything missing
+   * is drawn with the plain shapes instead, so a spell works before it has
+   * art and the art can be swapped by changing a name here.
+   *
+   *   hit       flash on each enemy it hits directly
+   *   arc       stretched between enemies a chain jumps across
+   *   orb       what orbits him
+   *   flames    set round an aura's edge
+   *   fall      coming down onto a zone during its warning
+   *   impact    when a zone lands
+   *   cloud     hanging over an active zone
+   *   strike    each strike from a zone that strikes
+   *   ground    laid flat under an active zone
+   *   particle  falling inside an active zone
+   */
+  fx?: Partial<Record<'hit' | 'arc' | 'orb' | 'flames' | 'fall' | 'impact' | 'cloud' | 'strike' | 'ground' | 'particle', string>>
+
   /** Placeholder art. */
   colour: string
 }

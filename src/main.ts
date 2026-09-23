@@ -3,7 +3,7 @@ import { startLoop, stats } from './core/loop'
 import { drawCandidates, drawFootprint, drawHeatmap, drawTrail } from './render/debugOverlay'
 import { loadProfile, saveProfile } from './meta/profile'
 import { DamageNumbers } from './render/damageNumbers'
-import { drawEffects } from './render/effects'
+import { drawEffects, drawGroundEffects } from './render/effects'
 import { pushWorldProps } from './render/props'
 import { Renderer, type Drawable } from './render/renderer'
 import { coinFrame, getSheet, loadSprites, stickyFacingRow, walkFrame } from './render/sprites'
@@ -356,6 +356,8 @@ function render(): void {
         : 1,
   })
 
+  // Flat effects under everyone's feet, standing ones over them.
+  drawGroundEffects(renderer, world)
   renderer.drawScene(frame)
 
   drawEffects(renderer, world)

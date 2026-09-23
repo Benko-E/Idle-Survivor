@@ -1,7 +1,7 @@
 import { damageEnemy } from './damageEnemy'
 import { applyEffect } from './statusEffects'
 import { enemiesInRadius } from './targeting'
-import { spawnLine, spawnRing } from './vfx'
+import { spawnLine, spawnRing, spawnSprite } from './vfx'
 import type { Enemy, WeaponInstance, World } from './world'
 
 /** How long a zone's chill lingers on an enemy that steps out of it. */
@@ -63,6 +63,11 @@ function land(world: World, zone: Zone): void {
     if (zone.root > 0 && enemy.hp > 0) applyEffect(enemy, 'root', 1, zone.root, zone.source)
   }
 
+  const impact = zone.source.def.fx?.impact
+  if (impact) {
+    spawnSprite(world, impact, zone.x, zone.y, zone.radius * 1.9, 0.6, true)
+    return
+  }
   // A one-off strike gets a bolt from above; anything that lingers draws
   // itself while it's active instead.
   if (zone.burst > 0 && zone.remaining <= 0) {
@@ -83,8 +88,13 @@ function strike(world: World, zone: Zone, inside: Enemy[], dt: number): void {
     for (const enemy of enemiesInRadius(world, tx, ty, zone.strikeRadius, strikeScratch)) {
       damageEnemy(world, enemy, zone.strikeDamage, zone.source)
     }
-    spawnLine(world, tx, ty - 200, tx, ty, zone.colour, 0.14)
-    spawnRing(world, tx, ty, zone.strikeRadius, zone.colour, 0.25)
+    const bolt = zone.source.def.fx?.strike
+    if (bolt) {
+      spawnSprite(world, bolt, tx, ty, zone.strikeRadius * 1.3, 0.36, true)
+    } else {
+      spawnLine(world, tx, ty - 200, tx, ty, zone.colour, 0.14)
+      spawnRing(world, tx, ty, zone.strikeRadius, zone.colour, 0.25)
+    }
   }
 }
 

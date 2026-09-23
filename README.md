@@ -381,6 +381,14 @@ simulation cost. `obstacles.enabled` turns them off.
 The shop is a merchant camp — tent, campfire, barrels, crates, a keeper —
 and its pieces are solid too. The chest pops open when he banks.
 
+Spell effects no pack had — lightning strikes and arcs, the storm cloud, ball
+lightning, the meteor and its explosion, Blizzard's ice, Righteous Fire's
+flames, hit sparks — were made with an image generator from the prompts in
+`ART-REQUESTS.md`. `tools/GeneratedArt.cs` turns what the generator gives
+back into true pixel art. Each spell names the effects it uses in its data
+entry (`fx`), and anything without art falls back to drawn shapes. Flat
+effects are drawn under the characters, standing ones over them.
+
 ## Upgrades
 
 All 22 live in `src/data/upgrades.ts`, as data. Each one is a list of

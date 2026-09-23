@@ -52,6 +52,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
       range: 520,
       spread: 0.14,
     },
+    fx: { hit: 'hit_fire' },
     colour: '#ff8a3d',
   },
   {
@@ -74,6 +75,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
       slow: 0.35,
       duration: 1.6,
     },
+    fx: { hit: 'hit_frost' },
     colour: '#8fd8ff',
   },
   {
@@ -96,6 +98,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
       jumpRange: 165,
       falloff: 0.78,
     },
+    fx: { hit: 'hit_lightning', arc: 'arc' },
     colour: '#c9a6ff',
   },
 
@@ -121,6 +124,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
       dotDamage: 10,
       duration: 1,
     },
+    fx: { flames: 'holy_flames' },
     colour: '#ff6a2a',
   },
   {
@@ -146,6 +150,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
       slow: 0.3,
       duration: 1.4,
     },
+    fx: { hit: 'hit_frost' },
     colour: '#bfeaff',
   },
   {
@@ -171,6 +176,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
       // Seconds before one enemy can be hit by the same spell again.
       rehit: 0.5,
     },
+    fx: { hit: 'hit_lightning', orb: 'ball_lightning' },
     colour: '#f1e05a',
   },
 
@@ -196,6 +202,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
       damage: 40,
       duration: 0,
     },
+    fx: { fall: 'meteor', impact: 'explosion' },
     colour: '#ff7b3d',
   },
   {
@@ -217,6 +224,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
       dotDamage: 10,
       slow: 0.45,
     },
+    fx: { ground: 'frost_ground', particle: 'ice_shard' },
     colour: '#d6f3ff',
   },
   {
@@ -243,6 +251,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
       damage: 18,
       strikeRadius: 45,
     },
+    fx: { cloud: 'storm_cloud', strike: 'strike', hit: 'hit_lightning' },
     colour: '#f4e76e',
   },
 

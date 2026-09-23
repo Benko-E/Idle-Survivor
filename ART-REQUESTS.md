@@ -10,13 +10,23 @@ describes that look rather than naming the pack: asking for an original
 sprite in a general style is fine, asking to imitate a specific product isn't
 something we want to do.
 
+**Status:** all eleven below are made and in the game. `scorch.png` is
+extracted but waits for the Meteor burning-patch upgrade. Add new requests at
+the bottom in the same shape.
+
 ## How to hand the results back
 
 Save each image into `art-source/generated/` with the file name given below,
 then tell me. I'll add it to `tools/extract-art.ps1`, which will:
 
-- shrink it by exactly 8 (every 8×8 block becomes one pixel), and
-- turn the magenta background transparent.
+- measure its real pixel-block size (never exactly 8 in practice) and
+  rebuild it at true pixel resolution, one pixel per block, and
+- turn the magenta background transparent, recovering the see-through
+  pixels a generator paints blended into it.
+
+That's `tools/GeneratedArt.cs`; the list of files and frame counts is in
+`tools/extract-art.ps1`, and the renderer's frame counts in
+`src/render/sprites.ts`.
 
 That's why the prompts ask for chunky 8× pixels on magenta: image generators
 are bad at exact small sizes and clean transparency, and this sidesteps both.

@@ -479,6 +479,27 @@ export class Renderer {
     ctx.globalAlpha = 1
   }
 
+  /**
+   * A frame stretched from one point to another, `thickness` world units
+   * thick and lifted off the ground — a lightning arc between two enemies.
+   */
+  drawWorldBeam(sheet: SpriteSheet, frame: number, x1: number, y1: number, x2: number, y2: number, thickness: number, lift: number, alpha = 1): void {
+    const { ctx } = this
+    const ax = this.worldToScreenX(x1)
+    const ay = this.worldToScreenY(y1) - lift * this.scale
+    const bx = this.worldToScreenX(x2)
+    const by = this.worldToScreenY(y2) - lift * this.scale
+    const length = Math.hypot(bx - ax, by - ay)
+    if (length < 1) return
+    const h = thickness * this.scale
+    ctx.save()
+    ctx.globalAlpha = alpha
+    ctx.translate(ax, ay)
+    ctx.rotate(Math.atan2(by - ay, bx - ax))
+    ctx.drawImage(sheet.image, frame * sheet.frameWidth, 0, sheet.frameWidth, sheet.frameHeight, 0, -h / 2, length, h)
+    ctx.restore()
+  }
+
   /** Filled, and squashed by yScale like the outline version below. */
   fillWorldCircle(worldX: number, worldY: number, radius: number, colour: string, alpha = 1): void {
     if (radius <= 0 || alpha <= 0) return

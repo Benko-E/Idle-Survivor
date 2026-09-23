@@ -4,7 +4,7 @@ import { damageEnemy } from './damageEnemy'
 import { applyEffect } from './statusEffects'
 import { orbitPositions } from './orbit'
 import { enemiesInRadius, nearestEnemies, nearestEnemy, pickTargets } from './targeting'
-import { spawnLine, spawnRing } from './vfx'
+import { HIT_SPARK_SECONDS, HIT_SPARK_SIZE, spawnArtLine, spawnRing, spawnSprite } from './vfx'
 import type { Enemy, WeaponInstance, World } from './world'
 
 /**
@@ -155,7 +155,8 @@ const chain: Behaviour = ({ world, weapon, def, stat }) => {
   for (let jump = 0; jump < jumps && current; jump++) {
     struck.add(current.id)
     damageEnemy(world, current, damage, weapon)
-    spawnLine(world, fromX, fromY, current.x, current.y, def.colour, config.combat.lineVfxSeconds)
+    spawnArtLine(world, fromX, fromY, current.x, current.y, def.colour, config.combat.lineVfxSeconds, def.fx?.arc)
+    if (def.fx?.hit) spawnSprite(world, def.fx.hit, current.x, current.y, HIT_SPARK_SIZE, HIT_SPARK_SECONDS, false)
 
     fromX = current.x
     fromY = current.y
@@ -266,6 +267,7 @@ const orbit: Behaviour = ({ world, weapon, stat }) => {
       if (last !== undefined && world.time - last < rehit) continue
       log.set(enemy.id, world.time)
       damageEnemy(world, enemy, damage, weapon)
+      if (weapon.def.fx?.hit) spawnSprite(world, weapon.def.fx.hit, enemy.x, enemy.y, HIT_SPARK_SIZE, HIT_SPARK_SECONDS, false)
       hitAny = true
     }
   }

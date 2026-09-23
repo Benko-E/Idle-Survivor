@@ -320,6 +320,49 @@ Strip @(,@($keeper, 0, 0)) $kw $kh 'shopkeeper.png'
 Strip @(@($elemSheet, 78, 290), @($elemSheet, 78, 354), @($elemSheet, 78, 418), @($elemSheet, 78, 482)) 22 24 'orb_ice.png'
 Strip @(@($elemSheet, 256, 286), @($elemSheet, 256, 350), @($elemSheet, 256, 414), @($elemSheet, 256, 478)) 26 28 'orb_fire.png'
 
+# --- generated effects -------------------------------------------------------------
+# Spell effects no pack had, made with an image generator from the prompts in
+# ART-REQUESTS.md and saved into art-source/generated/. tools/GeneratedArt.cs
+# rebuilds each at its true pixel resolution and keys out the magenta; see the
+# comment at the top of that file.
+#
+# unmix: 'all' recovers see-through pixels painted blended into the magenta;
+# 'warm' does that only where the result isn't blue, for art whose real
+# violet would otherwise be mistaken for a blend.
+$genDir = Join-Path $OutDir 'generated'
+if (Test-Path $genDir) {
+  Add-Type -ReferencedAssemblies System.Drawing -Path (Join-Path $PSScriptRoot 'GeneratedArt.cs')
+  $fxOut = Join-Path $OutDir 'fx'
+  New-Item -ItemType Directory -Force -Path $fxOut | Out-Null
+  $generated = @(
+    @('strike.png',         4, 1, 'all',  'strike.png'),
+    @('storm_cloud.png',    3, 1, 'all',  'storm_cloud.png'),
+    @('arc.png',            3, 1, 'warm', 'arc.png'),
+    @('ball_lightning.png', 4, 1, 'all',  'ball_lightning.png'),
+    @('meteor.png',         4, 1, 'all',  'meteor.png'),
+    @('explosion.png',      6, 1, 'all',  'explosion.png'),
+    @('scorch.png',         4, 1, 'all',  'scorch.png'),
+    @('ice_shard.png',      5, 1, 'all',  'ice_shard.png'),
+    @('frost_ground.png',   1, 1, 'all',  'frost_ground.png'),
+    @('holy_flames.png',    4, 1, 'all',  'holy_flames.png'),
+    # Three rows, one per element: written as three files.
+    @('hit_sparks.png',     3, 3, 'warm', 'hit_{row}.png')
+  )
+  foreach ($g in $generated) {
+    $src = Join-Path $genDir $g[0]
+    if (-not (Test-Path $src)) { "  fx/{0,-20} missing, skipped" -f $g[4]; continue }
+    $result = [GeneratedArt]::Process($src, $g[1], $g[2], $g[3], (Join-Path $fxOut $g[4]))
+    "  fx/{0,-20} {1}" -f $g[4], $result
+  }
+  # hit_1..3 are fire, frost and lightning, in the order the prompt asked for.
+  foreach ($pair in @(@('hit_1.png', 'hit_fire.png'), @('hit_2.png', 'hit_frost.png'), @('hit_3.png', 'hit_lightning.png'))) {
+    $from = Join-Path $fxOut $pair[0]
+    if (Test-Path $from) { Move-Item -Force $from (Join-Path $fxOut $pair[1]) }
+  }
+} else {
+  "  generated/ not found: spell effects fall back to drawn shapes"
+}
+
 # --- contact sheet, for eyeballing the casting -------------------------------
 $names = @('hero.png','shambler.png','hulk.png','stalker.png')
 $imgs  = $names | ForEach-Object { [System.Drawing.Image]::FromFile((Join-Path $OutDir $_)) }

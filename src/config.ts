@@ -106,7 +106,7 @@ export const config = {
        * over time lands every frame, so without this a burning crowd would
        * be a fountain of digits.
        */
-      mergeSeconds: 0.35,
+      mergeSeconds: 0.6,
       /** Seconds a number stays up. */
       lifetime: 0.8,
       /** Screen pixels, before bigger hits grow it a little. */
