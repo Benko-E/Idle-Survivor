@@ -34,8 +34,10 @@ export const movementDebug: MovementDebug = { bestX: 1, bestY: 0, bestScore: 0, 
 
 export function updateCharacterMovement(world: World, dt: number): void {
   const character = world.character
-  const { sampleDirections, lookAheadDistances, lookAheadWeights, headingBonus, turnRateRadPerSec } =
-    config.movement
+  const { lookAheadDistances, lookAheadWeights, headingBonus, turnRateRadPerSec } = config.movement
+  // Rounded and floored here rather than trusted, because it's tunable live and
+  // a fractional value used to crash the next line outright.
+  const sampleDirections = Math.max(1, Math.round(config.movement.sampleDirections))
 
   let bestScore = -Infinity
   let bestX = character.facingX
@@ -103,4 +105,5 @@ export function updateCharacterMovement(world: World, dt: number): void {
   const step = characterStat(world, 'moveSpeed', character.speed) * dt
   character.x += character.facingX * step
   character.y += character.facingY * step
+  character.stride += step
 }

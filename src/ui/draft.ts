@@ -1,4 +1,4 @@
-import { buildOffers, takeOffer, type Offer } from '../sim/draft'
+import { currentOffers, takeOffer, type Offer } from '../sim/draft'
 import type { World } from '../sim/world'
 
 /**
@@ -12,7 +12,7 @@ import type { World } from '../sim/world'
  *
  * DOM rather than canvas: this is a list of clickable cards with text, which
  * is what HTML is for. Nothing here touches the simulation except through
- * buildOffers and takeOffer.
+ * currentOffers and takeOffer.
  */
 
 const STYLES = `
@@ -77,7 +77,7 @@ export class DraftUi {
     const world = this.getWorld()
     if (world.pendingLevelUps <= 0) return
 
-    const offers = buildOffers(world)
+    const offers = currentOffers(world)
     if (offers.length === 0) return
 
     this.panel.replaceChildren()

@@ -24,11 +24,9 @@ export const PICKUP_DEFS: PickupDef[] = [
     basePull: 1,
     merges: true,
     baseSize: 9,
-    // Deliberately *not* gold-coloured, despite being gold: the character is
-    // a yellow rectangle, and amber coins next to him were indistinguishable
-    // at a glance. Cool and dim at the bottom, hot and bright at the top, so
-    // a big pile is obvious from across the screen. One data field to change
-    // if real art makes it moot.
+    // Fallback only: coins draw from the coin sprite strip, and these colours
+    // are what shows if the art fails to load. Cool at the bottom, hot at the
+    // top, so a big pile still stands out without sprites.
     tierColours: ['#4fd6e8', '#7dffc4', '#c98dff', '#ffd76b', '#ff9a4d', '#ff5c5c'],
     tierNames: ['Coin', 'Purse', 'Coffer', 'Hoard', 'Treasury'],
   },

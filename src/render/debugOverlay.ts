@@ -1,6 +1,7 @@
 import { config } from '../config'
 import { influenceMap } from '../sim/influence'
 import { movementDebug } from '../sim/movement'
+import { characterStat } from '../sim/stats'
 import { markFreshness } from '../sim/trail'
 import type { World } from '../sim/world'
 import type { Renderer } from './renderer'
@@ -61,26 +62,30 @@ export function drawHeatmap(renderer: Renderer, world: World): void {
 }
 
 /**
+ * His actual collision and pickup footprints.
+ *
+ * The drawn character is a billboard — everything above the base of the
+ * rectangle is behind him in world terms and occupies no ground. Without
+ * these rings, enemies appear to touch him without hurting him and gold
+ * appears to pass under him uncollected, and both look like bugs.
+ */
+export function drawFootprint(renderer: Renderer, world: World): void {
+  const { x, y, radius } = world.character
+  renderer.strokeWorldCircle(x, y, radius, '#ff6b6b', 1, 0.7)
+  // The resolved radius, not the base one, so the ring grows when a pickup
+  // radius upgrade is taken. A debug view showing the wrong number is worse
+  // than no debug view.
+  const reach = characterStat(world, 'pickupRadius', config.pickups.collectRadius)
+  renderer.strokeWorldCircle(x, y, reach, '#4fd6e8', 1, 0.5)
+}
+
+/**
  * The breadcrumb trail feeding the staleness layer.
  *
  * Worth drawing separately because on the heatmap his own trail is red, the
  * same as enemies — and "he's avoiding that because he was just there" looks
  * identical to "he's avoiding that because it will kill him" otherwise.
  */
-/**
- * His actual collision and pickup footprints.
- *
- * The drawn character is a billboard — everything above the base of the
- * rectangle is behind him in world terms and occupies no ground. Without
- * these rings, enemies appear to touch him without hurting him and globes
- * appear to pass under him uncollected, and both look like bugs.
- */
-export function drawFootprint(renderer: Renderer, world: World): void {
-  const { x, y, radius } = world.character
-  renderer.strokeWorldCircle(x, y, radius, '#ff6b6b', 1, 0.7)
-  renderer.strokeWorldCircle(x, y, config.pickups.collectRadius, '#4fd6e8', 1, 0.5)
-}
-
 export function drawTrail(renderer: Renderer, world: World): void {
   for (const mark of world.trail) {
     const freshness = markFreshness(world, mark)

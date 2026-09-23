@@ -1,6 +1,5 @@
 import { config } from '../config'
-import { ENEMY_DEFS } from '../data/enemies'
-import { forEachEnemyNear, rebuildEnemyGrid } from './enemyGrid'
+import { forEachEnemyNear, LARGEST_ENEMY_RADIUS, rebuildEnemyGrid } from './enemyGrid'
 import { slowMultiplier } from './statusEffects'
 import type { World } from './world'
 
@@ -11,8 +10,6 @@ import type { World } from './world'
  * game belongs to the character — enemies are the pressure he has to read, and
  * pressure is easier to read when it's predictable.
  */
-
-const LARGEST_RADIUS = Math.max(...ENEMY_DEFS.map((def) => def.radius))
 
 function seekCharacter(world: World, dt: number): void {
   const { x: cx, y: cy } = world.character
@@ -29,6 +26,7 @@ function seekCharacter(world: World, dt: number): void {
     const step = enemy.speed * slowMultiplier(enemy) * dt
     enemy.x += (dx / distance) * step
     enemy.y += (dy / distance) * step
+    enemy.stride += step
   }
 }
 
@@ -49,7 +47,7 @@ function resolveOverlaps(world: World): void {
 
   for (let i = 0; i < enemies.length; i++) {
     const a = enemies[i]
-    const reach = a.def.radius + LARGEST_RADIUS
+    const reach = a.def.radius + LARGEST_ENEMY_RADIUS
 
     forEachEnemyNear(world, a.x, a.y, reach, (b, j) => {
       // Each pair is visited from both ends; only act on it once.

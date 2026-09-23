@@ -17,7 +17,13 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     displayName: 'Focused Will',
     description: '+15% spell damage',
     tags: ['offence'],
-    modifiers: [{ target: 'damage', op: 'increase', value: 0.15 }],
+    // Both stats, because damage over time is its own stat and the curse
+    // reads only that one. With just 'damage' here, "+15% spell damage" did
+    // nothing at all for Curse of Withering.
+    modifiers: [
+      { target: 'damage', op: 'increase', value: 0.15 },
+      { target: 'dotDamage', op: 'increase', value: 0.15 },
+    ],
     maxStacks: 6,
     weight: 100,
   },

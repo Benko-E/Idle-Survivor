@@ -11,11 +11,16 @@ import type { World } from './world'
  * because the spec is explicit that it will get more complicated and should
  * only ever need changing in one place.
  *
- * Offers are built when the panel opens rather than when the level is earned.
- * The game doesn't pause, so the world has moved on since he levelled, and an
- * offer list assembled thirty seconds ago could suggest a fire upgrade for a
- * spell he no longer... well, not yet — but it will matter the moment
- * anything can be lost or replaced.
+ * Offers are rolled the first time the panel opens for a level, then frozen
+ * until one is taken. Rolling them fresh on every open meant "later" followed
+ * by reopening was a free reroll, as many times as you liked — which turns
+ * every choice into a search for the best card rather than a decision.
+ *
+ * They also draw from their own random stream, never the simulation's. When
+ * they shared one, merely *opening* the draft consumed numbers the spawner
+ * would otherwise have used, so identical seeds diverged depending on when you
+ * happened to click — and a fixed seed is the whole basis of before/after
+ * tuning measurements.
  */
 
 export type Offer =
@@ -57,16 +62,16 @@ function candidates(world: World): { offer: Offer; weight: number }[] {
 }
 
 /** Weighted pick without replacement, so one draft never repeats an option. */
-export function buildOffers(world: World): Offer[] {
+function buildOffers(world: World): Offer[] {
   const pool = candidates(world)
   const chosen: Offer[] = []
-  const wanted = Math.min(config.draft.choices, pool.length)
+  const wanted = Math.min(Math.max(1, Math.round(config.draft.choices)), pool.length)
 
   while (chosen.length < wanted) {
     let total = 0
     for (const entry of pool) total += entry.weight
 
-    let cursor = world.rng() * total
+    let cursor = world.draftRng() * total
     let index = pool.length - 1
     for (let i = 0; i < pool.length; i++) {
       cursor -= pool[i].weight
@@ -84,12 +89,32 @@ export function buildOffers(world: World): Offer[] {
 }
 
 /**
+ * The offers for the level currently waiting to be spent.
+ *
+ * Rolled once and remembered on the world, so closing and reopening the panel
+ * shows the same cards. An empty roll isn't remembered: nothing is eligible
+ * right now, and caching that would leave the level stuck forever.
+ */
+export function currentOffers(world: World): Offer[] {
+  if (world.draftOffers) return world.draftOffers
+  const offers = buildOffers(world)
+  if (offers.length > 0) world.draftOffers = offers
+  return offers
+}
+
+/**
  * Taking an offer. Two lines of actual work, which is the whole point of
  * having built the modifier system three steps early.
  */
 export function takeOffer(world: World, offer: Offer): void {
+  // Only an offer from the current roll can be taken. Guards against a stale
+  // card from a previous run being clicked after an auto-restart, and against
+  // a double click spending two levels on one card.
+  if (!world.draftOffers?.includes(offer)) return
+  world.draftOffers = null
+
   if (offer.kind === 'weapon') {
-    world.weapons.push({ def: offer.def, cooldownRemaining: 0.1, timesCast: 0 })
+    world.weapons.push({ def: offer.def, cooldownRemaining: 0.1, timesCast: 0, idleSeconds: 0 })
   } else {
     world.modifiers.push(...offer.def.modifiers)
     world.upgradesTaken[offer.id] = (world.upgradesTaken[offer.id] ?? 0) + 1

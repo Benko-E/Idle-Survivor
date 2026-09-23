@@ -13,17 +13,37 @@ import type { World } from './world'
  */
 
 /**
- * How far off screen to spawn, given how much world is currently visible.
+ * How far away to spawn — and, via recycleStragglers, how far away to wrap.
  *
- * Takes world units rather than pixels. It used to take viewport half-extents,
- * which meant a bigger window spawned enemies further away and quietly made
- * the game easier — the renderer now pins the visible world, so this is stable.
+ * Sized from a *design* view rather than the actual window. The renderer pins
+ * how much world is visible vertically, but not horizontally: a wider window
+ * still sees further sideways. When this read the real window, a wide monitor
+ * spawned enemies further out than a narrow one, and since the spawn ring
+ * drives the whole run, the same seed played out differently depending on
+ * the shape of the browser. That quietly broke every fixed-seed comparison.
+ *
+ * The design view is as wide as `spawn.designAspect`, so any window up to
+ * that shape gets exactly the same ring and exactly the same run. Only a
+ * window wide enough that enemies would visibly pop in at the edges falls back
+ * to its real size.
  */
 function spawnRingRadii(worldHalfWidth: number, worldHalfHeight: number): { rx: number; ry: number } {
-  const { margin, minRadius } = config.spawn
-  const rx = Math.max(minRadius, worldHalfWidth * margin)
-  const ry = Math.max(minRadius, worldHalfHeight * margin)
-  return { rx, ry }
+  const { margin, minRadius, designAspect } = config.spawn
+  const { visibleWorldHeight, yScale } = config.render
+
+  const designHalfHeight = visibleWorldHeight / 2
+  const designHalfWidth = designHalfHeight * yScale * designAspect
+
+  // Real extents only win if they're genuinely bigger, not a rounding error
+  // bigger — the 1% keeps float noise from flipping between the two and
+  // making runs diverge anyway.
+  const halfWidth = worldHalfWidth > designHalfWidth * 1.01 ? worldHalfWidth : designHalfWidth
+  const halfHeight = worldHalfHeight > designHalfHeight * 1.01 ? worldHalfHeight : designHalfHeight
+
+  return {
+    rx: Math.max(minRadius, halfWidth * margin),
+    ry: Math.max(minRadius, halfHeight * margin),
+  }
 }
 
 function eligibleDefs(time: number): EnemyDef[] {
@@ -63,6 +83,7 @@ function spawnOne(world: World, halfViewWidth: number, halfViewHeight: number): 
     maxHp: hp,
     speed: def.baseSpeed * speedMultiplier(world.time),
     effects: [],
+    stride: 0,
   })
 }
 

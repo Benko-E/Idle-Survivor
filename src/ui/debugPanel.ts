@@ -29,6 +29,35 @@ const NEEDS_RESTART = new Set([
   'shop.distanceFromStart',
 ])
 
+/**
+ * Values that are counts, sizes or indices and must stay whole numbers.
+ *
+ * Every other number keeps a fine step even when it happens to be whole today
+ * — a weight of -3 should be draggable to -2.5. These can't be: the slider
+ * used to hand out steps of 0.1 or 0.01 regardless, and `sampleDirections` at
+ * 24.3 threw on the next frame and froze the game.
+ *
+ * The consumers round these too, so a value typed into the console can't
+ * break them either. This list just stops the slider offering nonsense.
+ */
+const INTEGER_PATHS = new Set([
+  'world.seed',
+  'render.groundTileSize',
+  'render.groundPlainTiles',
+  'render.groundChunkTiles',
+  'influence.gridRadiusCells',
+  'influence.flow.sweeps',
+  'movement.sampleDirections',
+  'occupancy.maxCells',
+  'trail.maxMarks',
+  'pickups.maxAlive',
+  'pickups.merge.count',
+  'pickups.merge.maxTier',
+  'spawn.maxAlive',
+  'draft.choices',
+  'draft.maxWeapons',
+])
+
 /** Where the automatic range is a poor fit. */
 const RANGE_OVERRIDES: Record<string, [number, number]> = {
   'render.yScale': [0.3, 1],
@@ -227,17 +256,21 @@ export class DebugPanel {
     }
 
     if (typeof value === 'number') {
-      const [min, max] = rangeFor(path, value)
+      const whole = INTEGER_PATHS.has(path)
+      const [rawMin, rawMax] = rangeFor(path, value)
+      // Counts can't go below one, and a range that starts at 0 would offer it.
+      const min = whole ? Math.max(1, Math.round(rawMin)) : rawMin
+      const max = whole ? Math.max(min + 1, Math.round(rawMax)) : rawMax
       readout.textContent = formatNumber(value)
 
       const input = document.createElement('input')
       input.type = 'range'
       input.min = String(min)
       input.max = String(max)
-      input.step = String(stepFor(value, min, max))
+      input.step = whole ? '1' : String(stepFor(value, min, max))
       input.value = String(value)
       input.addEventListener('input', () => {
-        const next = Number(input.value)
+        const next = whole ? Math.round(Number(input.value)) : Number(input.value)
         bag[key] = next
         readout.textContent = formatNumber(next)
       })

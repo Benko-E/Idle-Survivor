@@ -20,6 +20,19 @@ export const stats = {
   fps: 0,
   /** Simulation steps run during the last rendered frame. */
   stepsLastFrame: 0,
+  /** Frames that threw. Non-zero means something is wrong; check the console. */
+  errors: 0,
+}
+
+/** Each distinct error is logged once, not sixty times a second. */
+const reported = new Set<string>()
+
+function report(error: unknown): void {
+  stats.errors++
+  const key = error instanceof Error ? `${error.name}: ${error.message}` : String(error)
+  if (reported.has(key)) return
+  reported.add(key)
+  console.error('Frame failed; the game will keep running.', error)
 }
 
 export function startLoop(update: (dt: number) => void, render: () => void): void {
@@ -30,6 +43,12 @@ export function startLoop(update: (dt: number) => void, render: () => void): voi
   let fpsElapsed = 0
 
   function frame(nowMs: number): void {
+    // Scheduled first, not last. It used to sit at the bottom, so a single
+    // thrown error anywhere in a frame meant the next frame was never asked
+    // for and the game froze until a refresh — which is exactly what dragging
+    // a debug slider to a fractional direction count did.
+    requestAnimationFrame(frame)
+
     const now = nowMs / 1000
     let elapsed = now - previous
     previous = now
@@ -37,15 +56,29 @@ export function startLoop(update: (dt: number) => void, render: () => void): voi
 
     accumulator += elapsed
 
-    let steps = 0
-    while (accumulator >= FIXED_DT) {
-      update(FIXED_DT)
-      accumulator -= FIXED_DT
-      steps++
+    try {
+      let steps = 0
+      while (accumulator >= FIXED_DT) {
+        update(FIXED_DT)
+        accumulator -= FIXED_DT
+        steps++
+      }
+      stats.stepsLastFrame = steps
+    } catch (error) {
+      // Drop the backlog, or a step that throws every time would be retried
+      // in a tight loop on every frame after.
+      accumulator = 0
+      report(error)
     }
-    stats.stepsLastFrame = steps
 
-    render()
+    // Guarded separately, so a broken simulation still gets drawn — including
+    // the error count in the debug overlay — rather than freezing on the last
+    // good frame, which looks identical to a hang.
+    try {
+      render()
+    } catch (error) {
+      report(error)
+    }
 
     fpsFrames++
     fpsElapsed += elapsed
@@ -54,8 +87,6 @@ export function startLoop(update: (dt: number) => void, render: () => void): voi
       fpsFrames = 0
       fpsElapsed = 0
     }
-
-    requestAnimationFrame(frame)
   }
 
   requestAnimationFrame(frame)

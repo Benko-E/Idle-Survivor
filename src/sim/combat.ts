@@ -1,3 +1,4 @@
+import { config } from '../config'
 import { BEHAVIOURS } from './behaviours'
 import { updateProjectiles } from './projectiles'
 import { weaponStat } from './stats'
@@ -27,11 +28,20 @@ function castReadySpells(world: World, dt: number): void {
       continue
     }
 
-    behaviour({
+    const landed = behaviour({
       world,
       def: weapon.def,
       stat: (key) => weaponStat(world, weapon, key),
     })
+
+    if (!landed) {
+      // Nothing in reach. Stay ready and look again shortly, rather than
+      // spending the whole cooldown on thin air. The short wait keeps an
+      // out-of-range spell from re-querying the neighbour grid every frame.
+      weapon.cooldownRemaining = config.combat.retrySeconds
+      weapon.idleSeconds += config.combat.retrySeconds
+      continue
+    }
 
     weapon.timesCast++
 

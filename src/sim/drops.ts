@@ -7,15 +7,16 @@ import type { Enemy, World } from './world'
  *
  * The drop table lives on the enemy's data entry and the roll happens here, so
  * "Hulks should drop the good stuff more often" is a number in a data file and
- * "XP drops too often across the board" is one number in the config.
+ * "gold drops too often across the board" is one number in the config.
  */
 export function rollDrops(world: World, enemy: Enemy): void {
   if (world.pickups.length >= config.pickups.maxAlive) return
 
   const scale = config.drops.chanceScale
 
-  // First success wins. Tables are written best-first, so a Hulk rolls for
-  // Soulglass, then an Ember, and only falls through to a Spark if both miss.
+  // First success wins. Tables are written best-first, so a Hulk rolls for a
+  // tier 2 pile, then tier 1, and only falls through to a single coin if both
+  // miss.
   for (const entry of enemy.def.drops) {
     if (world.rng() >= entry.chance * scale) continue
 

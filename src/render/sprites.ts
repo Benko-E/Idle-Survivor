@@ -128,11 +128,15 @@ export function facingRow(dx: number, dy: number): number {
 /**
  * Which walk frame to draw.
  *
- * Derived from elapsed time, speed and a per-entity offset rather than stored
- * on the entity: it keeps a purely visual concern out of the simulation, and
- * the offset stops a crowd of identical enemies marching in lockstep.
+ * From distance actually walked, one frame per `stepLength`. It used to be
+ * elapsed time multiplied by nominal speed, which looked right until anything
+ * changed the real speed: a chilled enemy kept marching at full pace, a speed
+ * upgrade left his feet shuffling at the old rate, and the moment a slow
+ * landed the phase jumped and the sprite skipped frames.
+ *
+ * The per-entity offset stops a crowd of identical enemies stepping in unison.
  */
-export function walkFrame(time: number, speed: number, offset: number, stepLength: number): number {
-  const phase = (time * speed) / stepLength + offset * 0.37
+export function walkFrame(stride: number, offset: number, stepLength: number): number {
+  const phase = stride / stepLength + offset * 0.37
   return WALK_CYCLE[Math.floor(phase) % WALK_CYCLE.length]
 }

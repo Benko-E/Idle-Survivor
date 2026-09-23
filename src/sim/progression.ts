@@ -22,10 +22,10 @@ export function xpForLevel(level: number): number {
 /**
  * Award XP and roll up as many levels as it covers.
  *
- * Levels are banked as `pendingLevelUps` rather than acted on. Nothing
- * consumes them yet — step 6's draft will, one at a time, pausing for each.
- * A single big kill crossing two thresholds should offer two choices, not
- * silently swallow one.
+ * Levels are banked as `pendingLevelUps` rather than acted on. The draft
+ * spends them one at a time, whenever you choose to open it — the game never
+ * pauses for a level. A single big kill crossing two thresholds offers two
+ * choices, rather than silently swallowing one.
  */
 export function grantXp(world: World, amount: number): void {
   if (amount <= 0) return

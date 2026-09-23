@@ -26,7 +26,16 @@ export interface CastContext {
   stat: (key: string) => number
 }
 
-export type Behaviour = (context: CastContext) => void
+/**
+ * Returns whether the cast actually did anything.
+ *
+ * A spell with nothing in range used to go on cooldown anyway: Chain
+ * Lightning would fire at thin air, then sit out 2.7 seconds while an enemy
+ * walked into range. Reporting a miss lets the caller keep the spell ready
+ * instead, and stops empty casts inflating the per-spell cast counter that
+ * exists to show when a spell never finds a target.
+ */
+export type Behaviour = (context: CastContext) => boolean
 
 /** Reused between casts so a busy frame doesn't allocate. */
 const scratchTargets: Enemy[] = []
@@ -40,7 +49,7 @@ const projectile: Behaviour = ({ world, def, stat }) => {
   const range = stat('range')
 
   const target = nearestEnemy(world, caster.x, caster.y, range)
-  if (!target) return
+  if (!target) return false
 
   const count = Math.max(1, Math.round(stat('count')))
   const speed = stat('speed')
@@ -70,6 +79,8 @@ const projectile: Behaviour = ({ world, def, stat }) => {
       hits: new Set(),
     })
   }
+
+  return true
 }
 
 /**
@@ -84,12 +95,17 @@ const nova: Behaviour = ({ world, def, stat }) => {
   const duration = stat('duration')
 
   const targets = enemiesInRadius(world, caster.x, caster.y, area, scratchTargets)
+  // Held back until something is in reach, like every other spell. It used to
+  // go off on its timer regardless, spending its cooldown on an empty ring.
+  if (targets.length === 0) return false
+
   for (const enemy of targets) {
     damageEnemy(world, enemy, damage)
     if (slow > 0 && duration > 0) applyEffect(enemy, 'slow', slow, duration)
   }
 
   spawnRing(world, caster.x, caster.y, area, def.colour, config.combat.ringVfxSeconds)
+  return true
 }
 
 /**
@@ -103,7 +119,7 @@ const chain: Behaviour = ({ world, def, stat }) => {
   const falloff = stat('falloff')
 
   let current = nearestEnemy(world, caster.x, caster.y, stat('range'))
-  if (!current) return
+  if (!current) return false
 
   const struck = new Set<number>()
   let damage = stat('damage')
@@ -120,6 +136,8 @@ const chain: Behaviour = ({ world, def, stat }) => {
     damage *= falloff
     current = nearestEnemy(world, current.x, current.y, jumpRange, struck)
   }
+
+  return true
 }
 
 /**
@@ -133,13 +151,14 @@ const curse: Behaviour = ({ world, def, stat }) => {
   const duration = stat('duration')
 
   const targets = enemiesInRadius(world, caster.x, caster.y, area, scratchTargets)
-  if (targets.length === 0) return
+  if (targets.length === 0) return false
 
   for (const enemy of targets) {
     applyEffect(enemy, 'dot', dotDamage, duration)
   }
 
   spawnRing(world, caster.x, caster.y, area, def.colour, config.combat.ringVfxSeconds)
+  return true
 }
 
 export const BEHAVIOURS: Record<string, Behaviour> = {

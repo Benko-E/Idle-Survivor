@@ -7,8 +7,8 @@
  * a neighbour lookup only touches the handful of cells that could possibly
  * contain a match.
  *
- * Used by crowd separation now; the danger map and weapon targeting will both
- * want it later.
+ * Used for crowd separation, spell targeting and projectile hits (one shared
+ * enemy grid), and separately for merging piles of gold.
  */
 export class SpatialGrid {
   private readonly cells = new Map<number, number[]>()
@@ -27,9 +27,17 @@ export class SpatialGrid {
   }
 
   clear(): void {
-    // Emptying the arrays rather than dropping them keeps the allocations
-    // around between frames. This runs every frame; garbage adds up.
-    for (const bucket of this.cells.values()) bucket.length = 0
+    // Cells used last time are emptied and kept, so a crowd that stays put
+    // doesn't reallocate its buckets every frame. Cells that were already
+    // empty — nothing has stood there since the last clear — are dropped.
+    //
+    // It used to keep every cell forever. In an endless world that meant the
+    // map held every square the horde had ever crossed, across restarts too,
+    // and this loop walked all of them every frame.
+    for (const [key, bucket] of this.cells) {
+      if (bucket.length === 0) this.cells.delete(key)
+      else bucket.length = 0
+    }
   }
 
   insert(index: number, x: number, y: number): void {

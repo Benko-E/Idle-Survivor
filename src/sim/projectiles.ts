@@ -1,6 +1,6 @@
 import { config } from '../config'
 import { damageEnemy } from './damageEnemy'
-import { forEachEnemyNear } from './enemyGrid'
+import { forEachEnemyNear, LARGEST_ENEMY_RADIUS } from './enemyGrid'
 import type { World } from './world'
 
 /**
@@ -42,7 +42,7 @@ export function updateProjectiles(world: World, dt: number): void {
     if (!spent) {
       const reach = projectile.radius + config.combat.projectileHitPadding
 
-      forEachEnemyNear(world, projectile.x, projectile.y, reach + 24, (enemy) => {
+      forEachEnemyNear(world, projectile.x, projectile.y, reach + LARGEST_ENEMY_RADIUS, (enemy) => {
         if (spent) return
         if (projectile.hits.has(enemy.id)) return
 

@@ -3,6 +3,7 @@ import type { Modifier } from '../core/modifiers'
 import { makeRng, type Rng } from '../core/rng'
 import { findWeaponDef } from '../data/weapons'
 import type { EnemyDef, PickupDef, WeaponDef } from '../data/types'
+import type { Offer } from './draft'
 import type { Projectile } from './projectiles'
 import type { StatusEffect } from './statusEffects'
 import type { VisitMark } from './trail'
@@ -28,6 +29,11 @@ export interface Character {
   /** Unit vector. Movement steers this rather than setting it outright. */
   facingX: number
   facingY: number
+  /**
+   * Total distance walked. Drives the walk animation, so his feet keep pace
+   * with a speed upgrade instead of shuffling at the base rate.
+   */
+  stride: number
 }
 
 export interface Enemy {
@@ -46,6 +52,11 @@ export interface Enemy {
   /** Resolved at spawn from the def's base speed and the difficulty curve. */
   speed: number
   effects: StatusEffect[]
+  /**
+   * Total distance walked. Drives the walk animation — reading it off
+   * distance rather than time is what makes a chilled enemy visibly trudge.
+   */
+  stride: number
 }
 
 export interface Pickup {
@@ -64,14 +75,28 @@ export interface Pickup {
 export interface WeaponInstance {
   def: WeaponDef
   cooldownRemaining: number
+  /** Casts that actually hit something. */
   timesCast: number
+  /**
+   * Seconds spent ready but with nothing in reach. A spell with a lot of idle
+   * time and few casts has a range too short for how he plays.
+   */
+  idleSeconds: number
 }
 
 export interface World {
   /** Seconds since the run started. Every difficulty formula reads this. */
   time: number
   state: RunState
+  /** The simulation's randomness. Nothing driven by player input may draw on it. */
   rng: Rng
+  /**
+   * A separate stream for the level-up draft, so when you open it has no
+   * effect on the run. See sim/draft.ts.
+   */
+  draftRng: Rng
+  /** The offers for the level waiting to be spent, once rolled. */
+  draftOffers: Offer[] | null
 
   character: Character
   enemies: Enemy[]
@@ -89,10 +114,7 @@ export interface World {
   occupancy: Map<number, { amount: number; updated: number }>
 
   weapons: WeaponInstance[]
-  /**
-   * Every stat change in play, from upgrades. Empty until the draft exists in
-   * step 6 — but every spell already reads its numbers through it.
-   */
+  /** Every stat change in play, from upgrades taken in the draft. */
   modifiers: Modifier[]
 
   /** Awarded per kill, never dropped. See sim/progression.ts. */
@@ -146,6 +168,10 @@ export function createWorld(seed: number = config.world.seed): World {
     time: 0,
     state: 'running',
     rng,
+    // Derived from the seed rather than independent, so a given seed still
+    // produces the same drafts every time.
+    draftRng: makeRng(seed ^ 0x5bd1e995),
+    draftOffers: null,
     character: {
       x: 0,
       y: 0,
@@ -155,6 +181,7 @@ export function createWorld(seed: number = config.world.seed): World {
       maxHp: config.character.maxHp,
       facingX: 1,
       facingY: 0,
+      stride: 0,
     },
     enemies: [],
     pickups: [],
@@ -166,10 +193,12 @@ export function createWorld(seed: number = config.world.seed): World {
     occupancy: new Map(),
     weapons: config.character.startingWeaponIds.map((id) => ({
       def: findWeaponDef(id),
-      // Staggered rather than all firing on frame one, which otherwise puts
-      // every cooldown permanently in lockstep.
+      // Ready almost at once. There's only one starting spell, and since a
+      // miss no longer spends the cooldown, spells drift out of lockstep on
+      // their own as each finds targets at different moments.
       cooldownRemaining: 0.15,
       timesCast: 0,
+      idleSeconds: 0,
     })),
     modifiers: [],
     xp: 0,

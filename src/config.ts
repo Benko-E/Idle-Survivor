@@ -115,6 +115,12 @@ export const config = {
      */
     ringVfxSeconds: 0.55,
     lineVfxSeconds: 0.28,
+    /**
+     * How soon a spell that found nothing in range looks again. Short enough
+     * that it fires almost as soon as something walks in, long enough that
+     * four idle spells aren't querying the grid every single frame.
+     */
+    retrySeconds: 0.1,
   },
 
   /**
@@ -496,11 +502,21 @@ export const config = {
 
   spawn: {
     /**
-     * Enemies appear on an ellipse around the character, sized from the
-     * viewport so they're always just out of sight. 1.42 is the minimum that
-     * keeps the diagonals off screen too; above that is breathing room.
+     * Enemies appear on an ellipse around the character, just out of sight.
+     * 1.42 is the minimum that keeps the diagonals off screen too; above that
+     * is breathing room.
      */
     margin: 1.5,
+    /**
+     * The window shape the spawn ring is sized for, width over height. Any
+     * window up to this shape gets an identical ring and so an identical run
+     * from the same seed; a wider one falls back to its real size so enemies
+     * never pop in on screen. 2.4 covers 21:9 ultrawides with room to spare.
+     *
+     * Also a difficulty knob in disguise: lower brings side spawns closer, so
+     * the horde arrives sooner on narrow screens.
+     */
+    designAspect: 2.4,
     /** Floor on the spawn ring, so a small window doesn't spawn them in your lap. */
     minRadius: 700,
     /** Random outward variation, so the ring never reads as a visible circle. */

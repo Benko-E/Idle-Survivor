@@ -16,8 +16,8 @@ import type { Pickup, World } from './world'
  * strong attractor that points somewhere. It isn't a bribe to make him move,
  * it's removing the ambiguity that stopped him.
  *
- * XP is conserved exactly (see pickupTiers.ts), so nothing about the value of
- * the ground changes — only how legible it is.
+ * Gold is conserved exactly (see pickupTiers.ts), so nothing about the value
+ * of the ground changes — only how legible it is.
  */
 
 const grid = new SpatialGrid(config.pickups.merge.radius)
@@ -29,12 +29,14 @@ const created: Pickup[] = []
 
 /**
  * One sweep. Returns true if anything merged, so the caller can run it again
- * and let a cascade resolve in a single tick — five Sparks make an Ember, and
- * five of those Embers should become a Soulglass right away rather than a
+ * and let a cascade resolve in a single tick — five coins make a purse, and
+ * five of those purses should become a coffer right away rather than a
  * second and a half later.
  */
 function mergeOnce(world: World): boolean {
-  const { count, radius, maxTier } = config.pickups.merge
+  const { radius, maxTier } = config.pickups.merge
+  // Whole and at least two: a "merge" of one pile into itself would loop.
+  const count = Math.max(2, Math.round(config.pickups.merge.count))
   const pickups = world.pickups
   const originalLength = pickups.length
   if (originalLength < count) return false
@@ -65,7 +67,7 @@ function mergeOnce(world: World): boolean {
       if (j === i || consumed[j]) return
 
       const b = pickups[j]
-      // Same kind and same size only. A Spark and an Ember don't combine —
+      // Same kind and same size only. A coin and a purse don't combine —
       // that would make the ladder depend on arrival order.
       if (b.def !== a.def || b.tier !== a.tier) return
 

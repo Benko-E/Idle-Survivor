@@ -8,10 +8,8 @@ import type { World, WeaponInstance } from './world'
  * a spell's own tags, or nothing at all for stats that belong to the character
  * rather than to any one spell.
  *
- * The modifier list is still empty until the draft exists, so today both of
- * these are expensive ways to return a base value. That's the intended state —
- * the machinery has to be in the path *before* there's anything in it, or
- * putting it there later means touching every call site in the game.
+ * Nothing reads a stat any other way. That's what lets every upgrade the
+ * draft hands out apply everywhere at once, with no code per upgrade.
  */
 
 /** Scoped by the spell's tags, so "+15% to fire spells" can select on them. */

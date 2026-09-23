@@ -2,11 +2,10 @@
  * The stat modifier system. (spec 5.5)
  *
  * Every number a spell uses is read through here, never straight off its data
- * entry. Right now there are no modifiers in the game at all — the upgrade
- * draft that produces them doesn't exist until step 6 — and that is exactly
- * why this goes in now. Retrofitting a resolver after twenty spells already
- * read their raw stats is the refactor this whole architecture exists to
- * avoid.
+ * entry. It went in three steps before the draft that produces modifiers, and
+ * that ordering was the point: retrofitting a resolver after twenty spells
+ * already read their raw stats is the refactor this architecture exists to
+ * avoid. When the draft arrived, it was a data exercise rather than a rewrite.
  *
  * An upgrade is data describing a change, and there is one machine that
  * applies all of them:

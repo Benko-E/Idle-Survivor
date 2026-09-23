@@ -42,10 +42,12 @@ export class Renderer {
   /** Camera centre, in world coordinates. */
   readonly camera = { x: 0, y: 0 }
 
-  /** Screen pixels per world unit. Recomputed on resize. */
+  /** Screen pixels per world unit. Recomputed every frame. */
   private scale = 1
   /** Pre-rendered ground chunks, keyed by chunk coordinate. */
   private readonly groundChunks = new Map<string, HTMLCanvasElement>()
+  /** Tile size and span the cached chunks were built at. */
+  private groundSignature = ''
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext('2d')
@@ -125,6 +127,11 @@ export class Renderer {
 
   /** Clear and draw the ground plane. */
   beginFrame(): void {
+    // Every frame, so `visibleWorldHeight` can be dragged live. The method
+    // existed and claimed to run per frame for a while, but was only ever
+    // called on resize — the slider silently did nothing.
+    this.recomputeScale()
+
     const { ctx } = this
     ctx.fillStyle = config.render.backgroundColour
     ctx.fillRect(0, 0, this.viewW, this.viewH)
@@ -189,7 +196,10 @@ export class Renderer {
     h = Math.imul(h ^ (h >>> 13), 1274126177)
     const unit = ((h ^ (h >>> 16)) >>> 0) / 4294967296
 
-    const { groundPlainTiles, groundDetailChance } = config.render
+    const { groundDetailChance } = config.render
+    // Whole, and never more than the strip holds: a fractional or oversized
+    // count indexes past the end of the strip and draws nothing.
+    const groundPlainTiles = Math.min(tileCount, Math.max(1, Math.round(config.render.groundPlainTiles)))
     const detailCount = tileCount - groundPlainTiles
 
     if (detailCount > 0 && unit < groundDetailChance) {
@@ -200,9 +210,21 @@ export class Renderer {
     return Math.floor(plainUnit * groundPlainTiles) % groundPlainTiles
   }
 
+  /**
+   * Tile size and chunk span, as whole numbers. Both size canvases and index
+   * into the tile strip, so a fractional value from the debug panel would
+   * otherwise produce blurry, misaligned or empty chunks.
+   */
+  private groundGeometry(): { tile: number; span: number } {
+    return {
+      tile: Math.max(1, Math.round(config.render.groundTileSize)),
+      span: Math.max(1, Math.round(config.render.groundChunkTiles)),
+    }
+  }
+
   /** Renders one chunk of ground to an offscreen canvas, once. */
   private buildGroundChunk(chunkX: number, chunkY: number, strip: HTMLImageElement): HTMLCanvasElement {
-    const { groundTileSize: tile, groundChunkTiles: span } = config.render
+    const { tile, span } = this.groundGeometry()
     const tileCount = Math.max(1, Math.round(strip.width / strip.height))
 
     const canvas = document.createElement('canvas')
@@ -236,13 +258,32 @@ export class Renderer {
     const strip = getGroundStrip()
     if (!strip) return false
 
-    const { groundTileSize: tile, groundChunkTiles: span } = config.render
+    const { tile, span } = this.groundGeometry()
     const chunkWorld = tile * span
+
+    // Chunks are baked at one tile size and span. If either is retuned live,
+    // everything cached is the wrong shape, so start over.
+    const signature = `${tile}|${span}`
+    if (signature !== this.groundSignature) {
+      this.groundChunks.clear()
+      this.groundSignature = signature
+    }
 
     const minChunkX = Math.floor((this.camera.x - halfW) / chunkWorld)
     const maxChunkX = Math.floor((this.camera.x + halfW) / chunkWorld)
     const minChunkY = Math.floor((this.camera.y - halfH) / chunkWorld)
     const maxChunkY = Math.floor((this.camera.y + halfH) / chunkWorld)
+
+    /**
+     * Twice what's on screen, plus slack for walking. Each chunk is a 256px
+     * canvas, about a quarter of a megabyte, and the old fixed cap of 200 was
+     * eight times the visible set — roughly 50 MB held for no benefit, which
+     * matters on a phone. Derived from the view rather than fixed, so a wide
+     * enough window can never need more chunks than the cache will keep and
+     * start rebuilding the ones it's looking at.
+     */
+    const visible = (maxChunkX - minChunkX + 1) * (maxChunkY - minChunkY + 1)
+    const capacity = visible * 2 + 16
 
     const { ctx } = this
 
@@ -253,11 +294,13 @@ export class Renderer {
         if (!chunk) {
           chunk = this.buildGroundChunk(cx, cy, strip)
           this.groundChunks.set(key, chunk)
-          // Bounded, because the world is endless and he never stops walking.
-          // Map preserves insertion order, so the oldest goes first.
-          if (this.groundChunks.size > 200) {
+          // Map preserves insertion order, so the oldest goes first. That's
+          // the chunk furthest behind him when he's walking, and when he's
+          // standing still nothing new is built, so nothing is evicted.
+          while (this.groundChunks.size > capacity) {
             const oldest = this.groundChunks.keys().next().value
-            if (oldest !== undefined) this.groundChunks.delete(oldest)
+            if (oldest === undefined) break
+            this.groundChunks.delete(oldest)
           }
         }
 
@@ -511,7 +554,11 @@ export class Renderer {
 
     const pad = 8
     const lineHeight = 16
-    const boxW = 210
+    // Sized to the longest line rather than fixed, so a long spell name
+    // doesn't run off the edge of its own background.
+    let widest = 0
+    for (const line of lines) widest = Math.max(widest, ctx.measureText(line).width)
+    const boxW = Math.max(210, Math.ceil(widest) + pad * 2)
     const boxH = pad * 2 + lines.length * lineHeight
 
     ctx.globalAlpha = 0.65

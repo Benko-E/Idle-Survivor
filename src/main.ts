@@ -22,16 +22,14 @@ import { DebugPanel } from './ui/debugPanel'
 import { DraftUi } from './ui/draft'
 
 /**
- * STEP 3 — spells and combat.
+ * The composition root: builds the world and the renderer, runs the fixed-step
+ * loop, and turns world state into a draw list each frame.
  *
- * He now casts on his own from a spellbook defined entirely in data. Four
- * behaviours cover four shapes of spell: a thrown bolt, a burst around
- * himself, a chain that leaps between targets, and a curse that damages over
- * time. Nothing in the engine names any of them.
- *
- * Every number a spell uses is resolved through the modifier system, even
- * though nothing modifies anything yet. That's the point — step 6 hands out
- * "+15% to fire spells" and it works everywhere with no further changes.
+ * The simulation lives entirely under sim/ and never imports anything from
+ * render/ or ui/. This file is the only place the two meet — the spawner is
+ * handed how much world is on screen as plain numbers, and the renderer is
+ * handed flat descriptions of what to paint. See the README for how the
+ * pieces fit together.
  */
 
 const canvas = document.getElementById('game')
@@ -113,7 +111,20 @@ let showOverlay = config.debug.showOverlay
 let showHeatmap = config.debug.showHeatmap
 let showCandidates = config.debug.showCandidates
 
+/**
+ * Whether a key press belongs to a form field rather than the game.
+ *
+ * Without this, typing into the debug panel's text fields fired the game's
+ * hotkeys — every `r` in a spell id like `spell_curse_01` restarted the run.
+ */
+function isTyping(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false
+  if (target.isContentEditable) return true
+  return target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT'
+}
+
 window.addEventListener('keydown', (e) => {
+  if (isTyping(e.target)) return
   switch (e.key) {
     case 'F1':
       e.preventDefault()
@@ -221,7 +232,7 @@ function render(): void {
       // Enemies always walk straight at him, so their heading is simply the
       // direction to the character.
       frameRow: sheet ? facingRow(world.character.x - enemy.x, world.character.y - enemy.y) : undefined,
-      frameCol: sheet ? walkFrame(world.time, enemy.speed, enemy.id, config.character.stepLength) : undefined,
+      frameCol: sheet ? walkFrame(enemy.stride, enemy.id, config.character.stepLength) : undefined,
     })
   }
 
@@ -249,7 +260,7 @@ function render(): void {
     // Frozen on the standing frame once he's dead.
     frameCol:
       heroSheet && world.state === 'running'
-        ? walkFrame(world.time, world.character.speed, 0, config.character.stepLength)
+        ? walkFrame(world.character.stride, 0, config.character.stepLength)
         : 1,
   })
 
@@ -299,8 +310,13 @@ function render(): void {
       // numbers changed — browser zoom moves innerWidth, not the game.
       `viewport     ${window.innerWidth}x${window.innerHeight} @${window.devicePixelRatio}`,
       // Which spells are actually pulling their weight, and whether one is
-      // silently never finding a target.
-      ...world.weapons.map((weapon) => `  ${weapon.def.displayName.padEnd(11)}${weapon.timesCast}`),
+      // silently never finding a target. Idle time only builds while a spell is
+      // ready with nothing in reach, so a lot of it means its range is too short
+      // for how he plays.
+      ...world.weapons.map(
+        (weapon) => `  ${weapon.def.displayName.padEnd(11)}${weapon.timesCast} cast, ${weapon.idleSeconds.toFixed(0)}s idle`,
+      ),
+      ...(stats.errors > 0 ? [`ERRORS       ${stats.errors} (see console)`] : []),
       `F1 F2 F3     panel / heatmap / fan`,
     ])
   }
