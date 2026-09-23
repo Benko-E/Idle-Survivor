@@ -81,6 +81,21 @@ export const config = {
      * the same scale as the hero: his 36-pixel frame is drawn 46 units tall.
      */
     pixelScale: 46 / 36,
+    /**
+     * World units per pixel of enemy art. One figure for all of them, so their
+     * sizes relative to each other are the artist's; smaller than the hero's
+     * pixelScale because a horde of full-size crabs would bury him.
+     */
+    enemyPixelScale: 0.7,
+    /** Enemy feedback, all render-side. */
+    enemyFx: {
+      /** A white flash on a direct hit. Damage over time doesn't flash. */
+      flashSeconds: 0.12,
+      /** Squash, flash and fade on death, with a puff of dust. */
+      deathSeconds: 0.35,
+      /** Fading in when it appears, so nothing pops into view. */
+      spawnFadeSeconds: 0.3,
+    },
     /** Seconds his spellbook pose plays for when a big spell goes off. */
     castPoseSeconds: 0.45,
     /** Only spells with at least this recharge trigger the pose. */

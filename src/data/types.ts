@@ -76,8 +76,23 @@ export interface EnemyDef {
    */
   sprite?: string
   colour: string
-  /** Drawn height in world units. Width follows from the sprite's aspect. */
-  drawHeight: number
+  /**
+   * Size relative to the art, 1 being true size. Every enemy is drawn at the
+   * same pixel density (render.enemyPixelScale), so a bee next to a treant is
+   * the size the artist drew it; this is for the deliberately oversized — a
+   * spider the size of a pony is a heavy, not a different drawing.
+   */
+  scale?: number
+
+  /**
+   * Arrives as a group of this many at once, bunched on one bearing: a swarm
+   * of bees, a wolf pack. Each member still costs one spawn, so a group of
+   * eight means the next seven single spawns don't happen — the difficulty
+   * curve's enemy count means the same thing either way.
+   */
+  groupSize?: number
+  /** How far the group is scattered around its spawn point, in world units. */
+  groupSpread?: number
 }
 
 export interface DropEntry {

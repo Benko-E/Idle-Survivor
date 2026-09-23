@@ -114,7 +114,7 @@ export function updateZones(world: World, dt: number): void {
       const inside = enemiesInRadius(world, zone.x, zone.y, zone.radius, scratch)
       for (const enemy of inside) {
         if (zone.slow > 0) applyEffect(enemy, 'slow', zone.slow, CHILL_LINGER, zone.source)
-        if (zone.dps > 0) damageEnemy(world, enemy, zone.dps * dt, zone.source)
+        if (zone.dps > 0) damageEnemy(world, enemy, zone.dps * dt, zone.source, true)
         if (zone.pull > 0) {
           const dx = zone.x - enemy.x
           const dy = zone.y - enemy.y

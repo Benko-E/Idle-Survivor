@@ -1,9 +1,6 @@
 import coinsUrl from '../../art-source/coins.png'
 import groundUrl from '../../art-source/ground.png'
 import heroUrl from '../../art-source/hero.png'
-import hulkUrl from '../../art-source/hulk.png'
-import shamblerUrl from '../../art-source/shambler.png'
-import stalkerUrl from '../../art-source/stalker.png'
 import heroCastUrl from '../../art-source/hero_cast.png'
 import flamesUrl from '../../art-source/flames.png'
 import chestUrl from '../../art-source/chest.png'
@@ -19,14 +16,21 @@ import orbFireUrl from '../../art-source/orb_fire.png'
 const PROP_FILES = import.meta.glob('../../art-source/props/*.png', { eager: true, import: 'default' }) as Record<string, string>
 
 /**
+ * Enemy sheets, one per creature, loaded under their file name — an enemy's
+ * `sprite` in data/enemies.ts is just that name. New art is a line in
+ * tools/extract-art.ps1; nothing here changes.
+ */
+const ENEMY_FILES = import.meta.glob('../../art-source/enemies/*.png', { eager: true, import: 'default' }) as Record<string, string>
+
+/** Interface pieces drawn on the canvas — the health and XP bars. `ui:<name>`. */
+const UI_FILES = import.meta.glob('../../art-source/ui/bar_*.png', { eager: true, import: 'default' }) as Record<string, string>
+
+/**
  * Spell effects from art-source/fx/ (made by tools/GeneratedArt.cs from the
  * generated art), loaded as `fx:<name>`. Each is a strip of frames; the count
  * has to be known here because the file doesn't carry it. A missing file just
  * means that effect is drawn with plain shapes.
  */
-/** Interface pieces drawn on the canvas — the health and XP bars. `ui:<name>`. */
-const UI_FILES = import.meta.glob('../../art-source/ui/bar_*.png', { eager: true, import: 'default' }) as Record<string, string>
-
 const FX_FILES = import.meta.glob('../../art-source/fx/*.png', { eager: true, import: 'default' }) as Record<string, string>
 const FX_FRAMES: Record<string, number> = {
   strike: 4,
@@ -131,9 +135,7 @@ async function loadStrip(name: string, url: string, frames: number): Promise<voi
 export async function loadSprites(): Promise<void> {
   await Promise.all([
     loadSheet('hero', heroUrl),
-    loadSheet('shambler', shamblerUrl),
-    loadSheet('hulk', hulkUrl),
-    loadSheet('stalker', stalkerUrl),
+    ...Object.entries(ENEMY_FILES).map(([path, url]) => loadSheet(path.split('/').pop()!.replace(/\.png$/, ''), url)),
     loadStrip('coins', coinsUrl, COIN_TIERS),
     loadStrip('hero_cast', heroCastUrl, 3),
     loadStrip('flames', flamesUrl, 4),

@@ -22,7 +22,7 @@ export interface GameEvents extends Record<string, unknown> {
    * time, so it's frequent — the payload object is reused between emits and
    * must be copied, not kept.
    */
-  enemyDamaged: { enemyId: number; x: number; y: number; amount: number; colour: string; killed: boolean }
+  enemyDamaged: { enemyId: number; x: number; y: number; amount: number; colour: string; killed: boolean; overTime: boolean }
 }
 
 export const gameEvents = new EventBus<GameEvents>()

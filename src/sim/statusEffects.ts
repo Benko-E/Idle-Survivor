@@ -73,7 +73,7 @@ export function updateStatusEffects(world: World, dt: number): void {
       const effect = enemy.effects[i]
 
       if (effect.kind === 'dot' && enemy.hp > 0) {
-        damageEnemy(world, enemy, effect.magnitude * dt, effect.source)
+        damageEnemy(world, enemy, effect.magnitude * dt, effect.source, true)
       }
 
       effect.remaining -= dt

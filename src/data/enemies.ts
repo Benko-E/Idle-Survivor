@@ -1,4 +1,4 @@
-﻿import type { EnemyDef } from './types'
+import type { EnemyDef } from './types'
 
 /**
  * The entire enemy roster. (spec 5.1)
@@ -26,9 +26,8 @@ export const ENEMY_DEFS: EnemyDef[] = [
     spawnWeight: 100,
     unlockAtSeconds: 0,
     drops: [{ pickupId: 'pickup_gold_01', chance: 0.5 }],
-    sprite: 'shambler',
+    sprite: 'crab',
     colour: '#7a4a52',
-    drawHeight: 30,
   },
   {
     id: 'enemy_fast_01',
@@ -48,13 +47,12 @@ export const ENEMY_DEFS: EnemyDef[] = [
       { pickupId: 'pickup_gold_01', chance: 0.08, tier: 1 },
       { pickupId: 'pickup_gold_01', chance: 0.55 },
     ],
-    sprite: 'stalker',
+    sprite: 'bat',
     colour: '#5f7a4a',
-    drawHeight: 24,
   },
   {
     id: 'enemy_brute_01',
-    displayName: 'Hulk',
+    displayName: 'Cave Spider',
     tags: ['melee', 'heavy'],
     baseHp: 46,
     baseSpeed: 30,
@@ -72,8 +70,75 @@ export const ENEMY_DEFS: EnemyDef[] = [
       { pickupId: 'pickup_gold_01', chance: 0.35, tier: 1 },
       { pickupId: 'pickup_gold_01', chance: 1 },
     ],
-    sprite: 'hulk',
+    sprite: 'spider',
     colour: '#4f5f7a',
-    drawHeight: 46,
+    // Twice the size it was drawn: the same spider, grown fat on wizards.
+    scale: 2,
+  },
+  {
+    id: 'enemy_swarm_01',
+    displayName: 'Bee',
+    tags: ['melee', 'beast', 'swarm'],
+    // Each one is nothing; it's the eight of them that matter.
+    baseHp: 3,
+    baseSpeed: 62,
+    contactDamage: 2,
+    xpValue: 1,
+    radius: 7,
+    dangerWeight: 0.5,
+    // Low, because one pick is a whole swarm.
+    spawnWeight: 4,
+    unlockAtSeconds: 45,
+    groupSize: 8,
+    groupSpread: 45,
+    drops: [{ pickupId: 'pickup_gold_01', chance: 0.15 }],
+    sprite: 'bee',
+    colour: '#d8b040',
+  },
+  {
+    id: 'enemy_pack_01',
+    displayName: 'Wolf',
+    tags: ['melee', 'beast', 'fast'],
+    baseHp: 16,
+    // Quicker than a crab, but kept well under his pace even once the
+    // difficulty curve speeds everything up: a pack that can match him
+    // can't be escaped, and at 72 they did by minute ten.
+    baseSpeed: 60,
+    contactDamage: 5,
+    xpValue: 4,
+    radius: 12,
+    dangerWeight: 1.4,
+    spawnWeight: 6,
+    unlockAtSeconds: 120,
+    // A pack, all arriving from the same side at once.
+    groupSize: 4,
+    groupSpread: 60,
+    drops: [
+      { pickupId: 'pickup_gold_01', chance: 0.1, tier: 1 },
+      { pickupId: 'pickup_gold_01', chance: 0.5 },
+    ],
+    sprite: 'wolf',
+    colour: '#6a6f78',
+  },
+  {
+    id: 'enemy_tank_01',
+    displayName: 'Treant',
+    tags: ['melee', 'heavy', 'plant'],
+    // A walking wall: slow, enormous, and worth the effort.
+    baseHp: 260,
+    baseSpeed: 20,
+    contactDamage: 24,
+    xpValue: 40,
+    radius: 24,
+    dangerWeight: 3.5,
+    spawnWeight: 3,
+    unlockAtSeconds: 180,
+    drops: [
+      { pickupId: 'pickup_gold_01', chance: 0.3, tier: 2 },
+      { pickupId: 'pickup_gold_01', chance: 1, tier: 1 },
+    ],
+    sprite: 'treant',
+    colour: '#5a7a3a',
+    scale: 1.9,
   },
 ]

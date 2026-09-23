@@ -73,18 +73,30 @@ function spawnOne(world: World, halfViewWidth: number, halfViewHeight: number): 
   const jitter = 1 + world.rng() * config.spawn.radiusJitter
 
   const hp = def.baseHp * hpMultiplier(world.time)
+  const speed = def.baseSpeed * speedMultiplier(world.time)
+  const x = world.character.x + Math.cos(angle) * rx * jitter
+  const y = world.character.y + Math.sin(angle) * ry * jitter
 
-  world.enemies.push({
-    id: world.nextEnemyId++,
-    def,
-    x: world.character.x + Math.cos(angle) * rx * jitter,
-    y: world.character.y + Math.sin(angle) * ry * jitter,
-    hp,
-    maxHp: hp,
-    speed: def.baseSpeed * speedMultiplier(world.time),
-    effects: [],
-    stride: 0,
-  })
+  // A group bunches around one point, and pays for its extra members out of
+  // the spawns still to come (see EnemyDef.groupSize).
+  const count = Math.max(1, Math.min(def.groupSize ?? 1, config.spawn.maxAlive - world.enemies.length))
+  const spread = def.groupSpread ?? 0
+  for (let i = 0; i < count; i++) {
+    const a = world.rng() * Math.PI * 2
+    const r = i === 0 ? 0 : Math.sqrt(world.rng()) * spread
+    world.enemies.push({
+      id: world.nextEnemyId++,
+      def,
+      x: x + Math.cos(a) * r,
+      y: y + Math.sin(a) * r,
+      hp,
+      maxHp: hp,
+      speed,
+      effects: [],
+      stride: 0,
+    })
+  }
+  world.spawnCredit -= count - 1
 }
 
 /**

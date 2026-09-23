@@ -3,6 +3,7 @@ import { startLoop, stats } from './core/loop'
 import { drawCandidates, drawFootprint, drawHeatmap, drawTrail } from './render/debugOverlay'
 import { loadProfile, saveProfile } from './meta/profile'
 import { DamageNumbers } from './render/damageNumbers'
+import { EnemyLooks } from './render/enemyLooks'
 import { drawEffects, drawGroundEffects } from './render/effects'
 import { pushWorldProps } from './render/props'
 import { Renderer, type Drawable } from './render/renderer'
@@ -101,6 +102,8 @@ function noticeCasts(): void {
   }
 }
 gameEvents.on('enemyDamaged', (event) => damageNumbers.record(event))
+const enemyLooks = new EnemyLooks()
+gameEvents.on('enemyDamaged', (event) => enemyLooks.record(event, world))
 
 gameEvents.on('died', ({ time }) => {
   lastTime = time
@@ -124,6 +127,7 @@ function startRun(starterId?: string): void {
   world = createWorld(seed, lastStarterId)
   resetInfluenceClock()
   damageNumbers.clear()
+  enemyLooks.clear()
   castsSeen.clear()
   castPoseAt = -Infinity
   bankedAt = -Infinity
@@ -300,27 +304,8 @@ function render(): void {
     })
   }
 
-  for (const enemy of world.enemies) {
-    const sheet = getSheet(enemy.def.sprite)
-    const h = enemy.def.drawHeight
-    frame.push({
-      x: enemy.x,
-      y: enemy.y,
-      // Width follows the art's proportions when there is art, so changing a
-      // sprite never means also retuning a width.
-      w: sheet ? h * sheet.aspect : enemy.def.radius * 2,
-      h,
-      colour: enemy.def.colour,
-      sheet,
-      shadowRadius: enemy.def.radius,
-      // Enemies always walk straight at him, so their heading is simply the
-      // direction to the character.
-      frameRow: sheet
-        ? stickyFacingRow(enemy, world.character.x - enemy.x, world.character.y - enemy.y, config.render.facingSlackDegrees)
-        : undefined,
-      frameCol: sheet ? walkFrame(enemy.stride, enemy.id, config.character.stepLength) : undefined,
-    })
-  }
+  // Enemies, living and dying, with their hit flashes and fade ins.
+  enemyLooks.push(frame, world)
 
   // Projectiles are drawn with the spell effects, as glowing balls in flight.
 
@@ -366,6 +351,7 @@ function render(): void {
   renderer.drawScene(frame)
 
   drawEffects(renderer, world)
+  enemyLooks.drawDust(renderer, world)
   damageNumbers.draw(renderer)
 
   if (showCandidates) {

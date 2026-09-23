@@ -389,6 +389,35 @@ back into true pixel art. Each spell names the effects it uses in its data
 entry (`fx`), and anything without art falls back to drawn shapes. Flat
 effects are drawn under the characters, standing ones over them.
 
+## Enemies
+
+The roster is `data/enemies.ts`, one entry per creature; the art comes from
+the Time Fantasy monster pack via `tools/extract-art.ps1` into
+`art-source/enemies/`, one sheet per creature, loaded by file name.
+
+| Enemy | From | Job |
+|---|---|---|
+| Scuttler (crab) | start | the crowd |
+| Stalker (bat) | 0:30 | fast |
+| Bee | 0:45 | swarms of eight, each one feeble |
+| Cave Spider | 1:15 | heavy |
+| Wolf | 2:00 | packs of four from one side |
+| Treant | 3:00 | a slow walking wall worth a big pile of gold |
+
+A group (`groupSize`) pays for its extra members out of the spawns still to
+come, so the difficulty curve's enemy count means the same thing whether they
+arrive one at a time or eight at once.
+
+Every enemy is drawn at one pixel density (`render.enemyPixelScale`), so their
+sizes relative to each other are the artist's, and the sprite now matches the
+collision circle — the crabs used to be drawn at about half their footprint.
+`scale` on an entry is for the deliberately oversized.
+
+Feedback is render-side (`render/enemyLooks.ts`), fed by the `enemyDamaged`
+event: a white flash on a direct hit (damage over time doesn't flash, or a
+burning crowd would strobe), a squash, fade and puff of dust on death, and a
+fade in on arrival. Timings are `render.enemyFx`.
+
 ## Upgrades
 
 All 22 live in `src/data/upgrades.ts`, as data. Each one is a list of
@@ -505,3 +534,6 @@ That completes the spec's definition of done for the prototype. Past it:
   tier and element, one exclusive pick per tier; Frozen Orb, Ball Lightning
   and Blizzard; the spell bar with icons; level-up cards that lean by slot;
   pure and prismatic build bonuses. Balance is rough until the next pass.
+- [x] **17 — enemy looks.** One sheet per creature, drawn at one pixel
+  density; hit flash, death puff, fade in; bees, wolves and treants, with
+  swarms and packs arriving together. See "Enemies".

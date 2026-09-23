@@ -34,6 +34,8 @@ export interface Drawable {
   shadowRadius?: number
   /** 0 to 1. Used to fade a tree he's standing behind. */
   alpha?: number
+  /** 0 to 1: how far the sprite is washed to solid white — a hit. */
+  flash?: number
 }
 
 export class Renderer {
@@ -324,6 +326,27 @@ export class Renderer {
     return true
   }
 
+  private readonly whites = new WeakMap<HTMLImageElement, HTMLCanvasElement>()
+
+  /**
+   * A solid white copy of a sheet, for hit flashes: drawn over the sprite, it
+   * washes it out without touching anything around it. Made once per sheet.
+   */
+  private whiteOf(image: HTMLImageElement): HTMLCanvasElement {
+    let white = this.whites.get(image)
+    if (white) return white
+    white = document.createElement('canvas')
+    white.width = image.width
+    white.height = image.height
+    const g = white.getContext('2d')!
+    g.drawImage(image, 0, 0)
+    g.globalCompositeOperation = 'source-in'
+    g.fillStyle = '#ffffff'
+    g.fillRect(0, 0, white.width, white.height)
+    this.whites.set(image, white)
+    return white
+  }
+
   /**
    * Draw everything back-to-front by world Y, so things further "up" the
    * screen are further away and get overlapped by things in front of them.
@@ -360,18 +383,17 @@ export class Renderer {
 
       if (item.sheet) {
         const { image, frameWidth, frameHeight } = item.sheet
-        if (item.alpha !== undefined) ctx.globalAlpha = item.alpha
-        ctx.drawImage(
-          image,
-          (item.frameCol ?? 0) * frameWidth,
-          (item.frameRow ?? 0) * frameHeight,
-          frameWidth,
-          frameHeight,
-          Math.round(sx - w / 2),
-          Math.round(sy - h),
-          Math.ceil(w),
-          Math.ceil(h),
-        )
+        const alpha = item.alpha ?? 1
+        ctx.globalAlpha = alpha
+        const fx = (item.frameCol ?? 0) * frameWidth
+        const fy = (item.frameRow ?? 0) * frameHeight
+        const dx = Math.round(sx - w / 2)
+        const dy = Math.round(sy - h)
+        ctx.drawImage(image, fx, fy, frameWidth, frameHeight, dx, dy, Math.ceil(w), Math.ceil(h))
+        if (item.flash && item.flash > 0) {
+          ctx.globalAlpha = alpha * Math.min(1, item.flash)
+          ctx.drawImage(this.whiteOf(image), fx, fy, frameWidth, frameHeight, dx, dy, Math.ceil(w), Math.ceil(h))
+        }
         ctx.globalAlpha = 1
         continue
       }

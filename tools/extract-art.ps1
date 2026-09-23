@@ -73,17 +73,36 @@ function BlockRect($col, $row, $fw, $fh) {
 $hero = BlockRect 3 1 $charaFrameW $charaFrameH
 Crop $charaSheet $hero.x $hero.y $hero.w $hero.h 'hero.png'
 
-# Red crab, from the second monster sheet. Contrast decides this one: the
-# commonest enemy has to be legible in a heap of forty on green grass, and the
-# green slime that was here first vanished into the ground.
-$shambler = BlockRect 0 0 $monFrameW $monFrameH
-Crop $monsterSht2 $shambler.x $shambler.y $shambler.w $shambler.h 'shambler.png'
-
-$hulk = BlockRect 2 0 $monFrameW $monFrameH         # dark rock creature
-Crop $monsterSht $hulk.x $hulk.y $hulk.w $hulk.h 'hulk.png'
-
-$stalker = BlockRect 3 1 $monFrameW $monFrameH      # bat
-Crop $monsterSht $stalker.x $stalker.y $stalker.w $stalker.h 'stalker.png'
+# Red crab as the commonest enemy: contrast decided it. It has to be legible
+# in a heap of forty on green grass, and the green slime that was there first
+# vanished into the ground.
+#
+# The enemy roster, one sheet per creature in art-source/enemies/, loaded by
+# file name (an enemy's `sprite` is the name without .png). A new enemy's art
+# is one line here. Small creatures come out of the shared 12x8 sheets; the
+# big ones have a sheet each, which is already exactly one 3x4 block.
+$enemyOut = Join-Path $OutDir 'enemies'
+New-Item -ItemType Directory -Force -Path $enemyOut | Out-Null
+$monDir = Split-Path $monsterSht -Parent
+$enemySheets = @(
+  # name,     sheet,          block col, block row (-1: the whole file)
+  @('crab',   'monster2.png',  0,  0),
+  @('bat',    'monster1.png',  3,  1),
+  @('spider', 'monster1.png',  2,  0),
+  @('bee',    'monster1.png',  2,  1),
+  @('wolf',   'monster_wolf2.png',  -1, 0),
+  @('treant', 'monster_treant.png', -1, 0)
+)
+foreach ($e in $enemySheets) {
+  $path = Join-Path $monDir $e[1]
+  if ($e[2] -lt 0) {
+    $img = [System.Drawing.Image]::FromFile($path); $w = $img.Width; $h = $img.Height; $img.Dispose()
+    Crop $path 0 0 $w $h ('enemies\' + $e[0] + '.png')
+  } else {
+    $r = BlockRect $e[2] $e[3] $monFrameW $monFrameH
+    Crop $path $r.x $r.y $r.w $r.h ('enemies\' + $e[0] + '.png')
+  }
+}
 
 # Ground tiles, packed into a single horizontal strip.
 #
@@ -429,7 +448,7 @@ if (Test-Path $genDir) {
 }
 
 # --- contact sheet, for eyeballing the casting -------------------------------
-$names = @('hero.png','shambler.png','hulk.png','stalker.png')
+$names = @('hero.png', 'enemies\crab.png', 'enemies\bat.png', 'enemies\bee.png', 'enemies\spider.png', 'enemies\wolf.png', 'enemies\treant.png')
 $imgs  = $names | ForEach-Object { [System.Drawing.Image]::FromFile((Join-Path $OutDir $_)) }
 $sheetW = 10; $sheetH = 0
 foreach ($i in $imgs) { $sheetW += $i.Width + 10; if ($i.Height -gt $sheetH) { $sheetH = $i.Height } }
