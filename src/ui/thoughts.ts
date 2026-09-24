@@ -1,5 +1,4 @@
 import { config } from '../config'
-import { THOUGHTS } from '../data/thoughts'
 import type { Renderer } from '../render/renderer'
 import type { World } from '../sim/world'
 
@@ -144,7 +143,7 @@ export class ThoughtBubbles {
   }
 
   private consider(moment: string, world: World): void {
-    const entry = THOUGHTS[moment]
+    const entry = world.classDef.thoughts[moment]
     if (!entry || entry.lines.length === 0) return
     const gap = entry.urgent ? config.thoughts.urgentGapSeconds : config.thoughts.minGapSeconds
     if (world.time - this.lastThoughtAt < gap) return
@@ -164,7 +163,7 @@ export class ThoughtBubbles {
   private place(world: World, renderer: Renderer): void {
     const c = world.character
     const x = renderer.worldToScreenX(c.x)
-    const y = renderer.worldToScreenY(c.y) - (config.character.drawHeight + 22) * renderer.unitScale
+    const y = renderer.worldToScreenY(c.y) - (world.classDef.drawHeight + 22) * renderer.unitScale
     this.bubble.style.left = `${Math.round(x)}px`
     this.bubble.style.top = `${Math.round(y)}px`
   }

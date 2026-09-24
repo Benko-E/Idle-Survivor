@@ -121,12 +121,12 @@ export class SpellBar {
       } else if (tier === pending) {
         slot.classList.add('waiting')
         slot.textContent = 'NEW'
-        slot.title = 'A new spell is ready to choose'
+        slot.title = `A new ${world.classDef.abilityNoun} is ready to choose`
         slot.addEventListener('click', () => this.openChoice())
       } else {
         slot.classList.add('empty')
         slot.textContent = `Lv ${tierUnlockLevel(tier)}`
-        slot.title = `Another spell opens at level ${tierUnlockLevel(tier)}`
+        slot.title = `Another ${world.classDef.abilityNoun} opens at level ${tierUnlockLevel(tier)}`
       }
 
       this.bar.appendChild(slot)

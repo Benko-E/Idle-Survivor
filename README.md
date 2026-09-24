@@ -488,6 +488,25 @@ event: a white flash on a direct hit (damage over time doesn't flash, or a
 burning crowd would strobe), a squash, fade and puff of dust on death, and a
 fade in on arrival. Timings are `render.enemyFx`.
 
+## Classes
+
+Everything that makes him a wizard is one entry in `data/classes.ts`: name,
+what his abilities are called ("spell"), his elements (fire, frost,
+lightning), base speed, size, health and regeneration, his sprites and his
+thoughts. The world knows which class a run is (`world.classDef`) and
+everything that used to assume "wizard" asks it: the menu, the tier choices,
+the spell bar, the build bonuses, his thoughts, how he's drawn.
+
+Every spell names its class (`classId`), and a class is only ever offered
+its own. Two classes can share an element without sharing spells — a warlock
+can burn things too, with his own fire spells — because the element is just
+a damage type and the conditions are shared. Upgrades can be limited to
+classes (`classIds`); left out, every class gets them. Banked gold is one pot
+for the whole save, whoever earned it.
+
+Only the wizard exists so far. The change was checked by replaying six
+five-minute bot runs from before and after: every one came out identical.
+
 ## Conditions: burning, chilled, frozen, shocked
 
 The states an enemy can be in are data, in `data/conditions.ts`, and
@@ -632,3 +651,6 @@ That completes the spec's definition of done for the prototype. Past it:
 - [x] **20 — flying.** Fliers on their own collision layer, drawn over
   everything with their shadow on the ground; one rule for what terrain
   stops. See "Enemies".
+- [x] **21 — classes.** Everything wizard-specific gathered into one class
+  entry, with only the wizard; spells belong to a class. Play is unchanged,
+  checked by identical replays. See "Classes".

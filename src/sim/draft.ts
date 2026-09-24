@@ -34,6 +34,7 @@ function ownsTag(world: World, tag: string): boolean {
 
 function upgradeIsEligible(world: World, def: UpgradeDef): boolean {
   if ((world.upgradesTaken[def.id] ?? 0) >= def.maxStacks) return false
+  if (def.classIds && !def.classIds.includes(world.classDef.id)) return false
   if (!def.requiresOwnedTags) return true
   return def.requiresOwnedTags.every((tag) => ownsTag(world, tag))
 }

@@ -1,5 +1,5 @@
 import { config } from '../config'
-import type { WeaponDef } from '../data/types'
+import type { ClassDef, WeaponDef } from '../data/types'
 import { settleBuildBonus } from './buildBonus'
 import { WEAPON_DEFS } from '../data/weapons'
 import type { World } from './world'
@@ -15,11 +15,12 @@ import type { World } from './world'
  * owning a tier's spell *is* having made that tier's choice.
  *
  * Spells never appear in the ordinary level-up draft. That's upgrades only.
+ * And a class only ever sees its own: each spell names the class it belongs to.
  */
 
-/** Every enabled spell of a tier, in data order. */
-export function spellsOfTier(tier: number): WeaponDef[] {
-  return WEAPON_DEFS.filter((def) => def.enabled && def.tier === tier)
+/** Every enabled spell of a tier for a class, in data order. */
+export function spellsOfTier(classDef: ClassDef, tier: number): WeaponDef[] {
+  return WEAPON_DEFS.filter((def) => def.enabled && def.tier === tier && def.classId === classDef.id)
 }
 
 /** The level a tier opens at. Tier 1 is always open — it's the starting pick. */
@@ -47,7 +48,7 @@ export function pendingSpellTier(world: World): number | null {
   for (let tier = 2; tier <= tierCount(); tier++) {
     if (world.level < tierUnlockLevel(tier)) return null
     if (ownsTier(world, tier)) continue
-    if (spellsOfTier(tier).length === 0) continue
+    if (spellsOfTier(world.classDef, tier).length === 0) continue
     return tier
   }
   return null
@@ -60,7 +61,7 @@ export function pendingSpellTier(world: World): number | null {
  */
 export function takeSpell(world: World, def: WeaponDef): void {
   const tier = pendingSpellTier(world)
-  if (tier === null || def.tier !== tier || !def.enabled) return
+  if (tier === null || def.tier !== tier || !def.enabled || def.classId !== world.classDef.id) return
   world.weapons.push({ def, cooldownRemaining: 0.1, timesCast: 0, idleSeconds: 0, damageDealt: 0 })
   settleBuildBonus(world, tierCount())
 }

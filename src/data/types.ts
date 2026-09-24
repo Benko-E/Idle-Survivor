@@ -18,6 +18,58 @@ import type { Modifier } from '../core/modifiers'
  */
 export type Tag = string
 
+/** One kind of moment he has thoughts about. See data/thoughts.ts. */
+export interface ThoughtMoment {
+  lines: string[]
+  /** 0 to 1: how often the moment gets a thought at all. */
+  chance: number
+  /** Seconds before this moment can prompt a thought again. */
+  cooldown: number
+  urgent?: boolean
+}
+
+/**
+ * A character class: everything that makes him a wizard rather than anyone
+ * else. Entries are in data/classes.ts. Everything shared by every class —
+ * the conditions, the enemies, the world, the banked gold — lives elsewhere;
+ * everything with personality lives here, so a new class is an entry and its
+ * own abilities, not a rewrite.
+ */
+export interface ClassDef {
+  id: string
+  displayName: string
+  description: string
+  /**
+   * What its abilities are called on screen: "Choose your first spell",
+   * "New spell!". A ranger's might be "shot".
+   */
+  abilityNoun: string
+  /**
+   * The elements its abilities come in, which the build bonuses count: one of
+   * each is prismatic, all one is pure. Elements themselves are shared — fire
+   * is fire whoever casts it — but each class has its own abilities in them.
+   */
+  elements: string[]
+  /** Base numbers, before any upgrade. */
+  stats: {
+    /** World units per second. */
+    moveSpeed: number
+    /** Collision radius, in world units. */
+    radius: number
+    maxHp: number
+    /** Health a second, before upgrades. */
+    hpRegen: number
+  }
+  /** Walk sheet, from render/sprites.ts. */
+  sprite: string
+  /** One-row strip played when a big ability goes off, if it has one. */
+  castSprite?: string
+  /** Drawn height in world units. */
+  drawHeight: number
+  /** What he thinks and when; the moments are named in ui/thoughts.ts. */
+  thoughts: Record<string, ThoughtMoment>
+}
+
 /**
  * A state an enemy can be in: burning, chilled, frozen, shocked. Entries are
  * in data/conditions.ts; sim/statusEffects.ts runs them.
@@ -250,6 +302,11 @@ export interface PickupDef {
  */
 export interface UpgradeDef {
   id: string
+  /**
+   * The classes that can be offered it. Left out, every class can: health,
+   * speed and pickup radius aren't anyone's flavour.
+   */
+  classIds?: string[]
   displayName: string
   /** Shown on the card. Write it for a player, not for a spreadsheet. */
   description: string
@@ -378,6 +435,8 @@ export interface WeaponDef {
    *   ground    laid flat under an active zone
    *   particle  falling inside an active zone
    */
+  /** The class this belongs to (data/classes.ts). No other class ever sees it. */
+  classId: string
   /**
    * The condition its damage over time applies. Burning unless it says
    * otherwise; see data/conditions.ts.

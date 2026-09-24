@@ -37,6 +37,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
 
   {
     id: 'spell_bolt_01',
+    classId: 'class_wizard',
     displayName: 'Firebolt',
     description: 'A fast bolt of fire at the nearest enemy',
     enabled: true,
@@ -57,6 +58,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
   },
   {
     id: 'spell_frostbolt_01',
+    classId: 'class_wizard',
     displayName: 'Frostbolt',
     description: 'A slower bolt of ice that chills whatever it hits',
     enabled: true,
@@ -80,6 +82,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
   },
   {
     id: 'spell_chain_01',
+    classId: 'class_wizard',
     displayName: 'Chain Lightning',
     description: 'Lightning that leaps from enemy to enemy',
     enabled: true,
@@ -106,6 +109,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
 
   {
     id: 'spell_aura_01',
+    classId: 'class_wizard',
     displayName: 'Righteous Fire',
     description: 'A ring of holy fire around him, burning everything close',
     enabled: true,
@@ -129,6 +133,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
   },
   {
     id: 'spell_orb_01',
+    classId: 'class_wizard',
     displayName: 'Frozen Orb',
     description: 'A slow ball of ice that ploughs through everything in its path, chilling as it goes',
     enabled: true,
@@ -155,6 +160,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
   },
   {
     id: 'spell_ball_01',
+    classId: 'class_wizard',
     displayName: 'Ball Lightning',
     description: 'Orbs of lightning circle him, striking anything they touch',
     enabled: true,
@@ -184,6 +190,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
 
   {
     id: 'spell_meteor_01',
+    classId: 'class_wizard',
     displayName: 'Meteor',
     description: 'Calls a meteor down on the biggest crowd. Slow, but it hits hard',
     enabled: true,
@@ -207,6 +214,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
   },
   {
     id: 'spell_blizzard_01',
+    classId: 'class_wizard',
     displayName: 'Blizzard',
     description: 'A howling storm of ice over the biggest crowd, chilling and grinding down all inside',
     enabled: true,
@@ -229,6 +237,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
   },
   {
     id: 'spell_storm_01',
+    classId: 'class_wizard',
     displayName: 'Thunderstorm',
     description: 'A storm settles over the biggest crowd, lightning striking at random beneath it',
     enabled: true,
@@ -262,6 +271,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
 
   {
     id: 'spell_nova_01',
+    classId: 'class_wizard',
     displayName: 'Frost Nova',
     description: 'A burst of cold around him that damages and chills',
     enabled: false,
@@ -278,6 +288,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
   },
   {
     id: 'spell_curse_01',
+    classId: 'class_wizard',
     displayName: 'Curse of Withering',
     description: 'Afflicts everything nearby with slow, creeping decay',
     dotCondition: 'withering',
@@ -294,6 +305,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
   },
   {
     id: 'spell_vortex_01',
+    classId: 'class_wizard',
     displayName: 'Vortex',
     description: 'Tears open a rift in the biggest crowd and drags enemies into it',
     enabled: false,
@@ -314,6 +326,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
   },
   {
     id: 'spell_roots_01',
+    classId: 'class_wizard',
     displayName: 'Entangling Roots',
     description: 'Roots burst from the ground under the biggest crowd, holding them still',
     enabled: false,

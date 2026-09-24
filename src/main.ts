@@ -312,9 +312,10 @@ function render(): void {
 
   // Projectiles are drawn with the spell effects, as glowing balls in flight.
 
-  const heroSheet = getSheet(config.character.sprite)
-  const heroHeight = config.character.drawHeight
-  const castSheet = getSheet('hero_cast')
+  const { classDef } = world
+  const heroSheet = getSheet(classDef.sprite)
+  const heroHeight = classDef.drawHeight
+  const castSheet = getSheet(classDef.castSprite)
   const casting = castSheet && world.state === 'running' && world.time - castPoseAt < config.render.castPoseSeconds
   if (casting) {
     // Same pixel scale as his walk frames, so the larger pose frame is drawn
@@ -327,18 +328,18 @@ function render(): void {
       h: castSheet.frameHeight * pixel,
       colour: '#e8c468',
       sheet: castSheet,
-      shadowRadius: config.character.radius,
+      shadowRadius: world.character.radius,
       frameRow: 0,
       frameCol: Math.min(2, Math.floor(((world.time - castPoseAt) / config.render.castPoseSeconds) * 3)),
     })
   } else frame.push({
     x: world.character.x,
     y: world.character.y,
-    w: heroSheet ? heroHeight * heroSheet.aspect : config.character.radius * 2,
-    h: heroSheet ? heroHeight : config.character.radius * 3.4,
+    w: heroSheet ? heroHeight * heroSheet.aspect : world.character.radius * 2,
+    h: heroSheet ? heroHeight : world.character.radius * 3.4,
     colour: world.state === 'dead' ? '#6b5a34' : '#e8c468',
     sheet: heroSheet,
-    shadowRadius: config.character.radius,
+    shadowRadius: world.character.radius,
     frameRow: heroSheet
       ? stickyFacingRow(world.character, world.character.facingX, world.character.facingY, config.render.facingSlackDegrees)
       : undefined,

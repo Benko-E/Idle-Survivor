@@ -1,4 +1,3 @@
-import { config } from '../config'
 import { characterStat } from './stats'
 import type { World } from './world'
 
@@ -15,11 +14,11 @@ export function updateVitals(world: World, dt: number): void {
   if (world.state !== 'running') return
   const character = world.character
 
-  const maxHp = Math.max(1, characterStat(world, 'maxHp', config.character.maxHp))
+  const maxHp = Math.max(1, characterStat(world, 'maxHp', world.classDef.stats.maxHp))
   if (maxHp > character.maxHp) character.hp += maxHp - character.maxHp
   character.maxHp = maxHp
 
-  const regen = characterStat(world, 'hpRegen', config.character.hpRegen)
+  const regen = characterStat(world, 'hpRegen', world.classDef.stats.hpRegen)
   if (regen > 0) character.hp += regen * dt
 
   if (character.hp > maxHp) character.hp = maxHp

@@ -31,9 +31,9 @@ export function weaponStat(world: World, weapon: WeaponInstance, key: string, fa
  *
  * The keys in use, and what the base passed in is:
  *
- *   moveSpeed     world units per second        config.character.moveSpeed
- *   maxHp         health ceiling                config.character.maxHp
- *   hpRegen       health restored per second    config.character.hpRegen
+ *   moveSpeed     world units per second        his class's stats.moveSpeed
+ *   maxHp         health ceiling                his class's stats.maxHp
+ *   hpRegen       health restored per second    his class's stats.hpRegen
  *   damageTaken   multiplier on damage taken    1
  *   pickupRadius  how close gold must be        config.pickups.collectRadius
  *   xpGain        XP per kill                   the enemy's xpValue

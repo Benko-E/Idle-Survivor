@@ -160,24 +160,8 @@ export const config = {
   },
 
   character: {
-    /** World units per second. Should stay comfortably above enemy speeds — */
-    /** if he can't outpace the swarm, no amount of clever positioning helps. */
-    moveSpeed: 110,
-    radius: 15,
-    maxHp: 100,
-    /**
-     * Health restored per second, before upgrades.
-     *
-     * There's no other healing, so at 0 every scratch in the first minutes
-     * was permanent: runs that took an early bad patch spent the rest of the
-     * run on a sliver of health and died to the next thing that touched them.
-     * Half a point a second — 30 a minute — lets early chip damage recover
-     * without making a real mauling survivable. Second Wind adds to it.
-     */
-    hpRegen: 0.5,
-    /** Sprite sheet name, and drawn height in world units. */
-    sprite: 'hero',
-    drawHeight: 46,
+    // His own numbers — speed, size, health, regeneration, look — are on his
+    // class, in data/classes.ts. What's here is shared by every class.
     /** World units travelled per walk frame. Lower = faster footsteps. */
     stepLength: 22,
 

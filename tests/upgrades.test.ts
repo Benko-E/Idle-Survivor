@@ -1,5 +1,5 @@
 // Plays out the new upgrade mechanics in the real simulation code.
-import { config } from '@game/config'
+import { DEFAULT_CLASS } from '@game/data/classes'
 import { ENEMY_DEFS } from '@game/data/enemies'
 import { UPGRADE_DEFS } from '@game/data/upgrades'
 import { WEAPON_DEFS } from '@game/data/weapons'
@@ -35,7 +35,7 @@ function enemy(world: World, x: number, y: number, hp = 1e9) {
   w.character.hp = 50
   take(w, 'up_vigour_01', 2)
   updateVitals(w, DT)
-  check('Hardy x2', w.character.maxHp === 140 && Math.abs(w.character.hp - (90 + config.character.hpRegen * DT)) < 1e-9, `max ${w.character.maxHp}, hp 50 -> ${w.character.hp}`)
+  check('Hardy x2', w.character.maxHp === 140 && Math.abs(w.character.hp - (90 + DEFAULT_CLASS.stats.hpRegen * DT)) < 1e-9, `max ${w.character.maxHp}, hp 50 -> ${w.character.hp}`)
 }
 // Second Wind: 1/s, capped at max.
 {
@@ -45,7 +45,7 @@ function enemy(world: World, x: number, y: number, hp = 1e9) {
   for (let i = 0; i < 600; i++) updateVitals(w, DT)
   const after10 = w.character.hp
   for (let i = 0; i < 60 * 100; i++) updateVitals(w, DT)
-  check('Second Wind', Math.abs(after10 - (60 + config.character.hpRegen * 10)) < 0.01 && w.character.hp === 100, `hp 50 -> ${after10.toFixed(2)} after 10s, capped at ${w.character.hp}`)
+  check('Second Wind', Math.abs(after10 - (60 + DEFAULT_CLASS.stats.hpRegen * 10)) < 0.01 && w.character.hp === 100, `hp 50 -> ${after10.toFixed(2)} after 10s, capped at ${w.character.hp}`)
 }
 // Warding: same contact, less damage; compounds.
 {

@@ -2,7 +2,8 @@ import { config } from '../config'
 import type { Modifier } from '../core/modifiers'
 import { makeRng, type Rng } from '../core/rng'
 import { findWeaponDef } from '../data/weapons'
-import type { EnemyDef, PickupDef, WeaponDef } from '../data/types'
+import { findClass } from '../data/classes'
+import type { ClassDef, EnemyDef, PickupDef, WeaponDef } from '../data/types'
 import type { BuildBonus } from './buildBonus'
 import type { Offer } from './draft'
 import { spellsOfTier } from './spellTiers'
@@ -122,6 +123,8 @@ export interface WeaponInstance {
 export interface World {
   /** What this run was generated from. Same seed, same choices, same run. */
   seed: number
+  /** Who he is this run: base numbers, look, abilities. See data/classes.ts. */
+  classDef: ClassDef
   /** Seconds since the run started. Every difficulty formula reads this. */
   time: number
   state: RunState
@@ -205,9 +208,12 @@ export interface World {
 /**
  * A fresh run. `starterId` is the spell picked on the menu; without one it's
  * the first of the starting choices, which is what the headless tests get.
+ * `classId` is who he is, the default class if left out.
  */
-export function createWorld(seed: number = config.world.seed, starterId?: string): World {
+export function createWorld(seed: number = config.world.seed, starterId?: string, classId?: string): World {
   const rng = makeRng(seed)
+  const classDef = findClass(classId)
+  const { stats } = classDef
 
   // Somewhere out there, at a random bearing. Far enough that reaching it is
   // a journey rather than a detour.
@@ -215,6 +221,7 @@ export function createWorld(seed: number = config.world.seed, starterId?: string
 
   return {
     seed,
+    classDef,
     time: 0,
     state: 'running',
     rng,
@@ -225,10 +232,10 @@ export function createWorld(seed: number = config.world.seed, starterId?: string
     character: {
       x: 0,
       y: 0,
-      radius: config.character.radius,
-      speed: config.character.moveSpeed,
-      hp: config.character.maxHp,
-      maxHp: config.character.maxHp,
+      radius: stats.radius,
+      speed: stats.moveSpeed,
+      hp: stats.maxHp,
+      maxHp: stats.maxHp,
       facingX: 1,
       facingY: 0,
       stride: 0,
@@ -243,7 +250,7 @@ export function createWorld(seed: number = config.world.seed, starterId?: string
     trail: [],
     lastMarkX: 0,
     lastMarkY: 0,
-    weapons: startingSpells(starterId).map((id) => ({
+    weapons: startingSpells(classDef, starterId).map((id) => ({
       def: findWeaponDef(id),
       // Ready almost at once. There's only one starting spell, and since a
       // miss no longer spends the cooldown, spells drift out of lockstep on
@@ -282,8 +289,8 @@ export function createWorld(seed: number = config.world.seed, starterId?: string
 }
 
 /** The chosen starter, plus any extra spells the config hands out for testing. */
-function startingSpells(starterId: string | undefined): string[] {
-  const starter = starterId ?? spellsOfTier(1)[0]?.id ?? 'spell_bolt_01'
+function startingSpells(classDef: ClassDef, starterId: string | undefined): string[] {
+  const starter = starterId ?? spellsOfTier(classDef, 1)[0]?.id ?? 'spell_bolt_01'
   const ids = [starter, ...config.character.startingWeaponIds]
   return ids.filter((id, index) => ids.indexOf(id) === index)
 }

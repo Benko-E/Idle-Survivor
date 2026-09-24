@@ -12,6 +12,7 @@
 // Prints one JSON line per run; tools/bench/run.mjs runs it and summarises.
 // Its bot drafts upgrades sensibly but never takes a tier 2 or 3 spell, so
 // real runs are easier than these.
+import { DEFAULT_CLASS } from '@game/data/classes'
 import { config } from '@game/config'
 import { makeRng } from '@game/core/rng'
 import { updateCombat } from '@game/sim/combat'
@@ -47,7 +48,7 @@ const DT = 1 / 60
 const MAX = Number(process.env.MAX ?? 1800)
 const SOLO = process.env.SOLO === '1'
 const BOT = process.env.BOT ?? 'smart'
-const STARTERS = (process.env.STARTERS ?? spellsOfTier(1).map((def) => def.id).join(',')).split(',')
+const STARTERS = (process.env.STARTERS ?? spellsOfTier(DEFAULT_CLASS, 1).map((def) => def.id).join(',')).split(',')
 const SEEDS = (process.env.SEEDS ?? '1,2,3').split(',').map(Number)
 
 /**

@@ -23,8 +23,6 @@ import { WEAPON_DEFS } from '../data/weapons'
 /** Read once at load or at createWorld, so editing them mid-run does nothing. */
 const NEEDS_RESTART = new Set([
   'world.seed',
-  'character.moveSpeed',
-  'character.radius',
   'character.startingWeaponIds',
   'influence.cellSize',
   'influence.gridRadiusCells',

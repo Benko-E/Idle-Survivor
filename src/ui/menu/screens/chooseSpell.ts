@@ -1,16 +1,20 @@
+import { DEFAULT_CLASS } from '../../../data/classes'
 import type { WeaponDef } from '../../../data/types'
 import { spellsOfTier } from '../../../sim/spellTiers'
 import { spellIcon } from '../../spellIcons'
 import type { Screen } from '../types'
 
-/** The starting pick: every enabled tier-1 spell. */
+/**
+ * The starting pick: every enabled tier-1 spell of the class. The default
+ * class for now; a class picker in front of this screen would pass its own.
+ */
 export function starterChoices(): WeaponDef[] {
-  return spellsOfTier(1)
+  return spellsOfTier(DEFAULT_CLASS, 1)
 }
 
 export const chooseSpellScreen: Screen = {
   id: 'choose-spell',
-  title: 'Choose your first spell',
+  title: `Choose your first ${DEFAULT_CLASS.abilityNoun}`,
   build(body, nav) {
     const list = document.createElement('div')
     list.className = 'menu-choices'

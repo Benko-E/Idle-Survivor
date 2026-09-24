@@ -1,3 +1,4 @@
+import { findClass } from '../data/classes'
 import { config } from '../config'
 import type { WeaponDef } from '../data/types'
 import type { Modifier } from '../core/modifiers'
@@ -16,10 +17,13 @@ import type { Enemy, WeaponInstance, World } from './world'
  * point: it makes committing, or daring, a real decision.
  */
 
-export const ELEMENTS = ['fire', 'frost', 'lightning'] as const
-
+/**
+ * Which of its class's elements a spell is, if any. The elements are the
+ * class's (data/classes.ts), so a warlock's shadow and fire count for a
+ * warlock the way fire, frost and lightning do for the wizard.
+ */
 export function elementOf(def: WeaponDef): string | undefined {
-  return ELEMENTS.find((element) => def.tags.includes(element))
+  return findClass(def.classId).elements.find((element) => def.tags.includes(element))
 }
 
 export type BuildBonus = { kind: 'pure'; element: string } | { kind: 'prismatic' } | null
@@ -74,12 +78,15 @@ export function equilibriumMultiplier(world: World, enemy: Enemy, source: Weapon
   return bonus
 }
 
-const ELEMENT_NAMES: Record<string, string> = { fire: 'Fire', frost: 'Frost', lightning: 'Lightning' }
+/** "fire" to "Fire", for any element a class brings. */
+function elementName(element: string): string {
+  return element.charAt(0).toUpperCase() + element.slice(1)
+}
 
 /** Player-facing name and one-line effect of a bonus. */
 export function describeBonus(bonus: NonNullable<BuildBonus>): { name: string; effect: string } {
   if (bonus.kind === 'pure') {
-    const name = ELEMENT_NAMES[bonus.element] ?? bonus.element
+    const name = elementName(bonus.element)
     return { name: `Pure ${name}`, effect: `+${Math.round(config.buildBonus.pureDamage * 100)}% ${bonus.element} damage` }
   }
   return {

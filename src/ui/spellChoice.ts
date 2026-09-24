@@ -1,3 +1,4 @@
+import { findClass } from '../data/classes'
 import { bonusFor, describeBonus, elementOf } from '../sim/buildBonus'
 import { pendingSpellTier, spellsOfTier, takeSpell, tierCount } from '../sim/spellTiers'
 import type { WeaponDef } from '../data/types'
@@ -85,13 +86,15 @@ export class SpellChoiceUi {
 
   /** Open the choice, if one is waiting. The spell bar's empty slot uses this too. */
   show(): void {
-    const tier = pendingSpellTier(this.getWorld())
+    const world = this.getWorld()
+    const tier = pendingSpellTier(world)
     if (tier === null) return
-    const choices = spellsOfTier(tier)
+    const choices = spellsOfTier(world.classDef, tier)
+    const noun = world.classDef.abilityNoun
 
     const title = document.createElement('h2')
     title.className = 'spell-title'
-    title.textContent = `Choose your ${ORDINAL[tier] ?? `tier ${tier}`} spell`
+    title.textContent = `Choose your ${ORDINAL[tier] ?? `tier ${tier}`} ${noun}`
 
     const warning = document.createElement('p')
     warning.className = 'spell-warning'
@@ -120,7 +123,7 @@ export class SpellChoiceUi {
 
     const element = document.createElement('span')
     element.className = 'element'
-    element.textContent = def.tags.find((tag) => tag === 'fire' || tag === 'frost' || tag === 'lightning') ?? 'spell'
+    element.textContent = elementOf(def) ?? findClass(def.classId).abilityNoun
 
     const name = document.createElement('span')
     name.className = 'name'
@@ -160,8 +163,11 @@ export class SpellChoiceUi {
 
   /** Called every frame, like the draft's. */
   update(): void {
-    const tier = pendingSpellTier(this.getWorld())
+    const world = this.getWorld()
+    const tier = pendingSpellTier(world)
     this.button.hidden = tier === null || this.openTier !== null
+    const label = `New ${world.classDef.abilityNoun}!`
+    if (this.button.textContent !== label) this.button.textContent = label
     // The choice went away underneath an open panel — a restart, or death.
     if (this.openTier !== null && tier !== this.openTier) this.hide()
   }

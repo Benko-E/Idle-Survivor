@@ -1,3 +1,5 @@
+import type { ThoughtMoment } from './types'
+
 /**
  * What the wizard thinks, and when. (spec 5.1: content is data)
  *
@@ -8,18 +10,11 @@
  * shorter gap, because a new spell deserves a reaction even if he just spoke.
  *
  * Add a line anywhere; add a moment by giving it an entry here and a trigger
- * in ui/thoughts.ts.
+ * in ui/thoughts.ts. These are the wizard's; each class has its own set,
+ * named on its entry in data/classes.ts, with the same moment names.
  */
-export interface ThoughtMoment {
-  lines: string[]
-  /** 0 to 1: how often the moment gets a thought at all. */
-  chance: number
-  /** Seconds before this moment can prompt a thought again. */
-  cooldown: number
-  urgent?: boolean
-}
 
-export const THOUGHTS: Record<string, ThoughtMoment> = {
+export const WIZARD_THOUGHTS: Record<string, ThoughtMoment> = {
   runStart: {
     chance: 1,
     cooldown: 0,

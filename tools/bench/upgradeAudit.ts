@@ -2,6 +2,7 @@
 // Spells are cast once with a recording stat() to learn what each one reads,
 // so this can't drift from the behaviour code.
 import { config } from '@game/config'
+import { DEFAULT_CLASS } from '@game/data/classes'
 import { resolveStat } from '@game/core/modifiers'
 import { UPGRADE_DEFS } from '@game/data/upgrades'
 import { WEAPON_DEFS } from '@game/data/weapons'
@@ -13,9 +14,9 @@ import { ENEMY_DEFS } from '@game/data/enemies'
 // Character-level stats and the base each call site passes. Extended as
 // new ones get wired in; anything targeted but missing here is flagged.
 const CHARACTER_STATS: Record<string, number> = {
-  moveSpeed: config.character.moveSpeed,
-  maxHp: config.character.maxHp,
-  hpRegen: config.character.hpRegen,
+  moveSpeed: DEFAULT_CLASS.stats.moveSpeed,
+  maxHp: DEFAULT_CLASS.stats.maxHp,
+  hpRegen: DEFAULT_CLASS.stats.hpRegen,
   pickupRadius: config.pickups.collectRadius,
   damageTaken: 1,
   xpGain: 1,
