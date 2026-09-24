@@ -33,6 +33,37 @@ npm install
 npm run dev
 ```
 
+## Tests, and measuring things
+
+```bash
+npm test
+```
+
+Runs every test in `tests/` — about fifteen seconds. Each one plays the real
+simulation in Node (no browser, no art needed) and checks one thing does what
+it should: spells, enemies, conditions, banking, the draft, and that the same
+seed always plays out the same run. A failure prints what went wrong. Run it
+after any change; `npm test -- enemies` runs just the ones with "enemies" in
+the name. The tests are type-checked against the game first, so one that no
+longer matches the code fails instead of quietly testing nothing.
+
+For tuning there are measuring tools in `tools/bench/`, because guessing at
+numbers by watching has never once worked:
+
+```bash
+npm run bench -- survival --name=before
+npm run bench -- report before after
+npm run bench -- movement
+npm run bench -- audit
+```
+
+`survival` plays fifteen bot runs of up to fifteen minutes and reports how
+long he lasted and who did the damage (`--seeds`, `--max`, `--name`, and
+`--env=KEY=value` for anything `balanceBench.ts` reads). `report` shows saved
+results side by side. `movement` measures wobble, stutter and skipped coins;
+`audit` lists what every upgrade actually changes. The bot drafts sensibly
+but never takes a tier 2 or 3 spell, so real runs go better than its.
+
 ## Publishing, and making a copy you can send someone
 
 ```bash

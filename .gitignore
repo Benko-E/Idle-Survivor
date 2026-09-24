@@ -1,4 +1,9 @@
 node_modules/
+
+# Test and bench bundles, and bench results.
+tests/.out/
+tools/bench/.out/
+tools/bench/results/
 dist/
 *.local
 .DS_Store

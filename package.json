@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node tests/run.mjs",
+    "bench": "node tools/bench/run.mjs"
   },
   "devDependencies": {
     "typescript": "^7.0.2",

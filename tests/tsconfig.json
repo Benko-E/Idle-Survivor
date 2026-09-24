@@ -1,0 +1,7 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "paths": { "@game/*": ["../src/*"] }
+  },
+  "include": ["./*.ts", "../tools/bench/*.ts", "../src/vite-env.d.ts"]
+}
