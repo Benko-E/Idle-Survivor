@@ -1,7 +1,7 @@
 import { config } from '../config'
 import type { WeaponDef } from '../data/types'
 import { damageEnemy } from './damageEnemy'
-import { applyEffect } from './statusEffects'
+import { applyCondition } from './statusEffects'
 import { orbitPositions } from './orbit'
 import { enemiesInRadius, nearestEnemies, nearestEnemy, pickTargets } from './targeting'
 import { HIT_SPARK_SECONDS, HIT_SPARK_SIZE, spawnArtLine, spawnRing, spawnSprite } from './vfx'
@@ -66,8 +66,8 @@ const projectile: Behaviour = ({ world, weapon, def, stat }) => {
   const damage = stat('damage')
   const pierce = Math.max(0, Math.round(stat('pierce')))
 
-  // Whatever lingers on a hit: a chill if the spell slows, a burn if it has
-  // damage over time. Neither for a plain bolt.
+  // Whatever lingers on a hit: a chill if the spell slows, its damage over
+  // time if it has some. Neither for a plain bolt.
   const duration = stat('duration')
   const slow = stat('slow')
   const burn = stat('dotDamage')
@@ -75,9 +75,9 @@ const projectile: Behaviour = ({ world, weapon, def, stat }) => {
     duration <= 0
       ? null
       : slow > 0
-        ? { kind: 'slow' as const, magnitude: slow, duration }
+        ? { condition: 'chilled', magnitude: slow, duration }
         : burn > 0
-          ? { kind: 'dot' as const, magnitude: burn, duration }
+          ? { condition: def.dotCondition ?? 'burning', magnitude: burn, duration }
           : null
 
   for (let i = 0; i < count; i++) {
@@ -127,7 +127,7 @@ const nova: Behaviour = ({ world, weapon, def, stat }) => {
 
   for (const enemy of targets) {
     damageEnemy(world, enemy, damage, weapon)
-    if (slow > 0 && duration > 0) applyEffect(enemy, 'slow', slow, duration, weapon)
+    if (slow > 0 && duration > 0) applyCondition(world, enemy, 'chilled', slow, duration, weapon)
   }
 
   spawnRing(world, caster.x, caster.y, area, def.colour, config.combat.ringVfxSeconds)
@@ -181,7 +181,7 @@ const curse: Behaviour = ({ world, weapon, def, stat }) => {
   if (targets.length === 0) return false
 
   for (const enemy of targets) {
-    applyEffect(enemy, 'dot', dotDamage, duration, weapon)
+    applyCondition(world, enemy, def.dotCondition ?? 'burning', dotDamage, duration, weapon)
   }
 
   spawnRing(world, caster.x, caster.y, area, def.colour, config.combat.ringVfxSeconds)
@@ -193,14 +193,14 @@ const curse: Behaviour = ({ world, weapon, def, stat }) => {
  * Righteous Fire. No ring on each refresh — it's drawn as a steady glow for as
  * long as he has it, because a pulse every 0.4s would be a strobe.
  */
-const aura: Behaviour = ({ world, weapon, stat }) => {
+const aura: Behaviour = ({ world, weapon, def, stat }) => {
   const caster = world.character
   const targets = enemiesInRadius(world, caster.x, caster.y, stat('area'), scratchTargets)
   if (targets.length === 0) return false
 
   const dotDamage = stat('dotDamage')
   const duration = stat('duration')
-  for (const enemy of targets) applyEffect(enemy, 'dot', dotDamage, duration, weapon)
+  for (const enemy of targets) applyCondition(world, enemy, def.dotCondition ?? 'burning', dotDamage, duration, weapon)
   return true
 }
 

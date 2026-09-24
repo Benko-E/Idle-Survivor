@@ -1,7 +1,7 @@
 import { config } from '../config'
 import { damageEnemy } from './damageEnemy'
 import { forEachEnemyNear, LARGEST_ENEMY_RADIUS } from './enemyGrid'
-import { applyEffect } from './statusEffects'
+import { applyCondition } from './statusEffects'
 import { HIT_SPARK_SECONDS, HIT_SPARK_SIZE, spawnSprite } from './vfx'
 import type { WeaponInstance, World } from './world'
 
@@ -35,7 +35,8 @@ export interface Projectile {
    * Lingering effect left on whatever it hits — a chill, a burn — or none.
    * Resolved at the moment of casting, like the damage.
    */
-  onHit: { kind: 'slow' | 'dot'; magnitude: number; duration: number } | null
+  /** A condition left on everything it hits, by id; see data/conditions.ts. */
+  onHit: { condition: string; magnitude: number; duration: number } | null
 }
 
 export function updateProjectiles(world: World, dt: number): void {
@@ -65,7 +66,7 @@ export function updateProjectiles(world: World, dt: number): void {
         const spark = projectile.source.def.fx?.hit
         if (spark) spawnSprite(world, spark, enemy.x, enemy.y, HIT_SPARK_SIZE, HIT_SPARK_SECONDS, false)
         const onHit = projectile.onHit
-        if (onHit && enemy.hp > 0) applyEffect(enemy, onHit.kind, onHit.magnitude, onHit.duration, projectile.source)
+        if (onHit && enemy.hp > 0) applyCondition(world, enemy, onHit.condition, onHit.magnitude, onHit.duration, projectile.source)
 
         if (projectile.pierce <= 0) spent = true
         else projectile.pierce--

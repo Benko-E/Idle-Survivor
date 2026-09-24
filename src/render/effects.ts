@@ -268,7 +268,7 @@ function drawOrbits(renderer: Renderer, world: World, loudness: number): void {
 function drawRoots(renderer: Renderer, world: World, loudness: number): void {
   for (const enemy of world.enemies) {
     for (const effect of enemy.effects) {
-      if (effect.kind !== 'root') continue
+      if (effect.condition !== 'rooted') continue
       const colour = effect.source?.def.colour ?? '#6fcf5a'
       renderer.strokeWorldCircle(enemy.x, enemy.y, enemy.def.radius + 4, colour, 2, 0.8 * loudness)
       break

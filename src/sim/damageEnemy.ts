@@ -3,6 +3,7 @@ import { rollDrops } from './drops'
 import { gameEvents, type GameEvents } from './events'
 import { grantXp } from './progression'
 import { characterStat } from './stats'
+import { vulnerability } from './statusEffects'
 import type { Enemy, WeaponInstance, World } from './world'
 
 /** Reused for every emit; this fires thousands of times a second. */
@@ -28,7 +29,7 @@ const payload: GameEvents['enemyDamaged'] = { enemyId: 0, x: 0, y: 0, amount: 0,
  */
 export function damageEnemy(world: World, enemy: Enemy, amount: number, source: WeaponInstance | null, overTime = false): void {
   if (enemy.hp <= 0 || amount <= 0) return
-  amount *= equilibriumMultiplier(world, enemy, source)
+  amount *= equilibriumMultiplier(world, enemy, source) * vulnerability(enemy)
 
   // Overkill doesn't count. A 400-damage meteor landing on a 10 hp enemy
   // dealt 10, and counting 400 would make slow heavy hitters look far better

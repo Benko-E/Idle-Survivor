@@ -1,5 +1,5 @@
 import { damageEnemy } from './damageEnemy'
-import { applyEffect } from './statusEffects'
+import { applyCondition } from './statusEffects'
 import { enemiesInRadius } from './targeting'
 import { spawnLine, spawnRing, spawnSprite } from './vfx'
 import type { Enemy, WeaponInstance, World } from './world'
@@ -60,7 +60,7 @@ function land(world: World, zone: Zone): void {
   const caught = enemiesInRadius(world, zone.x, zone.y, zone.radius, scratch)
   for (const enemy of caught) {
     if (zone.burst > 0) damageEnemy(world, enemy, zone.burst, zone.source)
-    if (zone.root > 0 && enemy.hp > 0) applyEffect(enemy, 'root', 1, zone.root, zone.source)
+    if (zone.root > 0 && enemy.hp > 0) applyCondition(world, enemy, 'rooted', 1, zone.root, zone.source)
   }
 
   const impact = zone.source.def.fx?.impact
@@ -113,7 +113,7 @@ export function updateZones(world: World, dt: number): void {
     if (zone.remaining > 0) {
       const inside = enemiesInRadius(world, zone.x, zone.y, zone.radius, scratch)
       for (const enemy of inside) {
-        if (zone.slow > 0) applyEffect(enemy, 'slow', zone.slow, CHILL_LINGER, zone.source)
+        if (zone.slow > 0) applyCondition(world, enemy, 'chilled', zone.slow, CHILL_LINGER, zone.source)
         if (zone.dps > 0) damageEnemy(world, enemy, zone.dps * dt, zone.source, true)
         if (zone.pull > 0) {
           const dx = zone.x - enemy.x

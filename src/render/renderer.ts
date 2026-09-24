@@ -36,6 +36,9 @@ export interface Drawable {
   alpha?: number
   /** 0 to 1: how far the sprite is washed to solid white — a hit. */
   flash?: number
+  /** A coloured wash under the flash, 0 to 1 — burning, frozen. */
+  tint?: string
+  tintAmount?: number
 }
 
 export class Renderer {
@@ -326,25 +329,31 @@ export class Renderer {
     return true
   }
 
-  private readonly whites = new WeakMap<HTMLImageElement, HTMLCanvasElement>()
+  private readonly tints = new WeakMap<HTMLImageElement, Map<string, HTMLCanvasElement>>()
 
   /**
-   * A solid white copy of a sheet, for hit flashes: drawn over the sprite, it
-   * washes it out without touching anything around it. Made once per sheet.
+   * A solid-colour copy of a sheet — white for hit flashes, orange for
+   * burning. Drawn over the sprite, it washes it without touching anything
+   * around it. Made once per sheet and colour.
    */
-  private whiteOf(image: HTMLImageElement): HTMLCanvasElement {
-    let white = this.whites.get(image)
-    if (white) return white
-    white = document.createElement('canvas')
-    white.width = image.width
-    white.height = image.height
-    const g = white.getContext('2d')!
+  private tintOf(image: HTMLImageElement, colour: string): HTMLCanvasElement {
+    let byColour = this.tints.get(image)
+    if (!byColour) {
+      byColour = new Map()
+      this.tints.set(image, byColour)
+    }
+    let solid = byColour.get(colour)
+    if (solid) return solid
+    solid = document.createElement('canvas')
+    solid.width = image.width
+    solid.height = image.height
+    const g = solid.getContext('2d')!
     g.drawImage(image, 0, 0)
     g.globalCompositeOperation = 'source-in'
-    g.fillStyle = '#ffffff'
-    g.fillRect(0, 0, white.width, white.height)
-    this.whites.set(image, white)
-    return white
+    g.fillStyle = colour
+    g.fillRect(0, 0, solid.width, solid.height)
+    byColour.set(colour, solid)
+    return solid
   }
 
   /**
@@ -390,9 +399,13 @@ export class Renderer {
         const dx = Math.round(sx - w / 2)
         const dy = Math.round(sy - h)
         ctx.drawImage(image, fx, fy, frameWidth, frameHeight, dx, dy, Math.ceil(w), Math.ceil(h))
+        if (item.tint && item.tintAmount && item.tintAmount > 0) {
+          ctx.globalAlpha = alpha * Math.min(1, item.tintAmount)
+          ctx.drawImage(this.tintOf(image, item.tint), fx, fy, frameWidth, frameHeight, dx, dy, Math.ceil(w), Math.ceil(h))
+        }
         if (item.flash && item.flash > 0) {
           ctx.globalAlpha = alpha * Math.min(1, item.flash)
-          ctx.drawImage(this.whiteOf(image), fx, fy, frameWidth, frameHeight, dx, dy, Math.ceil(w), Math.ceil(h))
+          ctx.drawImage(this.tintOf(image, '#ffffff'), fx, fy, frameWidth, frameHeight, dx, dy, Math.ceil(w), Math.ceil(h))
         }
         ctx.globalAlpha = 1
         continue

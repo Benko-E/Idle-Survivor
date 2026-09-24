@@ -3,6 +3,7 @@ import type { GameEvents } from '../sim/events'
 import type { Enemy, World } from '../sim/world'
 import type { EnemyDef } from '../data/types'
 import type { Drawable, Renderer } from './renderer'
+import { isHeld } from '../sim/statusEffects'
 import { getSheet, stickyFacingRow, walkFrame } from './sprites'
 
 /**
@@ -10,7 +11,9 @@ import { getSheet, stickyFacingRow, walkFrame } from './sprites'
  * flash when something hits them, and a squash, fade and puff of dust when
  * they die. Also what they're up to: a boar shaking as it paws the ground and
  * kicking up dust as it charges, a lit wisp pulsing and swelling, and the gas
- * a Stinkcap leaves behind.
+ * a Stinkcap leaves behind. And the conditions on them: each one's tint from
+ * data/conditions.ts, the strongest showing, with embers off the burning and
+ * sparks off the shocked; frozen ones stop mid-step.
  *
  * All render-side and fed by the `enemyDamaged` event, like the damage
  * numbers — the simulation removes a dead enemy the same step it dies and
@@ -37,6 +40,12 @@ export class EnemyLooks {
   private readonly hitAt = new Map<number, number>()
   /** World time each enemy was first drawn, for the fade in. */
   private readonly bornAt = new WeakMap<Enemy, number>()
+  /** The walk frame each was last on, to hold it there while it can't move. */
+  private readonly lastFrame = new WeakMap<Enemy, number>()
+
+  private heldFrame(enemy: Enemy, fallback: number): number {
+    return this.lastFrame.get(enemy) ?? fallback
+  }
   private readonly corpses: Corpse[] = []
 
   record(event: GameEvents['enemyDamaged'], world: World): void {
@@ -81,7 +90,21 @@ export class EnemyLooks {
         item.frameCol = enemy.def.stationary
           ? walkFrame(world.time * 20, enemy.id, config.character.stepLength)
           : walkFrame(enemy.stride, enemy.id, config.character.stepLength)
+        // Held fast — frozen, rooted — stops the feet on whatever step they
+        // were on, rather than walking on the spot.
+        if (isHeld(enemy)) item.frameCol = this.heldFrame(enemy, item.frameCol)
+        else this.lastFrame.set(enemy, item.frameCol)
       }
+
+      // The most visible condition shows, flickering a little so it reads as
+      // alive rather than as a different-coloured enemy.
+      let tintStrength = 0
+      for (const effect of enemy.effects) {
+        if (effect.def.tintStrength <= tintStrength) continue
+        tintStrength = effect.def.tintStrength
+        item.tint = effect.def.tint
+      }
+      if (tintStrength > 0) item.tintAmount = tintStrength * (0.85 + 0.15 * Math.sin(world.time * 9 + enemy.id))
 
       // Pawing the ground: a shiver on the spot, the warning a charge is coming.
       if (enemy.mode === 'windup') item.x += Math.sin(world.time * 70 + enemy.id) * 1.5
@@ -150,8 +173,35 @@ export class EnemyLooks {
     }
   }
 
-  /** Dust thrown up by the dying and by charges. Drawn over the scene. */
+  /** Dust thrown up by the dying and by charges, embers and sparks off the afflicted. Drawn over the scene. */
   drawDust(renderer: Renderer, world: World): void {
+    // Embers rising off anything burning, sparks jumping off anything shocked.
+    for (const enemy of world.enemies) {
+      if (enemy.effects.length === 0) continue
+      let burning = false
+      let shocked = false
+      for (const effect of enemy.effects) {
+        if (effect.condition === 'burning') burning = true
+        else if (effect.condition === 'shocked') shocked = true
+      }
+      const size = enemy.def.radius
+      if (burning) {
+        for (let i = 0; i < 2; i++) {
+          const phase = (world.time * 1.6 + i * 0.5 + enemy.id * 0.29) % 1
+          const x = enemy.x + Math.sin(enemy.id * 1.7 + i * 2.1 + world.time * 3) * size * 0.6
+          // Rising: further up the screen is a smaller world y.
+          const y = enemy.y - size * 0.8 - phase * size * 2.2
+          renderer.fillWorldCircle(x, y, 1.6 + (1 - phase) * 1.4, i === 0 ? '#ffb347' : '#ff6a2a', 0.9 * (1 - phase))
+        }
+      }
+      if (shocked && Math.sin(world.time * 23 + enemy.id * 3.1) > 0.3) {
+        const angle = world.time * 11 + enemy.id
+        const x = enemy.x + Math.cos(angle) * size * 0.9
+        const y = enemy.y - size + Math.sin(angle) * size * 0.9
+        renderer.fillWorldCircle(x, y, 2, '#e8dcff', 0.95)
+      }
+    }
+
     // A charge kicks up a trail behind it; a windup scuffs the ground.
     for (const enemy of world.enemies) {
       if (enemy.mode !== 'charge' && enemy.mode !== 'windup') continue

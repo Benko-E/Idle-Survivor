@@ -18,6 +18,42 @@ import type { Modifier } from '../core/modifiers'
  */
 export type Tag = string
 
+/**
+ * A state an enemy can be in: burning, chilled, frozen, shocked. Entries are
+ * in data/conditions.ts; sim/statusEffects.ts runs them.
+ */
+export interface ConditionDef {
+  /** What spells and upgrades apply it by, and ask about it by. */
+  id: string
+  displayName: string
+  /**
+   * Its one job, done at the strength it was applied with:
+   *   damage      loses `strength` health a second — burning, poison, bleeding
+   *   slow        moves `strength` (0..1) slower; only the strongest slow counts
+   *   hold        can't move at all; strength unused — frozen, rooted
+   *   vulnerable  takes `strength` (0.2 = +20%) more damage from every hit;
+   *               only the strongest counts — shocked
+   * A state that does two jobs is two conditions applied together.
+   */
+  effect: 'damage' | 'slow' | 'hold' | 'vulnerable'
+  /**
+   * What a second application does:
+   *   refresh  from the same spell, tops up the time and keeps the stronger;
+   *            from a different spell, sits alongside and both count
+   *   stack    always adds another copy, up to maxStacks, oldest dropped
+   */
+  stacking: 'refresh' | 'stack'
+  maxStacks?: number
+  /**
+   * After it wears off, it can't take hold again for this many seconds.
+   * What keeps a freeze from holding a crowd still forever.
+   */
+  immuneAfter?: number
+  /** Washed over the enemy's sprite while it lasts, at 0..1 strength. */
+  tint: string
+  tintStrength: number
+}
+
 export interface EnemyDef {
   /** Stable and generic. Never shown to a player. (spec 5.2) */
   id: string
@@ -342,6 +378,11 @@ export interface WeaponDef {
    *   ground    laid flat under an active zone
    *   particle  falling inside an active zone
    */
+  /**
+   * The condition its damage over time applies. Burning unless it says
+   * otherwise; see data/conditions.ts.
+   */
+  dotCondition?: string
   fx?: Partial<Record<'hit' | 'arc' | 'orb' | 'flames' | 'fall' | 'impact' | 'cloud' | 'strike' | 'ground' | 'particle', string>>
 
   /** Placeholder art. */

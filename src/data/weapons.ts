@@ -280,6 +280,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     id: 'spell_curse_01',
     displayName: 'Curse of Withering',
     description: 'Afflicts everything nearby with slow, creeping decay',
+    dotCondition: 'withering',
     enabled: false,
     tags: ['spell', 'shadow', 'curse', 'area', 'dot'],
     behaviour: 'curse',

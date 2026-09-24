@@ -445,6 +445,22 @@ event: a white flash on a direct hit (damage over time doesn't flash, or a
 burning crowd would strobe), a squash, fade and puff of dust on death, and a
 fade in on arrival. Timings are `render.enemyFx`.
 
+## Conditions: burning, chilled, frozen, shocked
+
+The states an enemy can be in are data, in `data/conditions.ts`, and
+`sim/statusEffects.ts` runs them. Each has one job — `damage` (burning),
+`slow` (chilled), `hold` (frozen, rooted) or `vulnerable` (shocked: more
+damage from every hit) — and one of two stacking rules: `refresh` (the same
+spell tops up its own; different spells sit side by side) or `stack` (each
+application is another copy, up to `maxStacks`). `immuneAfter` is what stops
+a freeze being permanent. Each has a tint, so you can see who's burning.
+
+Adding one is an entry. Poison is `effect: 'damage', stacking: 'stack'`.
+Anything stranger — a bleed that only hurts while the enemy moves — gets a
+hook in `CONDITION_HOOKS`, keyed by its id; nothing else changes. Spells
+name the condition their damage over time applies (`dotCondition`, burning
+by default), and anything that wants to know asks `hasCondition(enemy, id)`.
+
 ## Upgrades
 
 All 22 live in `src/data/upgrades.ts`, as data. Each one is a list of
@@ -567,3 +583,6 @@ That completes the spec's definition of done for the prototype. Past it:
 - [x] **18 — enemy behaviours.** Charging boars, exploding fire wisps,
   mushrooms that stand still and gas him or burst into sporelings, fliers
   over trees; the danger map knows about all of it. See "Enemies".
+- [x] **19 — conditions.** Burning, chilled, frozen and shocked as data,
+  each with a tint on the enemy; a new condition is a data entry. Spells
+  play exactly as before. See "Conditions".

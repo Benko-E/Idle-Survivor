@@ -79,6 +79,8 @@ export interface Enemy {
   chargeHit?: boolean
   /** Seconds left on a lit fuse; unset until lit. */
   fuseLeft?: number
+  /** World time, per condition id, until which it can't take that condition. */
+  immuneUntil?: Record<string, number>
 }
 
 export interface Pickup {
