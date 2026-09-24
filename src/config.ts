@@ -174,6 +174,29 @@ export const config = {
 
   combat: {
     projectileRadius: 5,
+    /** Plain bolts — forks, Backdraft — are this much of a normal bolt's size. */
+    plainBoltSize: 0.75,
+    /** A fork hits for this much of the bolt it split from, and looks this far for a target. */
+    forkDamage: 0.5,
+    forkRange: 200,
+    /** Fireball's blast: this much of the hit's damage to everything around the target. */
+    explodeDamage: 0.6,
+    /** Ignite's burn lasts this long; its strength is the upgrade's share of the hit, spread over it. */
+    igniteSeconds: 3,
+    /** Combustion's explosion, and the most it chains through a burning crowd from one hit. */
+    combustionRadius: 45,
+    combustionChain: 10,
+    /** Hot Streak's empowered bolt: damage and size multiplier, and how far it flies. */
+    hotStreakDamage: 2,
+    hotStreakSize: 1.9,
+    hotStreakRange: 700,
+    /** Backdraft goes off at most this often. */
+    backdraftCooldown: 4,
+    /** Phoenix Bolt's trail: a patch every this far, this big, lasting this long, burning this long after. */
+    trailSpacing: 26,
+    trailRadius: 22,
+    trailSeconds: 2,
+    trailBurnSeconds: 1.2,
     /** Slack on projectile hit tests, so fast bolts don't tunnel past. */
     projectileHitPadding: 4,
     /**
@@ -664,6 +687,11 @@ export const config = {
   draft: {
     /** Options offered per level-up. Upgrades only — spells come in tiers. */
     choices: 3,
+    /**
+     * The level spell evolutions start being offered at. Each spell's are
+     * exclusive: take one and the others are gone for the run.
+     */
+    evolutionLevel: 20,
     /**
      * What each card slot leans towards, left to right. Names from
      * `slotThemes`; anything else (like 'any') leans nowhere.

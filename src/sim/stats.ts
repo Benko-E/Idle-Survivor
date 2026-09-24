@@ -21,7 +21,23 @@ import type { World, WeaponInstance } from './world'
  */
 export function weaponStat(world: World, weapon: WeaponInstance, key: string, fallback = 0): number {
   const base = weapon.def.stats[key] ?? fallback
-  return resolveStat(base, key, world.modifiers, weapon.def.tags)
+  return resolveStat(base, key, world.modifiers, spellTags(world, weapon))
+}
+
+const tagCache = new WeakMap<WeaponInstance, { granted: string[] | undefined; count: number; tags: string[] }>()
+
+/**
+ * Everything a spell counts as: its own tags, its id — which is how an
+ * upgrade made for one spell selects only that spell — and any keywords
+ * upgrades have given it. Cached, since every stat read asks.
+ */
+export function spellTags(world: World, weapon: WeaponInstance): readonly string[] {
+  const granted = world.grantedTags[weapon.def.id]
+  const cached = tagCache.get(weapon)
+  if (cached && cached.granted === granted && cached.count === (granted?.length ?? 0)) return cached.tags
+  const tags = [...weapon.def.tags, weapon.def.id, ...(granted ?? [])]
+  tagCache.set(weapon, { granted, count: granted?.length ?? 0, tags })
+  return tags
 }
 
 /**

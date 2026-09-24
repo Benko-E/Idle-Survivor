@@ -42,7 +42,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     description: 'A fast bolt of fire at the nearest enemy',
     enabled: true,
     tier: 1,
-    tags: ['spell', 'fire', 'projectile'],
+    tags: ['spell', 'fire', 'projectile', 'bolt'],
     behaviour: 'projectile',
     stats: {
       cooldown: 0.95,
@@ -53,7 +53,8 @@ export const WEAPON_DEFS: WeaponDef[] = [
       range: 520,
       spread: 0.14,
     },
-    fx: { hit: 'hit_fire' },
+    // The scorch is Phoenix Bolt's trail.
+    fx: { hit: 'hit_fire', ground: 'scorch' },
     colour: '#ff8a3d',
   },
   {

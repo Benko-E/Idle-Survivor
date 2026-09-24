@@ -1,6 +1,8 @@
 import { config } from '../config'
 import type { UpgradeDef } from '../data/types'
 import { UPGRADE_DEFS } from '../data/upgrades'
+import type { Modifier } from '../core/modifiers'
+import { spellTags } from './stats'
 import type { World } from './world'
 
 /**
@@ -29,11 +31,32 @@ import type { World } from './world'
 export type Offer = { kind: 'upgrade'; id: string; displayName: string; description: string; def: UpgradeDef }
 
 function ownsTag(world: World, tag: string): boolean {
-  return world.weapons.some((weapon) => weapon.def.tags.includes(tag))
+  return world.weapons.some((weapon) => spellTags(world, weapon).includes(tag))
 }
 
-function upgradeIsEligible(world: World, def: UpgradeDef): boolean {
+/** Whether any taken upgrade has retired this one. */
+function retired(world: World, id: string): boolean {
+  for (const taken of Object.keys(world.upgradesTaken)) {
+    if (UPGRADE_DEFS.find((def) => def.id === taken)?.retires?.includes(id)) return true
+  }
+  return false
+}
+
+/** Whether one of this spell's evolutions has already been taken. */
+function evolved(world: World, spellId: string): boolean {
+  return UPGRADE_DEFS.some((def) => def.kind === 'evolution' && def.spellId === spellId && (world.upgradesTaken[def.id] ?? 0) > 0)
+}
+
+/** Whether an upgrade could be offered right now. Exported for the tests. */
+export function upgradeIsEligible(world: World, def: UpgradeDef): boolean {
   if ((world.upgradesTaken[def.id] ?? 0) >= def.maxStacks) return false
+  if (def.spellId && !world.weapons.some((weapon) => weapon.def.id === def.spellId)) return false
+  if (def.requires && !def.requires.every((id) => (world.upgradesTaken[id] ?? 0) > 0)) return false
+  if (retired(world, def.id)) return false
+  if (def.kind === 'evolution') {
+    if (world.level < config.draft.evolutionLevel) return false
+    if (def.spellId && evolved(world, def.spellId)) return false
+  }
   if (def.classIds && !def.classIds.includes(world.classDef.id)) return false
   if (!def.requiresOwnedTags) return true
   return def.requiresOwnedTags.every((tag) => ownsTag(world, tag))
@@ -135,8 +158,28 @@ export function takeOffer(world: World, offer: Offer): void {
   if (!world.draftOffers?.includes(offer)) return
   world.draftOffers = null
 
-  world.modifiers.push(...offer.def.modifiers)
-  world.upgradesTaken[offer.id] = (world.upgradesTaken[offer.id] ?? 0) + 1
+  applyUpgrade(world, offer.def)
 
   world.pendingLevelUps = Math.max(0, world.pendingLevelUps - 1)
+}
+
+/**
+ * The modifiers an upgrade adds, as they go into play: an upgrade for one
+ * spell has each of its modifiers narrowed to that spell's id, so they reach
+ * it and nothing else.
+ */
+export function upgradeModifiers(def: UpgradeDef): Modifier[] {
+  if (!def.spellId) return def.modifiers
+  return def.modifiers.map((modifier) => ({ ...modifier, tags: [...(modifier.tags ?? []), def.spellId!] }))
+}
+
+/** What taking an upgrade does to the world: its modifiers, its count, its keywords. */
+export function applyUpgrade(world: World, def: UpgradeDef): void {
+  world.modifiers.push(...upgradeModifiers(def))
+  world.upgradesTaken[def.id] = (world.upgradesTaken[def.id] ?? 0) + 1
+  const spellId = def.spellId
+  if (spellId && def.grantsTags) {
+    const granted = (world.grantedTags[spellId] ??= [])
+    for (const tag of def.grantsTags) if (!granted.includes(tag)) granted.push(tag)
+  }
 }

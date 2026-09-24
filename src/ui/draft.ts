@@ -1,7 +1,8 @@
 import { currentOffers, takeOffer, type Offer } from '../sim/draft'
 import type { World } from '../sim/world'
 import { hudActions } from './skin'
-import { spellIcon } from './spellIcons'
+import { spellIcon, spellIconUrl } from './spellIcons'
+import { WEAPON_DEFS } from '../data/weapons'
 
 /**
  * The level-up draft. The only interactive thing in the game.
@@ -47,6 +48,8 @@ const STYLES = `
 /* Skinned, the frame is part of the card's size, so the plain minimum is plenty. */
 .draft-card.skin-panel { min-height: 0; justify-content: flex-start; }
 .draft-card .kind { font-size: 11px; color: #7f9a6a; text-transform: uppercase; }
+.draft-card.evolution .kind { color: #ffb347; }
+.draft-card.evolution .name { color: #ffd98a; }
 .draft-card .head { display: flex; gap: 10px; align-items: center; }
 .draft-card .head img, .draft-card .head > span:first-child { width: 44px; height: 44px; flex: none; border-radius: 4px; }
 .draft-card .name { font-size: 15px; color: #e8c468; }
@@ -110,8 +113,13 @@ export class DraftUi {
 
     const kind = document.createElement('span')
     kind.className = 'kind'
-    // Which kind of card, so the slots' leanings read at a glance.
-    kind.textContent = offer.def.tags.includes('defence') ? 'defence' : offer.def.tags.includes('utility') ? 'utility' : 'power'
+    // Which kind of card, so the slots' leanings read at a glance: an upgrade
+    // for one spell names the spell, and an evolution says so.
+    const spell = offer.def.spellId ? WEAPON_DEFS.find((def) => def.id === offer.def.spellId) : undefined
+    kind.textContent = spell
+      ? `${offer.def.kind === 'evolution' ? 'evolution · ' : ''}${spell.displayName}`
+      : offer.def.tags.includes('defence') ? 'defence' : offer.def.tags.includes('utility') ? 'utility' : 'power'
+    if (offer.def.kind === 'evolution') card.classList.add('evolution')
 
     const name = document.createElement('span')
     name.className = 'name'
@@ -126,7 +134,9 @@ export class DraftUi {
     const label = document.createElement('span')
     label.style.cssText = 'display:flex;flex-direction:column;gap:3px'
     label.append(kind, name)
-    head.append(spellIcon(offer.id, '#e8c468', 44), label)
+    // Its own icon if it has one, otherwise its spell's.
+    const iconId = spellIconUrl(offer.id) || !spell ? offer.id : spell.id
+    head.append(spellIcon(iconId, spell?.colour ?? '#e8c468', 44), label)
     card.append(head, desc)
     card.addEventListener('click', () => {
       takeOffer(this.getWorld(), offer)

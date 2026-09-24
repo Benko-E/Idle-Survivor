@@ -1,7 +1,7 @@
 import { config } from '../config'
 import { resolveDeaths } from './enemyBehaviours'
 import { BEHAVIOURS } from './behaviours'
-import { updateProjectiles } from './projectiles'
+import { spawnPlainBolt, updateProjectiles } from './projectiles'
 import { weaponStat } from './stats'
 import { updateStatusEffects } from './statusEffects'
 import { updateVfx } from './vfx'
@@ -38,7 +38,7 @@ function castReadySpells(world: World, dt: number): void {
       world,
       weapon,
       def: weapon.def,
-      stat: (key) => weaponStat(world, weapon, key),
+      stat: (key, fallback) => weaponStat(world, weapon, key, fallback),
     })
 
     if (!landed) {
@@ -78,7 +78,28 @@ function removeDead(world: World): void {
   }
 }
 
+/**
+ * Backdraft: the moment he's hurt, a ring of plain bolts out of him, then a
+ * cooldown of its own so a crowd nibbling at him can't make him a machine gun.
+ */
+function backdraft(world: World): void {
+  if (world.state !== 'running' || world.time - world.lastHurtAt > 0.05) return
+  for (const weapon of world.weapons) {
+    if (!weapon.def.enabled) continue
+    const bolts = Math.round(weaponStat(world, weapon, 'backdraft'))
+    if (bolts <= 0 || world.time < (weapon.backdraftReady ?? 0)) continue
+    weapon.backdraftReady = world.time + config.combat.backdraftCooldown
+    const { x, y } = world.character
+    const damage = weaponStat(world, weapon, 'damage')
+    const offset = world.rng() * Math.PI * 2
+    for (let i = 0; i < bolts; i++) {
+      spawnPlainBolt(world, weapon, x, y, offset + (i / bolts) * Math.PI * 2, damage, weaponStat(world, weapon, 'range') * 0.6)
+    }
+  }
+}
+
 export function updateCombat(world: World, dt: number): void {
+  backdraft(world)
   castReadySpells(world, dt)
   updateProjectiles(world, dt)
   updateZones(world, dt)

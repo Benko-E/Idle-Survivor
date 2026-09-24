@@ -5,6 +5,7 @@ import { config } from '@game/config'
 import { DEFAULT_CLASS } from '@game/data/classes'
 import { resolveStat } from '@game/core/modifiers'
 import { UPGRADE_DEFS } from '@game/data/upgrades'
+import { upgradeModifiers } from '@game/sim/draft'
 import { WEAPON_DEFS } from '@game/data/weapons'
 import { BEHAVIOURS } from '@game/sim/behaviours'
 import { rebuildEnemyGrid } from '@game/sim/enemyGrid'
@@ -30,7 +31,7 @@ for (const def of WEAPON_DEFS) {
   world.enemies.push({ id: 1, def: ENEMY_DEFS[0], x: 60, y: 0, hp: 1e9, maxHp: 1e9, speed: 0, effects: [], stride: 0 })
   world.enemies.push({ id: 2, def: ENEMY_DEFS[0], x: 120, y: 0, hp: 1e9, maxHp: 1e9, speed: 0, effects: [], stride: 0 })
   rebuildEnemyGrid(world)
-  const keys = new Set<string>(JSON.parse(process.env.COMBAT_KEYS ?? '["cooldown", "cooldownRecovery"]'))
+  const keys = new Set<string>(JSON.parse(process.env.COMBAT_KEYS ?? '["cooldown", "cooldownRecovery", "backdraft"]'))
   const landed = BEHAVIOURS[def.behaviour]({ world, weapon: { def, cooldownRemaining: 0, timesCast: 0, idleSeconds: 0, damageDealt: 0 }, def, stat: (k) => { keys.add(k); return def.stats[k] ?? 0 } })
   reads[def.id] = keys
   console.log(`${def.displayName.padEnd(20)} reads: ${[...keys].join(', ')}${landed ? '' : '  (DID NOT CAST)'}`)
@@ -44,7 +45,7 @@ for (const up of UPGRADE_DEFS) {
     for (const key of reads[def.id]) {
       const fallback = JSON.parse(process.env.FALLBACKS ?? '{"cooldownRecovery": 1}')[key] ?? 0
       const base = def.stats[key] ?? fallback
-      const after = resolveStat(base, key, up.modifiers, def.tags)
+      const after = resolveStat(base, key, upgradeModifiers(up), [...def.tags, def.id, ...(up.spellId === def.id ? up.grantsTags ?? [] : [])])
       if (Math.abs(after - base) > 1e-9) { changes.push(`${def.displayName}.${key} ${+base.toFixed(3)}→${+after.toFixed(3)}`); targets.delete(key) }
       else if (targets.has(key) && def.stats[key] !== undefined) {/* targeted but tags excluded it */}
     }

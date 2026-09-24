@@ -74,24 +74,16 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     requiresOwnedTags: ['area'],
   },
   {
-    id: 'up_multishot_01',
-    displayName: 'Splitting Bolt',
-    description: '+1 bolt, aimed at another nearby enemy',
-    tags: ['offence', 'projectile'],
-    modifiers: [{ target: 'count', op: 'add', value: 1, tags: ['projectile'] }],
-    maxStacks: 3,
-    weight: 55,
-    requiresOwnedTags: ['projectile'],
-  },
-  {
     id: 'up_pierce_01',
     displayName: 'Lancing Bolt',
-    description: 'Bolts pass through 1 more enemy',
+    // Frost only, until frost gets its own upgrades: Firebolt has its own
+    // Pierce now, and a generic one would have stacked on top of it.
+    description: 'Frost bolts pass through 1 more enemy',
     tags: ['offence', 'projectile'],
-    modifiers: [{ target: 'pierce', op: 'add', value: 1, tags: ['projectile'] }],
+    modifiers: [{ target: 'pierce', op: 'add', value: 1, tags: ['projectile', 'frost'] }],
     maxStacks: 3,
     weight: 50,
-    requiresOwnedTags: ['projectile'],
+    requiresOwnedTags: ['projectile', 'frost'],
   },
   {
     id: 'up_chain_01',
@@ -163,6 +155,143 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     maxStacks: 3,
     weight: 45,
     requiresOwnedTags: ['root'],
+  },
+
+  // --- Firebolt ------------------------------------------------------------------
+  //
+  // Upgrades for one spell (spellId): offered only while he has Firebolt, and
+  // touching nothing else, ever. The mechanics are bolt stats — fork, returns,
+  // ignite, combustion, explode, flameTrail — read by the projectile
+  // behaviour, so any bolt spell could be given them the same way.
+
+  {
+    id: 'up_fb_ignite',
+    spellId: 'spell_bolt_01',
+    kind: 'mutation',
+    displayName: 'Ignite',
+    description: 'Hits leave the target burning. More picks, hotter burns',
+    tags: ['offence', 'fire'],
+    // A share of each hit's damage, dealt again as burning over igniteSeconds.
+    modifiers: [{ target: 'ignite', op: 'add', value: 0.4 }],
+    grantsTags: ['burning'],
+    maxStacks: 3,
+    weight: 60,
+  },
+  {
+    id: 'up_fb_fork',
+    spellId: 'spell_bolt_01',
+    kind: 'mutation',
+    displayName: 'Fork',
+    description: 'After a hit, a smaller bolt seeks out another enemy nearby',
+    tags: ['offence', 'fire'],
+    // Forks are plain bolts: half damage, no other upgrades on them.
+    modifiers: [{ target: 'fork', op: 'add', value: 1 }],
+    maxStacks: 3,
+    weight: 55,
+  },
+  {
+    id: 'up_fb_pierce',
+    spellId: 'spell_bolt_01',
+    kind: 'mutation',
+    displayName: 'Pierce',
+    description: 'Firebolt passes through 1 more enemy',
+    tags: ['offence', 'fire'],
+    modifiers: [
+      { target: 'pierce', op: 'add', value: 1 },
+      // Nothing until Phoenix Bolt, which pierces everything anyway: then
+      // each pick taken before it makes its trail burn hotter instead.
+      { target: 'flameTrail', op: 'increase', value: 0.25 },
+    ],
+    grantsTags: ['piercing'],
+    maxStacks: 3,
+    weight: 55,
+  },
+  {
+    id: 'up_fb_return',
+    spellId: 'spell_bolt_01',
+    kind: 'mutation',
+    displayName: 'Returning Bolt',
+    description: 'The bolt flies out and comes back to him, hitting everything twice',
+    tags: ['offence', 'fire'],
+    // The main bolt only; forks never come back.
+    modifiers: [{ target: 'returns', op: 'add', value: 1 }],
+    maxStacks: 1,
+    weight: 45,
+  },
+  {
+    id: 'up_fb_combust',
+    spellId: 'spell_bolt_01',
+    kind: 'mutation',
+    displayName: 'Combustion',
+    description: 'Hitting a burning enemy sets its burn off at once, in an explosion that can chain',
+    tags: ['offence', 'fire'],
+    // Detonates burns from any source — Righteous Fire, Meteor — and any
+    // burning enemy caught in the blast goes off too.
+    modifiers: [{ target: 'combustion', op: 'add', value: 1 }],
+    grantsTags: ['explosive'],
+    requires: ['up_fb_ignite'],
+    maxStacks: 1,
+    weight: 55,
+  },
+  {
+    id: 'up_fb_hotstreak',
+    spellId: 'spell_bolt_01',
+    kind: 'mutation',
+    displayName: 'Hot Streak',
+    description: 'Every 5th Firebolt is huge: it pierces everything and forks off every enemy it hits',
+    tags: ['offence', 'fire'],
+    modifiers: [{ target: 'hotStreak', op: 'add', value: 5 }],
+    requires: ['up_fb_pierce', 'up_fb_fork'],
+    maxStacks: 1,
+    weight: 55,
+  },
+  {
+    id: 'up_fb_backdraft',
+    spellId: 'spell_bolt_01',
+    kind: 'mutation',
+    displayName: 'Backdraft',
+    description: 'When he is hurt, he fires a ring of firebolts in every direction',
+    tags: ['offence', 'fire'],
+    // Plain bolts, with a cooldown of their own (combat.backdraftCooldown).
+    modifiers: [{ target: 'backdraft', op: 'add', value: 8 }],
+    maxStacks: 1,
+    weight: 45,
+  },
+  {
+    id: 'up_fb_fireball',
+    spellId: 'spell_bolt_01',
+    kind: 'evolution',
+    displayName: 'Fireball',
+    description: 'Firebolt becomes a slow, heavy fireball that explodes on every hit',
+    tags: ['offence', 'fire'],
+    // Keeps Pierce, Fork and Returning Bolt; its forks are plain firebolts.
+    modifiers: [
+      { target: 'boltSpeed', op: 'multiply', value: 0.42 },
+      { target: 'boltDamage', op: 'multiply', value: 2.8 },
+      { target: 'boltSize', op: 'multiply', value: 2 },
+      { target: 'cooldown', op: 'multiply', value: 1.25 },
+      { target: 'explode', op: 'add', value: 48 },
+    ],
+    grantsTags: ['explosive'],
+    maxStacks: 1,
+    weight: 400,
+  },
+  {
+    id: 'up_fb_phoenix',
+    spellId: 'spell_bolt_01',
+    kind: 'evolution',
+    displayName: 'Phoenix Bolt',
+    description: 'Firebolt pierces everything and leaves a trail of burning ground',
+    tags: ['offence', 'fire'],
+    // Pierce stops being offered; picks already taken heat the trail instead.
+    modifiers: [
+      { target: 'pierce', op: 'add', value: 99 },
+      { target: 'flameTrail', op: 'add', value: 8 },
+    ],
+    grantsTags: ['piercing', 'burning'],
+    retires: ['up_fb_pierce'],
+    maxStacks: 1,
+    weight: 400,
   },
 
   // --- Offence: by element ----------------------------------------------------

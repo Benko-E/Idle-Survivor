@@ -525,7 +525,7 @@ by default), and anything that wants to know asks `hasCondition(enemy, id)`.
 
 ## Upgrades
 
-All 22 live in `src/data/upgrades.ts`, as data. Each one is a list of
+They all live in `src/data/upgrades.ts`, as data. Each one is a list of
 modifiers on a named stat: the spell stats are listed on `WeaponDef` in
 `data/types.ts`, the character's in `sim/stats.ts`. Gear and character stats
 will be more modifiers into the same list, so they need no new code either.
@@ -533,7 +533,8 @@ will be more modifiers into the same list, so they need no new code either.
 | Group | Upgrades |
 | --- | --- |
 | Every spell | Focused Will (damage), Quickened Mind (recharge), Farsight (range) |
-| Kind of spell | Widened Sigils (area), Splitting Bolt, Lancing Bolt (pierce), Forked Arc, Conduction (chain falloff), Permafrost (chill), Deepening Rot (damage over time), Gathering Storm (strikes), Deep Roots |
+| Kind of spell | Widened Sigils (area), Lancing Bolt (frost bolts pierce), Forked Arc, Conduction (chain falloff), Permafrost (chill), Deepening Rot (damage over time), Gathering Storm (strikes), Deep Roots |
+| One spell | Firebolt: Ignite, Fork, Pierce, Returning Bolt, Combustion, Hot Streak, Backdraft; evolutions Fireball and Phoenix Bolt |
 | Element | Kindled Fury (fire), Winter's Bite (frost), Static Charge (lightning) |
 | Defence | Hardy (max health), Second Wind (regeneration), Warding (damage taken) |
 | Utility | Miser's Instinct (pickup radius), Fleet Step (speed), Keen Study (XP), Gilded Touch (gold) |
@@ -549,12 +550,39 @@ Three rules the stacking follows, each learned the hard way:
   upgrade that silently does nothing. When adding upgrades, check the stat
   lists above.
 
+### Upgrades for one spell
+
+The redo of the upgrades is going spell by spell, starting with Firebolt; the
+plans live in the spellbook. An upgrade with a `spellId` is only offered
+while he has that spell, and its modifiers are narrowed to that spell's id,
+so nothing taken for Firebolt ever reaches a spell taken later — the problem
+Splitting Bolt had, handing Frozen Orb four orbs. Splitting Bolt is gone.
+
+What the rest of an upgrade entry can say:
+
+- `kind: 'mutation'` changes how the spell works. `kind: 'evolution'`
+  transforms it: offered from `draft.evolutionLevel` (20), and taking one of
+  a spell's evolutions rules out the others for the run.
+- `requires` — upgrades that must come first (Combustion needs Ignite; Hot
+  Streak needs Pierce and Fork). `retires` — upgrades no longer offered once
+  this is taken (Phoenix Bolt already pierces everything, so Pierce goes).
+- `grantsTags` — keywords the spell gains (burning, piercing, explosive).
+  Anything asking what a spell is sees them like its own tags, so a later
+  "every burning spell…" upgrade can require them.
+
+The mechanics are bolt stats read by the projectile behaviour — `fork`,
+`returns`, `ignite`, `combustion`, `explode`, `flameTrail`, `hotStreak`,
+`backdraft`, and `boltSpeed`/`boltDamage`/`boltSize` for evolutions — so
+any bolt spell can be given them with data. Forks and Backdraft fire plain
+bolts: damage, nothing else, so an evolved Fireball forks into ordinary
+firebolts. Combustion detonates burns from any source, and a burning enemy
+caught in the blast goes off too, up to `combat.combustionChain`. Numbers
+for all of it are under `combat` in the config.
+
 Ideas that need a small new mechanic first, for later:
 
 - **Critical hits** — a chance for a hit to deal extra damage. One roll in
   `damageEnemy`, then crit chance and crit damage are ordinary stats.
-- **Burning** — fire hits leave a short damage-over-time. Status effects
-  already exist; this is an on-hit hook for projectiles.
 - **On-kill effects** — corpses that explode, a chance to heal on kill. Needs
   a `killed` event from `damageEnemy`, like `banked` and `died`.
 - **Echo** — a chance for a spell to cast twice.
@@ -654,3 +682,6 @@ That completes the spec's definition of done for the prototype. Past it:
 - [x] **21 — classes.** Everything wizard-specific gathered into one class
   entry, with only the wizard; spells belong to a class. Play is unchanged,
   checked by identical replays. See "Classes".
+- [x] **22 — spell upgrades.** Upgrades for one spell, with prerequisites,
+  retirements, keywords and exclusive evolutions; Firebolt's seven
+  mutations and two evolutions. Splitting Bolt removed. See "Upgrades".

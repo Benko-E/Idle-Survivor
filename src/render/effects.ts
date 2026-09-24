@@ -23,6 +23,7 @@ export function drawGroundEffects(renderer: Renderer, world: World): void {
   const loudness = config.render.effectsAlpha
   if (loudness <= 0) return
   drawAuras(renderer, world, loudness, true)
+  drawHotStreakReady(renderer, world, loudness)
   drawZones(renderer, world, loudness, true)
   drawRoots(renderer, world, loudness)
 }
@@ -178,6 +179,15 @@ function drawZones(renderer: Renderer, world: World, loudness: number, ground: b
     // Active: a faint floor, plus whatever the zone does drawn on top.
     const life = zone.durationTotal > 0 ? zone.remaining / zone.durationTotal : 0
     const fade = Math.min(1, life * 4)
+    // A patch of a trail is just its scorched floor, fading as it cools.
+    if (zone.quiet) {
+      if (!ground) continue
+      const floor = fx?.ground ? getSheet(`fx:${fx.ground}`) : undefined
+      const w = zone.radius * 2.4
+      if (floor) renderer.drawWorldSprite(floor, Math.floor(world.time * 8 + zone.x) % floor.frames, zone.x, zone.y, 0, w, w * config.render.yScale, 0.8 * life * loudness)
+      else renderer.fillWorldCircle(zone.x, zone.y, zone.radius, zone.colour, 0.3 * life * loudness)
+      continue
+    }
     if (!ground) {
       const particle = fx?.particle ? getSheet(`fx:${fx.particle}`) : undefined
       if (particle) drawFalling(renderer, particle, zone.x, zone.y, zone.radius, world.time, fade * loudness)
@@ -215,6 +225,20 @@ function drawZones(renderer: Renderer, world: World, loudness: number, ground: b
   }
 }
 
+/**
+ * Hot Streak's tell: when his next bolt will be the big one, the ground at
+ * his feet glows, so it can be seen coming rather than just arriving.
+ */
+function drawHotStreakReady(renderer: Renderer, world: World, loudness: number): void {
+  if (world.state !== 'running') return
+  for (const weapon of world.weapons) {
+    const every = Math.round(weaponStat(world, weapon, 'hotStreak'))
+    if (every <= 0 || (weapon.streak ?? 0) < every - 1) continue
+    const pulse = 0.7 + 0.3 * Math.sin(world.time * 10)
+    renderer.fillWorldCircle(world.character.x, world.character.y, world.character.radius * 1.8, weapon.def.colour, 0.3 * pulse * loudness)
+  }
+}
+
 /** How high off the ground bolts and orbs fly, in world units: about hand height. */
 const FLIGHT_HEIGHT = 16
 
@@ -236,6 +260,8 @@ function drawProjectiles(renderer: Renderer, world: World, loudness: number): vo
     }
     const h = Math.max(14, projectile.radius * 3.4)
     const frame = Math.floor(world.time * 10 + i) % 4
+    // An empowered bolt burns with a halo round it.
+    if (projectile.empowered) renderer.drawWorldOrb(projectile.x, projectile.y, projectile.radius * 1.6, FLIGHT_HEIGHT, projectile.colour, loudness)
     renderer.drawWorldSprite(sheet, frame, projectile.x, projectile.y, FLIGHT_HEIGHT, h * sheet.aspect, h, loudness)
   }
 }

@@ -112,6 +112,10 @@ export interface WeaponInstance {
    * caused counts: its bolts, its effects ticking later, its zones.
    */
   damageDealt: number
+  /** Casts since the last empowered one, for Hot Streak. */
+  streak?: number
+  /** World time Backdraft can next go off. */
+  backdraftReady?: number
   /**
    * When each enemy was last hit by this spell, by enemy id. Only spells that
    * touch the same enemies over and over use it — an orb circling through a
@@ -157,6 +161,8 @@ export interface World {
   weapons: WeaponInstance[]
   /** Every stat change in play, from upgrades taken in the draft. */
   modifiers: Modifier[]
+  /** Keywords upgrades have given each spell, by spell id: burning, explosive. */
+  grantedTags: Record<string, string[]>
   /** Earned when the last spell tier is chosen; see sim/buildBonus.ts. */
   buildBonus: BuildBonus
 
@@ -203,6 +209,8 @@ export interface World {
   blastsTaken: number
   /** Damage he's taken this run, by source, for tuning. */
   damageTakenBy: Record<string, number>
+  /** World time he last lost health, for anything that reacts to being hit. */
+  lastHurtAt: number
 }
 
 /**
@@ -261,6 +269,7 @@ export function createWorld(seed: number = config.world.seed, starterId?: string
       damageDealt: 0,
     })),
     modifiers: [],
+    grantedTags: {},
     buildBonus: null,
     xp: 0,
     level: 1,
@@ -285,6 +294,7 @@ export function createWorld(seed: number = config.world.seed, starterId?: string
     damageDealt: 0,
     blastsTaken: 0,
     damageTakenBy: {},
+    lastHurtAt: -Infinity,
   }
 }
 

@@ -1,6 +1,7 @@
 import { config } from '../config'
 import type { WeaponDef } from '../data/types'
 import { damageEnemy } from './damageEnemy'
+import { type BoltMutations } from './projectiles'
 import { applyCondition } from './statusEffects'
 import { orbitPositions } from './orbit'
 import { enemiesInRadius, nearestEnemies, nearestEnemy, pickTargets } from './targeting'
@@ -26,7 +27,8 @@ export interface CastContext {
   weapon: WeaponInstance
   def: WeaponDef
   /** Base value from the data entry, resolved through all active modifiers. */
-  stat: (key: string) => number
+  /** A stat, through every modifier in play. `fallback` is its base when the spell doesn't list it: 1 for a multiplier. */
+  stat: (key: string, fallback?: number) => number
 }
 
 /**
@@ -61,10 +63,36 @@ const projectile: Behaviour = ({ world, weapon, def, stat }) => {
   const targets = nearestEnemies(world, caster.x, caster.y, range, count, scratchTargets)
   if (targets.length === 0) return false
 
-  const speed = stat('speed')
+  // Evolutions reshape the bolt through these three, not through its damage
+  // and speed themselves, so the plain bolts it forks into stay plain.
+  const speed = stat('speed') * stat('boltSpeed', 1)
   const spread = stat('spread')
-  const damage = stat('damage')
+  const damage = stat('damage') * stat('boltDamage', 1)
   const pierce = Math.max(0, Math.round(stat('pierce')))
+  const size = (stat('size') || config.combat.projectileRadius) * stat('boltSize', 1)
+
+  // What upgrades have made the bolts do. Undefined — a plain bolt — when none.
+  const mutations: BoltMutations = {
+    fork: Math.max(0, Math.round(stat('fork'))),
+    forkEveryHit: false,
+    returns: Math.max(0, Math.round(stat('returns'))),
+    explode: Math.max(0, stat('explode')),
+    ignite: Math.max(0, stat('ignite')),
+    combust: stat('combustion') > 0,
+    trail: Math.max(0, stat('flameTrail')),
+  }
+  const mutated = mutations.fork > 0 || mutations.returns > 0 || mutations.explode > 0 || mutations.ignite > 0 || mutations.combust || mutations.trail > 0
+
+  // Hot Streak: every Nth cast, the first bolt is an empowered one.
+  const streakEvery = Math.round(stat('hotStreak'))
+  let empowered = false
+  if (streakEvery > 0) {
+    weapon.streak = (weapon.streak ?? 0) + 1
+    if (weapon.streak >= streakEvery) {
+      weapon.streak = 0
+      empowered = true
+    }
+  }
 
   // Whatever lingers on a hit: a chill if the spell slows, its damage over
   // time if it has some. Neither for a plain bolt.
@@ -88,21 +116,31 @@ const projectile: Behaviour = ({ world, weapon, def, stat }) => {
     const offset = round === 0 ? 0 : Math.ceil(round / 2) * spread * (round % 2 === 1 ? 1 : -1)
     const angle = Math.atan2(target.y - caster.y, target.x - caster.x) + offset
 
+    // The empowered bolt pierces everything, forks off every enemy it goes
+    // through, hits harder, is bigger and flies further.
+    const hot = empowered && i === 0
+    const reach = hot ? config.combat.hotStreakRange : range
+    const life = speed > 0 ? reach / speed : 0
+    const boltPierce = hot ? 999 : pierce
     world.projectiles.push({
       x: caster.x,
       y: caster.y,
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed,
-      damage,
-      pierce,
+      damage: hot ? damage * config.combat.hotStreakDamage : damage,
+      pierce: boltPierce,
       // A spell can set its own bolt size — Frozen Orb is a big slow ball.
-      radius: stat('size') || config.combat.projectileRadius,
+      radius: hot ? size * config.combat.hotStreakSize : size,
       colour: def.colour,
       tags: def.tags,
-      life: speed > 0 ? range / speed : 0,
+      life,
       hits: new Set(),
       source: weapon,
       onHit,
+      mutations: mutated || hot ? { ...mutations, fork: hot ? Math.max(1, mutations.fork) : mutations.fork, forkEveryHit: hot } : undefined,
+      empowered: hot,
+      outLife: life,
+      outPierce: boltPierce,
     })
   }
 

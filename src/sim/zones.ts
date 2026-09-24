@@ -51,6 +51,10 @@ export interface Zone {
   landed: boolean
   colour: string
   source: WeaponInstance
+  /** A condition put on everything inside while it's active: a flame trail sets things burning. */
+  condition?: { id: string; magnitude: number; duration: number }
+  /** A small patch in a row of them, drawn as just its floor: Phoenix Bolt's trail. */
+  quiet?: boolean
 }
 
 const scratch: Enemy[] = []
@@ -114,6 +118,7 @@ export function updateZones(world: World, dt: number): void {
       const inside = enemiesInRadius(world, zone.x, zone.y, zone.radius, scratch)
       for (const enemy of inside) {
         if (zone.slow > 0) applyCondition(world, enemy, 'chilled', zone.slow, CHILL_LINGER, zone.source)
+        if (zone.condition) applyCondition(world, enemy, zone.condition.id, zone.condition.magnitude, zone.condition.duration, zone.source)
         if (zone.dps > 0) damageEnemy(world, enemy, zone.dps * dt, zone.source, true)
         if (zone.pull > 0) {
           const dx = zone.x - enemy.x

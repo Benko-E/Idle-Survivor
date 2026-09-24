@@ -27,6 +27,7 @@ export function hurtCharacter(world: World, amount: number, source: string): voi
   const taken = characterStat(world, 'damageTaken', 1)
   const dealt = amount * damageMultiplier(world.time) * taken
   character.hp -= dealt
+  world.lastHurtAt = world.time
   world.damageTakenBy[source] = (world.damageTakenBy[source] ?? 0) + dealt
 
   if (character.hp <= 0) {

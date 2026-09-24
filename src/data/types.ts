@@ -307,6 +307,29 @@ export interface UpgradeDef {
    * speed and pickup radius aren't anyone's flavour.
    */
   classIds?: string[]
+  /**
+   * The one spell it's for, by WeaponDef id. Offered only while he has that
+   * spell, and its modifiers touch that spell and nothing else — so a pick
+   * made for Firebolt can never leak into a spell taken later.
+   */
+  spellId?: string
+  /**
+   * mutation   changes how its spell works
+   * evolution  transforms it: offered from draft.evolutionLevel, and taking
+   *            one of a spell's evolutions rules out the rest for the run
+   * Left out for plain stat upgrades.
+   */
+  kind?: 'mutation' | 'evolution'
+  /** Upgrades (by id) that must already be taken: Combustion needs Ignite. */
+  requires?: string[]
+  /** Upgrades no longer offered once this one is taken: Phoenix Bolt already pierces everything. */
+  retires?: string[]
+  /**
+   * Keywords its spell gains: burning, piercing, explosive. Anything that
+   * asks what a spell is — an upgrade's requiresOwnedTags, a modifier's tag
+   * selector — sees them like the spell's own tags.
+   */
+  grantsTags?: string[]
   displayName: string
   /** Shown on the card. Write it for a player, not for a spreadsheet. */
   description: string

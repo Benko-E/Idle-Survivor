@@ -73,45 +73,22 @@ function enemy(world: World, x: number, y: number, hp = 1e9) {
   const [a, b, c] = [cd(0), cd(1), cd(5)]
   check('Quickened Mind x1 / x5', Math.abs(a - 0.95) < 1e-9 && Math.abs(b - 0.95 / 1.15) < 1e-9 && Math.abs(c - 0.95 / 1.75) < 1e-9, `cooldown ${a.toFixed(3)} / ${b.toFixed(3)} / ${c.toFixed(3)}s`)
 }
-// Splitting Bolt: two bolts, two different enemies.
-{
-  const w = createWorld(1)
-  take(w, 'up_multishot_01')
-  const near = enemy(w, 100, 0), other = enemy(w, 0, 140)
-  rebuildEnemyGrid(w)
-  w.weapons[0].cooldownRemaining = 0
-  updateCombat(w, DT)
-  const headings = w.projectiles.map((p) => Math.round((Math.atan2(p.vy, p.vx) * 180) / Math.PI))
-  for (let i = 0; i < 90; i++) { rebuildEnemyGrid(w); updateCombat(w, DT) }
-  const hitBoth = near.hp < near.maxHp && other.hp < other.maxHp
-  check('Splitting Bolt, 2 targets', w.weapons[0].timesCast >= 1 && headings.length === 2 && hitBoth, `bolt headings ${headings.join('°, ')}°, both enemies hit: ${hitBoth}`)
-}
-// Splitting Bolt with one target: second bolt fans by `spread`.
-{
-  const w = createWorld(1)
-  take(w, 'up_multishot_01')
-  enemy(w, 100, 0)
-  rebuildEnemyGrid(w)
-  w.weapons[0].cooldownRemaining = 0
-  updateCombat(w, DT)
-  const angles = w.projectiles.map((p) => Math.atan2(p.vy, p.vx))
-  check('Splitting Bolt, 1 target', angles.length === 2 && Math.abs(Math.abs(angles[1] - angles[0]) - 0.14) < 1e-9, `angles ${angles.map((a) => a.toFixed(2)).join(', ')} rad`)
-}
-// Lancing Bolt: passes through the first enemy into a second in line.
+// Lancing Bolt: frost bolts only now. Frostbolt already pierces one, so with
+// it a third enemy in line gets hit too.
 {
   const run = (stacks: number) => {
-    const w = createWorld(1)
+    const w = createWorld(1, 'spell_frostbolt_01')
     take(w, 'up_pierce_01', stacks)
-    const first = enemy(w, 80, 0), second = enemy(w, 160, 0)
+    const first = enemy(w, 80, 0), second = enemy(w, 160, 0), third = enemy(w, 240, 0)
     w.weapons[0].cooldownRemaining = 0
     rebuildEnemyGrid(w)
     updateCombat(w, DT)
     w.weapons[0].cooldownRemaining = 99
     for (let i = 0; i < 90; i++) { rebuildEnemyGrid(w); updateCombat(w, DT) }
-    return [first.hp < first.maxHp, second.hp < second.maxHp]
+    return [first.hp < first.maxHp, second.hp < second.maxHp, third.hp < third.maxHp]
   }
   const [base, pierced] = [run(0), run(1)]
-  check('Lancing Bolt', base[0] && !base[1] && pierced[0] && pierced[1], `no pierce hits ${base}, with pierce hits ${pierced}`)
+check('Lancing Bolt (frost)', base[1] && !base[2] && pierced[2], `Frostbolt hits ${base}, with Lancing Bolt ${pierced}`)
 }
 // Permafrost: chill on a nova target is stronger and longer.
 {

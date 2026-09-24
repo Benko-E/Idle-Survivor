@@ -27,9 +27,16 @@ function fingerprint(): string {
   const world = createWorld()
   const hh = config.render.visibleWorldHeight / 2
   const hw = hh * config.render.yScale * 1.8
-  // Six minutes is several trips to the shop; then he's finished off, so the
-  // death announcement gets checked too without playing a whole run out.
-  for (let i = 0; i < 60 * 60 * 6 && world.state === 'running'; i++) {
+  // Seven minutes of play, walking him onto the shop whenever he
+  // wants to bank, so there are banks to check whatever the run does — with a
+  // big enough crowd he can circle it for minutes without getting in, and
+  // that isn't what this tests.
+  // Then he's finished off, so the death announcement gets checked too.
+  for (let i = 0; i < 60 * 60 * 7 && world.state === 'running'; i++) {
+    if (i > 0 && i % 600 === 0 && world.intent === 'banking') {
+      world.character.x = world.shopX
+      world.character.y = world.shopY
+    }
     world.time += DT
     updateSpawner(world, DT, hw, hh)
     updateEnemies(world, DT)
