@@ -72,12 +72,17 @@ export class EnemyLooks {
     this.corpses.length = 0
   }
 
-  /** The living, with their fade in and hit flash, and then the dying. */
-  push(frame: Drawable[], world: World): void {
+  /**
+   * The living, with their fade in and hit flash, and then the dying.
+   * Walkers go into `frame`, sorted in with the trees and him; fliers into
+   * `air`, drawn over all of it once their shadows are on the ground.
+   */
+  push(frame: Drawable[], air: Drawable[], world: World): void {
     const { flashSeconds, spawnFadeSeconds, deathSeconds } = config.render.enemyFx
 
     for (const enemy of world.enemies) {
       const item = drawable(enemy.def, enemy.x, enemy.y)
+      item.lift = flightLift(enemy.def, enemy.id, world.time)
       const sheet = item.sheet
       if (sheet) {
         // Walkers head straight at him, so their heading is simply the
@@ -134,7 +139,7 @@ export class EnemyLooks {
         else item.flash = 1 - since / flashSeconds
       }
       if (fuseFlash > (item.flash ?? 0)) item.flash = fuseFlash
-      frame.push(item)
+      ;(enemy.def.flying ? air : frame).push(item)
     }
 
     // Oldest first, so the finished ones come off the front.
@@ -150,7 +155,9 @@ export class EnemyLooks {
       item.alpha = 1 - t
       item.flash = 1 - t
       item.shadowRadius = corpse.def.radius * (1 - t)
-      frame.push(item)
+      // A flier drops out of the sky as it goes.
+      item.lift = flightLift(corpse.def, corpse.id, corpse.at) * (1 - t)
+      ;(corpse.def.flying ? air : frame).push(item)
     }
   }
 
@@ -185,20 +192,21 @@ export class EnemyLooks {
         else if (effect.condition === 'shocked') shocked = true
       }
       const size = enemy.def.radius
+      const lift = flightLift(enemy.def, enemy.id, world.time)
       if (burning) {
         for (let i = 0; i < 2; i++) {
           const phase = (world.time * 1.6 + i * 0.5 + enemy.id * 0.29) % 1
           const x = enemy.x + Math.sin(enemy.id * 1.7 + i * 2.1 + world.time * 3) * size * 0.6
           // Rising: further up the screen is a smaller world y.
           const y = enemy.y - size * 0.8 - phase * size * 2.2
-          renderer.fillWorldCircle(x, y, 1.6 + (1 - phase) * 1.4, i === 0 ? '#ffb347' : '#ff6a2a', 0.9 * (1 - phase))
+          renderer.fillWorldCircle(x, y, 1.6 + (1 - phase) * 1.4, i === 0 ? '#ffb347' : '#ff6a2a', 0.9 * (1 - phase), lift)
         }
       }
       if (shocked && Math.sin(world.time * 23 + enemy.id * 3.1) > 0.3) {
         const angle = world.time * 11 + enemy.id
         const x = enemy.x + Math.cos(angle) * size * 0.9
         const y = enemy.y - size + Math.sin(angle) * size * 0.9
-        renderer.fillWorldCircle(x, y, 2, '#e8dcff', 0.95)
+        renderer.fillWorldCircle(x, y, 2, '#e8dcff', 0.95, lift)
       }
     }
 
@@ -230,6 +238,13 @@ export class EnemyLooks {
       }
     }
   }
+}
+
+/** How far off the ground a flier is right now: a steady height with a slow bob. Zero for walkers. */
+function flightLift(def: EnemyDef, id: number, time: number): number {
+  if (!def.flying) return 0
+  const { flightHeight, flightBob } = config.render
+  return flightHeight + flightBob * Math.sin(time * 4 + id * 1.3)
 }
 
 /** Sized from the art at the shared enemy pixel density, or a plain box without it. */

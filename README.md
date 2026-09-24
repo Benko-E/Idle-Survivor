@@ -435,6 +435,18 @@ Now a lit wisp stops where it is. Over fifteen 15-minute bot runs, deaths
 went 8 → 6 (3 with step 17's roster); the bot never takes a tier 2 or 3
 spell, so real runs are easier.
 
+Fliers (bats, bees, wisps) live on their own layer. They only collide
+with other fliers, so a bat goes straight over a scrum of crabs instead of
+being shoved around by it, and they're drawn over everything — trees, crowds,
+him — lifted off the ground with a slow bob (`render.flightHeight`,
+`flightBob`), their shadow left on the ground below. Their art came with a
+shadow painted under it; `tools/extract-art.ps1` erases that, since it would
+float up with them. Anything the ground grows that stops walkers asks
+`blockedByTerrain(enemy)` rather than reading `flying`, so water or cliffs
+added later will let fliers over without anyone remembering to. Measured
+over fifteen 15-minute bot runs: bot deaths 6 → 3, with bats doing about the
+same share of the damage.
+
 Every enemy is drawn at one pixel density (`render.enemyPixelScale`), so their
 sizes relative to each other are the artist's, and the sprite now matches the
 collision circle — the crabs used to be drawn at about half their footprint.
@@ -586,3 +598,6 @@ That completes the spec's definition of done for the prototype. Past it:
 - [x] **19 — conditions.** Burning, chilled, frozen and shocked as data,
   each with a tint on the enemy; a new condition is a data entry. Spells
   play exactly as before. See "Conditions".
+- [x] **20 — flying.** Fliers on their own collision layer, drawn over
+  everything with their shadow on the ground; one rule for what terrain
+  stops. See "Enemies".

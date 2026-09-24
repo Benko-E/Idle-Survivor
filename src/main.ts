@@ -269,6 +269,7 @@ function tierHistogram(): string {
 }
 
 const frame: Drawable[] = []
+const air: Drawable[] = []
 
 function render(): void {
   draftUi.update()
@@ -304,8 +305,10 @@ function render(): void {
     })
   }
 
-  // Enemies, living and dying, with their hit flashes and fade ins.
-  enemyLooks.push(frame, world)
+  // Enemies, living and dying, with their hit flashes and fade ins. Fliers
+  // come back separately, to go over everything else.
+  air.length = 0
+  enemyLooks.push(frame, air, world)
 
   // Projectiles are drawn with the spell effects, as glowing balls in flight.
 
@@ -349,7 +352,11 @@ function render(): void {
   // Flat effects under everyone's feet, standing ones over them.
   drawGroundEffects(renderer, world)
   enemyLooks.drawGround(renderer, world)
+  // Fliers' shadows on the ground first, under everyone; then the ground
+  // and everything standing on it; then the fliers over the top.
+  renderer.drawShadows(air)
   renderer.drawScene(frame)
+  renderer.drawScene(air, false)
 
   drawEffects(renderer, world)
   enemyLooks.drawDust(renderer, world)

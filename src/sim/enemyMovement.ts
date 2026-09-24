@@ -3,7 +3,7 @@ import { busy, updateEnemyBehaviours } from './enemyBehaviours'
 import { forEachEnemyNear, LARGEST_ENEMY_RADIUS, rebuildEnemyGrid } from './enemyGrid'
 import { pushOutOfObstacles } from './obstacles'
 import { slowMultiplier } from './statusEffects'
-import type { World } from './world'
+import type { Enemy, World } from './world'
 
 /**
  * Enemy movement: walk at the character, and don't stand inside each other.
@@ -35,6 +35,25 @@ function seekCharacter(world: World, dt: number): void {
 }
 
 /**
+ * Whether the ground gets in its way. Fliers go over it — trees today, and
+ * whatever else the ground grows later (water, cliffs, hills): anything that
+ * blocks a walker should ask this rather than reading `flying` itself, so
+ * every new kind of terrain gets fliers right without thinking about them.
+ */
+export function blockedByTerrain(enemy: Enemy): boolean {
+  return !enemy.def.flying
+}
+
+/**
+ * Two layers, the ground and the air, that don't collide with each other: a
+ * bat flies straight over a scrum of crabs instead of being shouldered aside
+ * by it, and only jostles other fliers.
+ */
+function sameLayer(a: Enemy, b: Enemy): boolean {
+  return (a.def.flying === true) === (b.def.flying === true)
+}
+
+/**
  * Push apart anything that ended up overlapping.
  *
  * Without this a crowd converging on one point collapses into a single blob
@@ -55,7 +74,7 @@ function resolveOverlaps(world: World): void {
 
     forEachEnemyNear(world, a.x, a.y, reach, (b, j) => {
       // Each pair is visited from both ends; only act on it once.
-      if (j <= i) return
+      if (j <= i || !sameLayer(a, b)) return
 
       const dx = b.x - a.x
       const dy = b.y - a.y
@@ -89,7 +108,7 @@ function resolveOverlaps(world: World): void {
 function avoidObstacles(world: World): void {
   const slide = config.obstacles.enemySlide
   for (const enemy of world.enemies) {
-    if (enemy.def.flying) continue
+    if (!blockedByTerrain(enemy)) continue
     pushOutOfObstacles(world, enemy, enemy.def.radius, enemy.id % 2 === 0 ? slide : -slide)
   }
 }

@@ -39,6 +39,11 @@ export interface Drawable {
   /** A coloured wash under the flash, 0 to 1 — burning, frozen. */
   tint?: string
   tintAmount?: number
+  /**
+   * World units off the ground, for fliers. The sprite goes up; the shadow
+   * stays on the ground, smaller and fainter the higher it is.
+   */
+  lift?: number
 }
 
 export class Renderer {
@@ -361,7 +366,7 @@ export class Renderer {
    * screen are further away and get overlapped by things in front of them.
    * This one sort is the entire 2.5D effect.
    */
-  drawScene(items: Drawable[]): void {
+  drawScene(items: Drawable[], withShadows = true): void {
     items.sort((a, b) => a.y - b.y)
 
     const { ctx } = this
@@ -380,16 +385,9 @@ export class Renderer {
       if (sx + w < 0 || sx - w > this.viewW) continue
       if (sy + h < 0 || sy - h > this.viewH) continue
 
-      const footprint = (item.shadowRadius ?? item.w / 2) * shadowWidthRatio * this.scale
-      if (footprint > 0) {
-        ctx.globalAlpha = shadowAlpha
-        ctx.fillStyle = '#000000'
-        ctx.beginPath()
-        ctx.ellipse(sx, sy, footprint, footprint * yScale, 0, 0, Math.PI * 2)
-        ctx.fill()
-        ctx.globalAlpha = 1
-      }
+      if (withShadows) this.drawShadow(item, sx, sy, shadowAlpha, shadowWidthRatio, yScale)
 
+      const lifted = sy - (item.lift ?? 0) * this.scale
       if (item.sheet) {
         const { image, frameWidth, frameHeight } = item.sheet
         const alpha = item.alpha ?? 1
@@ -397,7 +395,7 @@ export class Renderer {
         const fx = (item.frameCol ?? 0) * frameWidth
         const fy = (item.frameRow ?? 0) * frameHeight
         const dx = Math.round(sx - w / 2)
-        const dy = Math.round(sy - h)
+        const dy = Math.round(lifted - h)
         ctx.drawImage(image, fx, fy, frameWidth, frameHeight, dx, dy, Math.ceil(w), Math.ceil(h))
         if (item.tint && item.tintAmount && item.tintAmount > 0) {
           ctx.globalAlpha = alpha * Math.min(1, item.tintAmount)
@@ -412,8 +410,37 @@ export class Renderer {
       }
 
       ctx.fillStyle = item.colour
-      ctx.fillRect(Math.round(sx - w / 2), Math.round(sy - h), w, h)
+      ctx.fillRect(Math.round(sx - w / 2), Math.round(lifted - h), w, h)
     }
+  }
+
+  /**
+   * Just the shadows of a set of drawables — for fliers, whose shadows belong
+   * on the ground under everything, while they themselves are drawn over it.
+   */
+  drawShadows(items: Drawable[]): void {
+    const { shadowAlpha, shadowWidthRatio, yScale } = config.render
+    for (const item of items) {
+      const sx = this.worldToScreenX(item.x)
+      const sy = this.worldToScreenY(item.y)
+      if (sx < -200 || sx > this.viewW + 200 || sy < -200 || sy > this.viewH + 200) continue
+      this.drawShadow(item, sx, sy, shadowAlpha, shadowWidthRatio, yScale)
+    }
+  }
+
+  private drawShadow(item: Drawable, sx: number, sy: number, shadowAlpha: number, widthRatio: number, yScale: number): void {
+    const lift = item.lift ?? 0
+    // The higher off the ground, the smaller and fainter.
+    const shrink = 1 / (1 + lift / 40)
+    const footprint = (item.shadowRadius ?? item.w / 2) * widthRatio * this.scale * shrink
+    if (footprint <= 0) return
+    const { ctx } = this
+    ctx.globalAlpha = shadowAlpha * shrink
+    ctx.fillStyle = '#000000'
+    ctx.beginPath()
+    ctx.ellipse(sx, sy, footprint, footprint * yScale, 0, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.globalAlpha = 1
   }
 
   /**
@@ -541,7 +568,7 @@ export class Renderer {
   }
 
   /** Filled, and squashed by yScale like the outline version below. */
-  fillWorldCircle(worldX: number, worldY: number, radius: number, colour: string, alpha = 1): void {
+  fillWorldCircle(worldX: number, worldY: number, radius: number, colour: string, alpha = 1, lift = 0): void {
     if (radius <= 0 || alpha <= 0) return
     const { ctx } = this
     ctx.globalAlpha = alpha
@@ -549,7 +576,7 @@ export class Renderer {
     ctx.beginPath()
     ctx.ellipse(
       this.worldToScreenX(worldX),
-      this.worldToScreenY(worldY),
+      this.worldToScreenY(worldY) - lift * this.scale,
       radius * this.scale,
       radius * config.render.yScale * this.scale,
       0,

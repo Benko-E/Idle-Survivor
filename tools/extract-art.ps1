@@ -97,6 +97,39 @@ $enemySheets = @(
   @('mushroom_purple', 'monster3.png', 0, 0),
   @('mushroom_red',    'monster3.png', 1, 0)
 )
+# Fliers come with a shadow painted under them, a separate blob below the
+# body. The game lifts them off the ground and draws their shadow itself, so
+# the painted one would float up with them: erase it. Per frame, the lowest
+# run of rows, if an empty row separates it from the body above.
+function StripPaintedShadow($path, $fw, $fh) {
+  $bmp = [System.Drawing.Bitmap]::FromFile($path)
+  $copy = New-Object System.Drawing.Bitmap($bmp)
+  $bmp.Dispose()
+  $clear = [System.Drawing.Color]::FromArgb(0, 0, 0, 0)
+  for ($fy = 0; $fy -lt $copy.Height; $fy += $fh) {
+    for ($fx = 0; $fx -lt $copy.Width; $fx += $fw) {
+      $filled = @()
+      for ($y = 0; $y -lt $fh; $y++) {
+        $any = $false
+        for ($x = 0; $x -lt $fw; $x++) { if ($copy.GetPixel($fx + $x, $fy + $y).A -gt 0) { $any = $true; break } }
+        $filled += $any
+      }
+      $bottom = $fh - 1
+      while ($bottom -ge 0 -and -not $filled[$bottom]) { $bottom-- }
+      $top = $bottom
+      while ($top -gt 0 -and $filled[$top - 1]) { $top-- }
+      # Only a short blob with body above it is a shadow; a flier with no gap
+      # under it keeps everything.
+      $bodyAbove = $false
+      for ($y = 0; $y -lt $top - 1; $y++) { if ($filled[$y]) { $bodyAbove = $true; break } }
+      if ($bottom -lt 0 -or -not $bodyAbove -or ($bottom - $top) -gt 8) { continue }
+      for ($y = $top; $y -le $bottom; $y++) { for ($x = 0; $x -lt $fw; $x++) { $copy.SetPixel($fx + $x, $fy + $y, $clear) } }
+    }
+  }
+  $copy.Save($path, [System.Drawing.Imaging.ImageFormat]::Png)
+  $copy.Dispose()
+}
+
 foreach ($e in $enemySheets) {
   $path = Join-Path $monDir $e[1]
   if ($e[2] -lt 0) {
@@ -106,6 +139,9 @@ foreach ($e in $enemySheets) {
     $r = BlockRect $e[2] $e[3] $monFrameW $monFrameH
     Crop $path $r.x $r.y $r.w $r.h ('enemies\' + $e[0] + '.png')
   }
+}
+foreach ($flier in @('bat', 'bee', 'wisp')) {
+  StripPaintedShadow (Join-Path $enemyOut ($flier + '.png')) $monFrameW $monFrameH
 }
 
 # Ground tiles, packed into a single horizontal strip.

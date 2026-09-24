@@ -87,6 +87,12 @@ export const config = {
      * pixelScale because a horde of full-size crabs would bury him.
      */
     enemyPixelScale: 0.7,
+    /**
+     * How high fliers are drawn off the ground, in world units, and how far
+     * they bob. Their shadow stays on the ground under them.
+     */
+    flightHeight: 16,
+    flightBob: 3,
     /** Enemy feedback, all render-side. */
     enemyFx: {
       /** A white flash on a direct hit. Damage over time doesn't flash. */
