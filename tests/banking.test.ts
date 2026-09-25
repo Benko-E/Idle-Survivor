@@ -91,3 +91,49 @@ fingerprint()
   const near = (a: number, b: number) => Math.abs(a - b) < 1e-6
   console.log(near(healthy, 300) && near(halfway, 200) && near(hurt, 100) && near(off, 100) && near(poor, 60) ? 'PASS' : 'FAIL')
 }
+
+// Banking in passing: close to the shop with a fair amount on him, he pops in.
+{
+  const saved = { ...config.shop }
+  Object.assign(config.shop, { spendThreshold: 240, thresholdMinutes: 4, confidentMinutes: 12, confidentAbove: 0.6, nervousBelow: 0.3, passingDistance: 300, passingShare: 0.25, passingGiveUp: 1.5 })
+  const setup = (gold: number, shopDistance: number) => {
+    const world = createWorld()
+    world.time = 300
+    world.goldEarned = 500 // 100 a minute: healthy, a trip at 1200
+    world.gold = gold
+    world.shopX = world.character.x + shopDistance
+    world.shopY = world.character.y
+    updateShop(world)
+    return world
+  }
+  const near = setup(400, 200)
+  console.log('near, carrying 400 of 1200', near.intent, near.passingBy)
+  const far = setup(400, 500)
+  const change = setup(200, 200)
+  const full = setup(1300, 200)
+  console.log('far', far.intent, '| pocket change', change.intent, '| full, passing?', full.passingBy)
+  // Walk him in: the deposit counts as a pop-in.
+  near.character.x = near.shopX
+  near.character.y = near.shopY
+  updateShop(near)
+  console.log('popped in: banked', near.bankedThisRun, 'visits', near.shopVisits, 'of them passing', near.passingVisits, 'still flagged', near.passingBy)
+  // Pushed well away by the crowd, a pop-in is given up; a real trip isn't.
+  const pushed = setup(400, 200)
+  pushed.character.x -= 300
+  updateShop(pushed)
+  const trip = setup(1300, 200)
+  trip.character.x -= 300
+  updateShop(trip)
+  const filled = setup(400, 200)
+  filled.gold = 1300
+  filled.character.x -= 300
+  updateShop(filled)
+  console.log('pushed away: pop-in', pushed.intent, '| full trip', trip.intent, '| filled up on the way', filled.intent)
+  config.shop.passingDistance = 0
+  const off = setup(400, 200)
+  Object.assign(config.shop, saved)
+  const ok = near.bankedThisRun === 400 && near.shopVisits === 1 && near.passingVisits === 1 && !near.passingBy && near.intent === 'farming'
+    && far.intent === 'farming' && change.intent === 'farming' && full.intent === 'banking' && !full.passingBy && off.intent === 'farming'
+    && pushed.intent === 'farming' && !pushed.passingBy && trip.intent === 'banking' && filled.intent === 'banking' && !filled.passingBy
+  console.log(ok ? 'PASS' : 'FAIL')
+}

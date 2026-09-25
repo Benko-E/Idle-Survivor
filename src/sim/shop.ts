@@ -15,6 +15,9 @@ import type { World } from './world'
  *
  * The round trip is the point. Nothing here tells him to return — that falls
  * out of the shop going quiet and the globes still lying where he left them.
+ *
+ * And if he happens to be passing close by with a fair amount on him, he
+ * pops in without waiting to be full: see passingBy.
  */
 
 /**
@@ -37,7 +40,9 @@ export function shopEagerness(world: World): number {
   if (!config.shop.enabled) return 0
   if (world.intent !== 'banking') return 0
 
-  const { maxEagerness } = config.shop
+  const { maxEagerness, passingEagerness } = config.shop
+  // A pop-in is a short hop, but only if he actually makes it.
+  if (world.passingBy) return passingEagerness
   // At least 1, so committing has real force even at exactly the threshold.
   return Math.min(maxEagerness, Math.max(1, world.gold / bankThreshold(world)))
 }
@@ -69,12 +74,26 @@ export function confidence(world: World): number {
   return Math.max(0, Math.min(1, (health - nervousBelow) / Math.max(1e-6, confidentAbove - nervousBelow)))
 }
 
+/**
+ * Worth popping in on the way past: the shop is close (`shop.passingDistance`)
+ * and he's carrying at least `shop.passingShare` of what would send him on a
+ * trip. With the thresholds high enough that he farms for minutes at a time,
+ * this is what keeps a death from costing all of it — without ever pulling
+ * him further than a short detour.
+ */
+function passingBy(world: World, threshold: number): boolean {
+  const { passingDistance, passingShare } = config.shop
+  if (passingDistance <= 0 || world.gold <= 0 || world.gold < threshold * passingShare) return false
+  return distanceToShop(world) <= passingDistance
+}
+
 export function distanceToShop(world: World): number {
   return Math.hypot(world.shopX - world.character.x, world.shopY - world.character.y)
 }
 
 /**
- * The two-state loop: farm until full, walk to the shop, bank, farm again.
+ * The two-state loop: farm until full — or until passing close by with a
+ * fair amount — walk to the shop, bank, farm again.
  *
  * Deliberately the whole of the "decision making" in the game, and
  * deliberately this boring. Everything about *how* he gets anywhere is still
@@ -85,17 +104,35 @@ export function updateShop(world: World): void {
   if (!config.shop.enabled) return
 
   if (world.intent === 'farming') {
-    if (world.gold >= bankThreshold(world)) world.intent = 'banking'
+    const threshold = bankThreshold(world)
+    if (world.gold >= threshold) {
+      world.intent = 'banking'
+      world.passingBy = false
+    } else if (passingBy(world, threshold)) {
+      world.intent = 'banking'
+      world.passingBy = true
+    }
     return
   }
 
-  if (distanceToShop(world) > config.shop.radius) return
+  const distance = distanceToShop(world)
+  // Full on the way in: it's a real trip now, and those aren't given up.
+  if (world.passingBy && world.gold >= bankThreshold(world)) world.passingBy = false
+  // A pop-in the crowd has pushed him well away from: not on the way any more.
+  if (world.passingBy && distance > config.shop.passingDistance * config.shop.passingGiveUp) {
+    world.intent = 'farming'
+    world.passingBy = false
+    return
+  }
+  if (distance > config.shop.radius) return
 
   const amount = world.gold
   world.intent = 'farming'
   world.bankedThisRun += amount
   world.gold = 0
   world.shopVisits++
+  if (world.passingBy) world.passingVisits++
+  world.passingBy = false
   gameEvents.emit('banked', { amount })
 
   // Move it somewhere new, measured from where he is now.

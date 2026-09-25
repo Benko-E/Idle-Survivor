@@ -189,9 +189,13 @@ export interface World {
    * everything about *how* he gets anywhere stays emergent from the field.
    */
   intent: 'farming' | 'banking'
+  /** This trip to the shop is a pop-in on the way past rather than a journey. See sim/shop.ts. */
+  passingBy: boolean
   shopX: number
   shopY: number
   shopVisits: number
+  /** Of those, how many were pop-ins on the way past. */
+  passingVisits: number
   /** Deposited at the shop this run, and so safe. */
   bankedThisRun: number
 
@@ -283,9 +287,11 @@ export function createWorld(seed: number = config.world.seed, starterId?: string
     gold: 0,
     goldEarned: 0,
     intent: 'farming',
+    passingBy: false,
     shopX: Math.cos(shopAngle) * config.shop.distanceFromStart,
     shopY: Math.sin(shopAngle) * config.shop.distanceFromStart,
     shopVisits: 0,
+    passingVisits: 0,
     bankedThisRun: 0,
     spawnCredit: 0,
     mergeCredit: 0,

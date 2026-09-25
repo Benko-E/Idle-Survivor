@@ -122,7 +122,7 @@ export class ThoughtBubbles {
     else if (now.spells > before.spells) this.consider('newSpell', world)
     else if (now.upgrades > before.upgrades) this.consider('upgrade', world)
     else if (now.level > before.level) this.consider('levelUp', world)
-    else if (now.intent === 'banking' && before.intent !== 'banking') this.consider('goingToBank', world)
+    else if (now.intent === 'banking' && before.intent !== 'banking') this.consider(world.passingBy ? 'poppingIn' : 'goingToBank', world)
     else if (now.visits > before.visits) this.consider('banked', world)
     else if (now.blasts > before.blasts) this.consider('blasted', world)
     else if (now.inGas && !before.inGas) this.consider('gassed', world)

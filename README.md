@@ -534,6 +534,20 @@ first bank at 8.7 minutes instead of 4, about the same banked in the end
 6% and banked less in the end (2367). Deaths swung between four and seven of
 the eight across these settings, so eight runs can't say more than that.
 
+Carrying that much for that long, a death cost a lot, so he also **banks in
+passing**: while farming, if the shop is within `shop.passingDistance` (300)
+and he's carrying at least `passingShare` (a quarter) of what would send him
+on a trip, he pops in (`world.passingBy`, with a thought of its own). The
+shop still moves on after, so he can't camp by it. A pop-in the crowd pushes
+him more than `passingGiveUp` (1.5×) away from is given up — without that,
+he could spend a long while in banking mode edging towards a shop he'd only
+meant to pass — and one that fills his pockets on the way becomes a real
+trip, never given up. It pulls at `passingEagerness` (1.5, what a full trip
+gets at most). Eight 15-minute runs against none: about one pop-in a run,
+banked 3888 against 3049, lost at death 539 against 679, and still 9% of the
+run spent banking. At a pull of 1 half of them were given up; at 2.5 the
+pull outweighed his care in a crowd and fewer made it.
+
 ## Classes
 
 Everything that makes him a wizard is one entry in `data/classes.ts`: name,

@@ -82,6 +82,16 @@ export const WIZARD_THOUGHTS: Record<string, ThoughtMoment> = {
       'Shopping trip!',
     ],
   },
+  poppingIn: {
+    chance: 0.6,
+    cooldown: 30,
+    lines: [
+      'Oh, the shop! Might as well drop this off.',
+      "While I'm passing...",
+      'Quick stop.',
+      'Two birds, one fireball.',
+    ],
+  },
   banked: {
     chance: 0.5,
     cooldown: 30,

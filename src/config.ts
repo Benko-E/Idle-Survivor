@@ -580,6 +580,30 @@ export const config = {
     confidentAbove: 0.6,
     nervousBelow: 0.3,
     /**
+     * Banking in passing: while farming, if the shop is within this many
+     * world units and he's carrying at least `passingShare` of what would
+     * send him on a trip, he pops in — a short detour rather than a journey,
+     * so a long spell of farming doesn't mean carrying everything to his
+     * grave. 0 turns it off.
+     */
+    passingDistance: 300,
+    passingShare: 0.25,
+    /**
+     * ...and gives it up if the crowd pushes him more than this many times
+     * `passingDistance` away: a pop-in that has stopped being on the way isn't
+     * worth a fight to reach. A full trip is never given up.
+     */
+    passingGiveUp: 1.5,
+    /**
+     * How hard the shop pulls on a pop-in, in the same units as maxEagerness.
+     * Eight 15-minute runs (Firebolt, Righteous Fire, Firewall), against no
+     * pop-ins at all: at 1.5, 0.8 pop-ins a run, banked 3888 against 3049,
+     * lost at death 539 against 679, and still 9% of the run banking. At 1
+     * half the pop-ins were given up (0.5 a run, banked 3167); at 2.5 fewer
+     * made it again (0.6), the pull outweighing his care in a crowd.
+     */
+    passingEagerness: 1.5,
+    /**
      * How far he must travel towards the shop to gain `layers.shop.weight`
      * points of score, at eagerness 1.
      *
