@@ -66,7 +66,6 @@ export interface Projectile {
   empowered?: boolean
   /** Runtime state for returning, forking once, and laying a trail. */
   outLife?: number
-  outPierce?: number
   returning?: boolean
   forked?: boolean
   trailDistance?: number
@@ -202,7 +201,9 @@ function layTrail(world: World, projectile: Projectile, strength: number, moved:
 
 /**
  * Turn round and head back to him. Everything can be hit again on the way
- * back, and it gets its pierce back too.
+ * back, and nothing stops it: the return pierces everything between it and
+ * him. With its outward pierce given back instead, a pack in the way used
+ * it up and the bolt vanished halfway home.
  */
 function turnBack(projectile: Projectile): void {
   if (!projectile.mutations) return
@@ -210,7 +211,7 @@ function turnBack(projectile: Projectile): void {
   projectile.returning = true
   projectile.hits.clear()
   projectile.forked = false
-  projectile.pierce = projectile.outPierce ?? projectile.pierce
+  projectile.pierce = Infinity
   projectile.life = (projectile.outLife ?? 1) * 1.5
   projectile.vx = -projectile.vx
   projectile.vy = -projectile.vy
@@ -292,8 +293,8 @@ export function updateProjectiles(world: World, dt: number): void {
         else if (mutations && mutations.returns > 0 && !projectile.returning) {
           // It bounces off the enemy that stopped it — and that bounce is its
           // hit on the way back, since it's heading away from it from here on.
-          // The bounce is free: it then flies all the way back to him, and
-          // only what it hits on the return costs it pierce. (Spending the
+          // The bounce is free, and so is everything after it: it flies all
+          // the way back to him through whatever's in the way. (Spending the
           // bounce ended the bolt on the spot, so it only ever came back
           // from a miss.)
           turnBack(projectile)

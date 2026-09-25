@@ -156,6 +156,32 @@ const lost = (e: Enemy) => e.maxHp - e.hp
   const damage = WEAPON_DEFS[0].stats.damage
   check('...hitting what it passes both ways', lost(near) === damage * 2 && lost(far) === damage * 2, `near ${lost(near)}, far ${lost(far)}`)
 }
+{
+  // The user's case: one Pierce, out through one enemy to full range, then
+  // back through a whole pack — every one of them hit, and the bolt home.
+  const w = createWorld(1)
+  take(w, 'up_fb_return')
+  take(w, 'up_fb_pierce')
+  const out = enemy(w, 60, 0)
+  w.weapons[0].cooldownRemaining = 0
+  rebuildEnemyGrid(w)
+  updateCombat(w, DT)
+  w.weapons[0].cooldownRemaining = 99
+  const bolt = w.projectiles[0]
+  // Wait until it's on its way back, then put a pack in its path.
+  let pack: Enemy[] = []
+  let home = false
+  for (let i = 0; i < 400 && w.projectiles.includes(bolt); i++) {
+    w.time += DT
+    if (bolt.returning && pack.length === 0) pack = [0, 1, 2, 3, 4].map((k) => enemy(w, bolt.x - 40 - k * 22, (k % 2) * 6))
+    rebuildEnemyGrid(w)
+    updateCombat(w, DT)
+    if (Math.hypot(bolt.x - w.character.x, bolt.y - w.character.y) < 30) home = true
+  }
+  const hitPack = pack.filter((e) => lost(e) > 0).length
+  check('Return pierces a whole pack on the way back', pack.length === 5 && hitPack === 5 && lost(out) > 0, `${hitPack}/${pack.length} of the pack hit`)
+  check('...and still reaches him', home)
+}
 // Combustion: a burn already on the target goes off at once, and chains.
 {
   const w = createWorld(1)

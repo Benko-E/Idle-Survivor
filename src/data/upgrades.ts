@@ -211,7 +211,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     spellId: 'spell_bolt_01',
     kind: 'mutation',
     displayName: 'Returning Bolt',
-    description: 'The bolt flies out and comes back to him, hitting everything twice',
+    description: 'The bolt flies out and comes back to him, piercing everything on the way back',
     tags: ['offence', 'fire'],
     // The main bolt only; forks never come back.
     modifiers: [{ target: 'returns', op: 'add', value: 1 }],

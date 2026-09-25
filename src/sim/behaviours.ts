@@ -141,7 +141,6 @@ const projectile: Behaviour = ({ world, weapon, def, stat }) => {
       mutations: mutated || hot ? { ...mutations, fork: hot ? Math.max(1, mutations.fork) : mutations.fork, forkEveryHit: hot } : undefined,
       empowered: hot,
       outLife: life,
-      outPierce: boltPierce,
     })
   }
 
