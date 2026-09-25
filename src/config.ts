@@ -530,6 +530,18 @@ export const config = {
      */
     thresholdMinutes: 1,
     /**
+     * ...stretching to this many minutes while he's doing well: fully above
+     * `confidentAbove` of his health, not at all below `nervousBelow`. Set it
+     * equal to thresholdMinutes to turn it off. Measured with Firebolt and
+     * Righteous Fire, eight 10-minute runs taking a card each level: at 1 he
+     * spent 40% of the run banking and farmed 37s between trips; at 3, 22%
+     * and 83s, +10% fire damage, +9% kills, +14% banked, same deaths (1/8).
+     * At 4 three of the eight died. Firebolt alone barely changes.
+     */
+    confidentMinutes: 3,
+    confidentAbove: 0.8,
+    nervousBelow: 0.4,
+    /**
      * How far he must travel towards the shop to gain `layers.shop.weight`
      * points of score, at eagerness 1.
      *

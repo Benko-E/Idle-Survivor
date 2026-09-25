@@ -498,7 +498,7 @@ event: a white flash on a direct hit (damage over time doesn't flash, or a
 burning crowd would strobe), a squash, fade and puff of dust on death, and a
 fade in on arrival. Timings are `render.enemyFx`.
 
-### He banks when he's carrying a minute's income
+### He banks when he's carrying a minute's income — or three, if it's going well
 
 He heads for the shop once he's carrying `shop.spendThreshold` (60) — or about
 `shop.thresholdMinutes` of his income, whichever is more. With a fixed 60, a
@@ -507,6 +507,16 @@ with its eye off the gold: with Righteous Fire's full kit, 41% of the run,
 leaving coins lying everywhere. Scaling it with income, measured over three
 10-minute runs: coins left behind 35 → 2, gold earned +46%. A run earning
 under 60 a minute is unchanged.
+
+While he's doing well he carries more: the minutes stretch towards
+`shop.confidentMinutes` (3) as his health rises from `nervousBelow` (40%) to
+`confidentAbove` (80%), so a fight that's going his way isn't dropped for a
+walk, and a mauling still sends him to bank what he has. Righteous Fire
+engaging the pack made the old rule obvious — he'd dive in and then leave
+half a minute later. Measured with Firebolt and Righteous Fire, eight
+10-minute runs taking a card each level: banking went from 40% of the run to
+22%, time fighting between trips from 37s to 83s, fire damage +10%, kills
++9%, banked +14%, same deaths (1/8). At 4 minutes three of the eight died.
 
 ## Classes
 

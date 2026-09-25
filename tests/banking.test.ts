@@ -9,7 +9,7 @@ import { gameEvents } from '@game/sim/events'
 import { resetInfluenceClock, updateInfluence } from '@game/sim/influence'
 import { updateCharacterMovement } from '@game/sim/movement'
 import { updatePickups } from '@game/sim/pickups'
-import { updateShop } from '@game/sim/shop'
+import { bankThreshold, updateShop } from '@game/sim/shop'
 import { updateSpawner } from '@game/sim/spawner'
 import { updateTrail } from '@game/sim/trail'
 import { updateVitals } from '@game/sim/vitals'
@@ -64,3 +64,25 @@ function fingerprint(): string {
   return `${world.time.toFixed(4)} ${world.kills} ${world.bankedThisRun.toFixed(4)}`
 }
 fingerprint()
+
+// He carries more before banking while he's doing well: about a minute of
+// income when hurt, stretching to confidentMinutes when healthy.
+{
+  const world = createWorld()
+  const saved = { ...config.shop }
+  Object.assign(config.shop, { spendThreshold: 60, thresholdMinutes: 1, confidentMinutes: 3, confidentAbove: 0.8, nervousBelow: 0.4 })
+  world.time = 300
+  world.goldEarned = 500 // 100 a minute
+  const at = (health: number) => { world.character.hp = world.character.maxHp * health; return bankThreshold(world) }
+  const healthy = at(1), halfway = at(0.6), hurt = at(0.3)
+  console.log('threshold healthy', healthy.toFixed(1), '| at 60%', halfway.toFixed(1), '| hurt', hurt.toFixed(1))
+  config.shop.confidentMinutes = 1
+  const off = at(1)
+  console.log('threshold with confidentMinutes = thresholdMinutes', off.toFixed(1))
+  world.goldEarned = 100 // 20 a minute: the floor still holds
+  const poor = at(0.3)
+  console.log('threshold on a poor income, hurt', poor.toFixed(1))
+  Object.assign(config.shop, saved)
+  const near = (a: number, b: number) => Math.abs(a - b) < 1e-6
+  console.log(near(healthy, 300) && near(halfway, 200) && near(hurt, 100) && near(off, 100) && near(poor, 60) ? 'PASS' : 'FAIL')
+}

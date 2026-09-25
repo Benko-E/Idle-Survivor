@@ -48,12 +48,25 @@ export function shopEagerness(world: World): number {
  * `shop.thresholdMinutes` of his income. A fixed amount meant that the richer
  * a build got, the more of the run he spent walking to the shop with his
  * eye off the gold: with Righteous Fire's full kit, 41% of it.
+ *
+ * And more while he's doing well: up to `shop.confidentMinutes` of income
+ * when he's healthy, so a fight that's going his way isn't abandoned for a
+ * walk. Hurt, he banks what he has while he still can.
  */
 export function bankThreshold(world: World): number {
-  const { spendThreshold, thresholdMinutes } = config.shop
+  const { spendThreshold, thresholdMinutes, confidentMinutes } = config.shop
   if (thresholdMinutes <= 0 || world.time < 60) return spendThreshold
   const perMinute = world.goldEarned / (world.time / 60)
-  return Math.max(spendThreshold, perMinute * thresholdMinutes)
+  const minutes = thresholdMinutes + Math.max(0, confidentMinutes - thresholdMinutes) * confidence(world)
+  return Math.max(spendThreshold, perMinute * minutes)
+}
+
+/** 1 when he's healthy, 0 when he's hurt: see shop.confidentAbove / nervousBelow. */
+export function confidence(world: World): number {
+  const c = world.character
+  const health = c.hp / Math.max(1, c.maxHp)
+  const { confidentAbove, nervousBelow } = config.shop
+  return Math.max(0, Math.min(1, (health - nervousBelow) / Math.max(1e-6, confidentAbove - nervousBelow)))
 }
 
 export function distanceToShop(world: World): number {
