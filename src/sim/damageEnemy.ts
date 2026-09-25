@@ -5,6 +5,7 @@ import { gameEvents, type GameEvents } from './events'
 import { grantXp } from './progression'
 import { characterStat } from './stats'
 import { vulnerability } from './statusEffects'
+import { wallKill } from './walls'
 import type { Enemy, WeaponInstance, World } from './world'
 
 /** Reused for every emit; this fires thousands of times a second. */
@@ -61,6 +62,7 @@ export function damageEnemy(world: World, enemy: Enemy, amount: number, source: 
 
   rollDrops(world, enemy)
   auraKill(world, enemy)
+  wallKill(world, enemy)
 
   // Blasts, bursts and gas wait until the fight this step is over; see
   // resolveDeaths in enemyBehaviours.ts.

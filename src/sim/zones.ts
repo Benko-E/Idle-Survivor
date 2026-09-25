@@ -2,6 +2,7 @@ import { damageEnemy } from './damageEnemy'
 import { applyCondition } from './statusEffects'
 import { enemiesInRadius } from './targeting'
 import { spawnLine, spawnRing, spawnSprite } from './vfx'
+import { updateWall, wallContents, type WallShape } from './walls'
 import type { Enemy, WeaponInstance, World } from './world'
 
 /** How long a zone's chill lingers on an enemy that steps out of it. */
@@ -55,6 +56,11 @@ export interface Zone {
   condition?: { id: string; magnitude: number; duration: number }
   /** A small patch in a row of them, drawn as just its floor: Phoenix Bolt's trail. */
   quiet?: boolean
+  /**
+   * A wall rather than a patch: a strip, or a ring, burning what touches it
+   * instead of everything inside a circle. See sim/walls.ts.
+   */
+  wall?: WallShape
 }
 
 const scratch: Enemy[] = []
@@ -115,7 +121,8 @@ export function updateZones(world: World, dt: number): void {
     }
 
     if (zone.remaining > 0) {
-      const inside = enemiesInRadius(world, zone.x, zone.y, zone.radius, scratch)
+      if (zone.wall) updateWall(world, zone, dt)
+      const inside = zone.wall ? wallContents(world, zone, scratch) : enemiesInRadius(world, zone.x, zone.y, zone.radius, scratch)
       for (const enemy of inside) {
         if (zone.slow > 0) applyCondition(world, enemy, 'chilled', zone.slow, CHILL_LINGER, zone.source)
         if (zone.condition) applyCondition(world, enemy, zone.condition.id, zone.condition.magnitude, zone.condition.duration, zone.source)

@@ -2,7 +2,9 @@ import { config } from '../config'
 import { auraRadius, isAura } from './auras'
 import { forEachEnemyNear } from './enemyGrid'
 import { weaponStat } from './stats'
+import { activeWalls, crossesWall } from './walls'
 import type { World } from './world'
+import type { Zone } from './zones'
 
 /**
  * Where his spells want the enemies to be, judged from where he'd stand.
@@ -16,19 +18,29 @@ import type { World } from './world'
  * can care which way he'd be facing, which a map stamped from the enemies'
  * side can't.
  *
+ * A wall spell's shape is the far side of its walls: the enemies that would
+ * have to come through the fire to reach him if he stood there. That's Wall
+ * Dancer — base Firewall has no `engage`, so it doesn't change how he moves.
+ *
  * Only while he's farming, and only while he's healthy enough: the pull
  * fades between `engage.fadeFrom` and `engage.fadeTo` of his health, so a
  * mauling sends him away to recover rather than deeper in.
  */
 
 export interface EngageShape {
-  /** ring: all the way round him. cone: in front, `halfAngle` either side of his heading. */
-  kind: 'ring' | 'cone'
+  /**
+   * ring: all the way round him. cone: in front, `halfAngle` either side of
+   * his heading. wall: anything within `outer` whose way to him goes through
+   * one of `walls`.
+   */
+  kind: 'ring' | 'cone' | 'wall'
   inner: number
   outer: number
   halfAngle: number
   /** How much he wants enemies in it, per enemy. */
   weight: number
+  /** For 'wall': the walls they'd have to come through. */
+  walls?: Zone[]
 }
 
 /** The shapes his spells want filled this frame. Empty when there's nothing to engage with. */
@@ -49,6 +61,11 @@ export function engagementShapes(world: World): EngageShape[] {
         halfAngle: Math.PI,
         weight: engage * keen,
       })
+    } else if (weapon.def.behaviour === 'wall') {
+      const walls = activeWalls(world, weapon)
+      if (walls.length > 0) {
+        shapes.push({ kind: 'wall', inner: 0, outer: config.wall.dancerReach, halfAngle: Math.PI, weight: engage * keen, walls })
+      }
     }
   }
   return shapes
@@ -85,6 +102,7 @@ export function engagementAt(world: World, shapes: EngageShape[], x: number, y: 
         const angle = Math.acos(Math.max(-1, Math.min(1, cos)))
         inside = Math.min(inside, (shape.halfAngle - angle) / config.engage.edgeAngle)
       }
+      if (shape.kind === 'wall' && !shape.walls?.some((wall) => crossesWall(wall, enemy.x, enemy.y, x, y))) return
       if (inside > 0) count += inside * inside * (3 - 2 * inside)
     })
     const cap = config.engage.softCap

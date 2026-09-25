@@ -426,6 +426,12 @@ export interface WeaponDef {
    *                inside; `damage` then goes to each strike instead of the
    *                landing, hitting everything within `strikeRadius`
    *
+   * Walls (behaviour 'wall', sim/walls.ts) use area as the wall's length,
+   * width (its thickness), duration, dotDamage (per second to everything
+   * touching it) and maxWalls; their upgrades add coals, embers, kiln,
+   * hungry, lane, ring and creep, and `engage` makes him keep them between
+   * himself and the crowd.
+   *
    * Orbiting spells (behaviour 'orbit') use count (orbs), area (orbit radius),
    * speed (radians per second), size (orb radius), damage and rehit (seconds
    * before the same enemy can be hit again).
@@ -455,7 +461,7 @@ export interface WeaponDef {
    *   hit       flash on each enemy it hits directly
    *   arc       stretched between enemies a chain jumps across
    *   orb       what orbits him
-   *   flames    set round an aura's edge
+   *   flames    set round an aura's edge, or standing along a wall
    *   fall      coming down onto a zone during its warning
    *   impact    when a zone lands
    *   cloud     hanging over an active zone

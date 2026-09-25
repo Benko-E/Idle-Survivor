@@ -7,6 +7,7 @@ import { applyCondition } from './statusEffects'
 import { orbitPositions } from './orbit'
 import { enemiesInRadius, nearestEnemies, nearestEnemy, pickTargets } from './targeting'
 import { HIT_SPARK_SECONDS, HIT_SPARK_SIZE, spawnArtLine, spawnRing, spawnSprite } from './vfx'
+import { castWall } from './walls'
 import type { Enemy, WeaponInstance, World } from './world'
 
 /**
@@ -334,4 +335,6 @@ export const BEHAVIOURS: Record<string, Behaviour> = {
   aura,
   zone,
   orbit,
+  // A strip of fire in front of the crowd, or a ring round it: sim/walls.ts.
+  wall: castWall,
 }

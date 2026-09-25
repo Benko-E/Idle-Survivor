@@ -288,11 +288,16 @@ Nine in play, all in `src/data/weapons.ts`, laid out as a grid:
 | --- | --- | --- | --- |
 | **Tier 1** — aimed | Firebolt | Frostbolt | Chain Lightning |
 | **Tier 2** — around him | Righteous Fire | Frozen Orb | Ball Lightning |
-| **Tier 3** — on the crowd | Meteor | Blizzard | Thunderstorm |
+| **Tier 3** — on the crowd | Firewall | Blizzard | Thunderstorm |
+
+Meteor is tier 3 fire as well, switched off (`enabled: false`) while
+Firewall is tried out in its place; the debug panel can switch it back on. A
+tier can hold several spells of one element — the choice shows every enabled
+one.
 
 The tiers differ in shape, not just power: tier 2 is an aura, a line and an
-orbit; tier 3 is one heavy impact, a lasting field and a storm that strikes
-at random beneath it.
+orbit; tier 3 is a wall across the crowd's path, a lasting field and a storm
+that strikes at random beneath it.
 
 They're built from a handful of generic behaviours:
 
@@ -303,6 +308,7 @@ They're built from a handful of generic behaviours:
 | aura | Righteous Fire | A steady burn on everything close |
 | orbit | Ball Lightning | Orbs circling him, hitting what they touch |
 | zone | Meteor, Blizzard, Thunderstorm | Claims a patch of ground: warns, lands, then burns, chills, strikes, pulls or roots |
+| wall | Firewall | A strip of fire in front of the crowd (or a ring round it) that burns whatever touches it |
 | nova, curse | *(shelved)* | Kept for Frost Nova and Curse of Withering |
 
 Spells come in **tiers**, one per tier, and each choice is final:
@@ -665,6 +671,54 @@ Ideas that need a small new mechanic first, for later:
 - **Shop and economy** — interest on banked gold, a bigger payout per visit.
   These belong with the Upgrades menu screen rather than the level-up draft.
 
+### Firewall
+
+Tier 3 fire, in Meteor's place for now (`sim/walls.ts`, rules under `wall` in
+the config). A wall is a zone with a shape — a strip, or a ring — that burns
+what *touches* it rather than everything inside a circle, so everything a
+zone does (a burn per second, a condition left behind) works on walls too.
+
+- **Where it goes:** he finds the biggest crowd in range (`wall.minPack`, 4,
+  or it waits, ready) and raises the wall just in front of its leading edge
+  (`wall.lead`), lying across its path. The crowd is chasing him, so every one
+  of them walks through it. 240 long (area upgrades lengthen it), 34 thick,
+  30 a second to whatever touches it, 6 seconds, 15 second cooldown, and only
+  three up at once — a fourth puts out the oldest. Fliers burn too; he never
+  does, and enemies don't avoid it.
+- **Hot Coals:** what touches it keeps burning for `wall.coalsSeconds` after,
+  at half the wall's burn per pick — and burning enemies are what Combustion
+  detonates.
+- **Wall of Embers:** plain little bolts from along the fire at the nearest
+  enemy not already in it.
+- **Kiln:** any bolt of his that comes through a wall — Firebolt, Frostbolt,
+  forks, returns, Backdraft — comes out 50% stronger and sets what it hits
+  burning, the burn credited to Firewall. Once per bolt, however many walls
+  or sides of a ring it crosses; embers never count.
+- **Hungry Flames:** every enemy that dies in the fire, from anything, adds a
+  second, up to its full duration again — it lasts while it keeps killing.
+- **Kiting Lane:** laid from just behind him out through the crowd chasing
+  him, its far end past the crowd's middle, so they run its length instead of
+  crossing it. Laying it along the way he happened to be facing caught only
+  what was dead behind him: 4.9K damage against the plain wall's 16.5K. Along
+  the chase it's 15.1K, and he's hit 19% less.
+- **Wall Dancer:** `engage` for walls. The movement scoring gets a third
+  shape: the enemies within `wall.dancerReach` whose straight way to him
+  would go through one of his walls. Base Firewall has none, so it doesn't
+  change how he moves; with it, twice as many enemies were on the far side of
+  a wall (6.4 against 3.2) and Firewall did 12% more, same deaths.
+- **Burning Ring** (evolution): the wall closes into a ring round the crowd's
+  middle (`wall.ringRadius` of its length). The ring burns, not what's inside
+  it. Retires Kiting Lane. With Wall Dancer, 40% more than the plain wall.
+- **Creeping Blaze** (evolution): the wall creeps towards the crowd
+  (`wall.creepSpeed`), growing 20% longer a second up to double.
+
+Against Meteor in the same slot — Firebolt, Righteous Fire at level 6, the
+tier-3 spell at level 15, eight 12-minute runs taking a random card each
+level — Firewall dealt 28.6K (19% of everything) to Meteor's 28.1K (17%), so
+it starts in the same place. The Kiting Lane, Wall Dancer and Burning Ring
+numbers are from eight 6-minute runs of Firebolt plus Firewall, taking a
+random card each level but none of Firewall's own.
+
 ## How this is put together
 
 The architecture matters more than the content here — nearly everything will be
@@ -763,3 +817,7 @@ That completes the spec's definition of done for the prototype. Past it:
 - [x] **23 — Righteous Fire.** Zeal by default, six mutations and two
   evolutions; a ring of small flames that turns red with Martyr's Fervour
   and burns brighter with the pyre lit. Phoenix Bolt's trail is flames now.
+- [x] **24 — Firewall.** Tier 3 fire in Meteor's place for now: walls as
+  shaped zones, placed in front of the crowd across its path; six mutations
+  (Hot Coals, Wall of Embers, Kiln, Hungry Flames, Kiting Lane, Wall Dancer)
+  and two evolutions (Burning Ring, Creeping Blaze).

@@ -4,7 +4,9 @@ import { forEachEnemyNear, LARGEST_ENEMY_RADIUS } from './enemyGrid'
 import { applyCondition, hasCondition } from './statusEffects'
 import { enemiesInRadius } from './targeting'
 import { HIT_SPARK_SECONDS, HIT_SPARK_SIZE, spawnRing, spawnSprite } from './vfx'
+import { kilnPass, kilnWalls } from './walls'
 import type { Enemy, WeaponInstance, World } from './world'
+import type { Zone } from './zones'
 
 /**
  * Travelling projectiles — the fireball half of the spellbook.
@@ -69,6 +71,13 @@ export interface Projectile {
   returning?: boolean
   forked?: boolean
   trailDistance?: number
+  /**
+   * Kiln (sim/walls.ts): it has come through a wall and been fired up, or it
+   * never can be — an ember born in the wall. Either way, once is all it gets.
+   */
+  kilned?: boolean
+  /** The wall spell that fired it up, credited with the burns it now leaves. */
+  kilnBurn?: WeaponInstance
 }
 
 /**
@@ -85,9 +94,9 @@ export function spawnPlainBolt(
   damage: number,
   reach: number,
   ignoreId?: number,
-): void {
+): Projectile {
   const speed = source.def.stats.speed ?? 360
-  world.projectiles.push({
+  const bolt: Projectile = {
     x,
     y,
     vx: Math.cos(angle) * speed,
@@ -101,7 +110,9 @@ export function spawnPlainBolt(
     hits: ignoreId === undefined ? new Set() : new Set([ignoreId]),
     source,
     onHit: null,
-  })
+  }
+  world.projectiles.push(bolt)
+  return bolt
 }
 
 const forkScratch: Enemy[] = []
@@ -229,6 +240,11 @@ function hit(world: World, projectile: Projectile, enemy: Enemy): void {
   if (spark) spawnSprite(world, spark, enemy.x, enemy.y, HIT_SPARK_SIZE, HIT_SPARK_SECONDS, false)
   const onHit = projectile.onHit
   if (onHit && enemy.hp > 0) applyCondition(world, enemy, onHit.condition, onHit.magnitude, onHit.duration, projectile.source)
+  // Fired up coming through a wall: a burn on top of whatever it already does.
+  if (projectile.kilnBurn && enemy.hp > 0) {
+    const seconds = config.combat.igniteSeconds
+    applyCondition(world, enemy, 'burning', (projectile.damage * config.wall.kilnBurn) / seconds, seconds, projectile.kilnBurn)
+  }
 
   if (mutations) {
     if (wasBurning) combust(world, enemy, projectile.source)
@@ -244,7 +260,11 @@ function hit(world: World, projectile: Projectile, enemy: Enemy): void {
   }
 }
 
+const kilnScratch: Zone[] = []
+
 export function updateProjectiles(world: World, dt: number): void {
+  // Walls with Kiln, gathered once for every bolt this step.
+  const kilns = kilnWalls(world, kilnScratch)
   for (let i = world.projectiles.length - 1; i >= 0; i--) {
     const projectile = world.projectiles[i]
     const mutations = projectile.mutations
@@ -265,9 +285,12 @@ export function updateProjectiles(world: World, dt: number): void {
       projectile.vy = (dy / distance) * speed
     }
 
+    const fromX = projectile.x
+    const fromY = projectile.y
     projectile.x += projectile.vx * dt
     projectile.y += projectile.vy * dt
     projectile.life -= dt
+    if (kilns.length > 0) kilnPass(world, projectile, kilns, fromX, fromY)
     if (mutations && mutations.trail > 0) layTrail(world, projectile, mutations.trail, Math.hypot(projectile.vx, projectile.vy) * dt)
 
     let spent = projectile.life <= 0

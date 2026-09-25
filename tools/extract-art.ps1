@@ -248,6 +248,7 @@ $spellIcons = [ordered]@{
   'spell_orb_01'       = 'blue\blue_35'    # a ball of ice
   'spell_ball_01'      = 'blue\blue_18'    # a crackling energy ball
   'spell_meteor_01'    = 'red\red_16'      # a flaming comet
+  'spell_wall_01'      = 'red\red_32'      # flames rising from the ground
   'spell_blizzard_01'  = 'blue\blue_04'    # a snowflake
   'spell_storm_01'     = 'blue\blue_42'    # lightning from the sky
   # Upgrades.

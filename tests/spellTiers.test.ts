@@ -22,9 +22,9 @@ check('shelved spells are in no tier', [1, 2, 3].every((t) => !spellsOfTier(DEFA
   check('nothing pending before level 6', pendingSpellTier(w) === null)
   w.level = 6
   check('tier 2 pending at level 6', pendingSpellTier(w) === 2, `choices: ${names(2).join(', ')}`)
-  const meteor = spellsOfTier(DEFAULT_CLASS, 3)[0]
-  takeSpell(w, meteor)
-  check('a tier-3 spell cannot be taken at tier 2', !owned(w).includes(meteor.displayName))
+  const tier3 = spellsOfTier(DEFAULT_CLASS, 3)[0]
+  takeSpell(w, tier3)
+  check('a tier-3 spell cannot be taken at tier 2', !owned(w).includes(tier3.displayName))
   takeSpell(w, spellsOfTier(DEFAULT_CLASS, 2)[0])
   check('taking a tier-2 spell closes tier 2', pendingSpellTier(w) === null && owned(w).length === 2, owned(w).join(', '))
   w.level = 15

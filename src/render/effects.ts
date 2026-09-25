@@ -3,6 +3,7 @@ import { auraRadius, isAura, pyreLit } from '../sim/auras'
 import { orbitPositions } from '../sim/orbit'
 import { weaponStat } from '../sim/stats'
 import type { WeaponInstance, World } from '../sim/world'
+import type { Zone } from '../sim/zones'
 import type { Renderer } from './renderer'
 import { getSheet, type SpriteSheet } from './sprites'
 
@@ -218,6 +219,11 @@ function drawZones(renderer: Renderer, world: World, loudness: number, ground: b
       continue
     }
 
+    if (zone.wall) {
+      drawWall(renderer, world, zone, loudness, ground)
+      continue
+    }
+
     // Active: a faint floor, plus whatever the zone does drawn on top.
     const life = zone.durationTotal > 0 ? zone.remaining / zone.durationTotal : 0
     const fade = Math.min(1, life * 4)
@@ -272,6 +278,60 @@ function drawZones(renderer: Renderer, world: World, loudness: number, ground: b
   }
 }
 
+/** Firewall's flames lean orange, so they don't read as Righteous Fire's. */
+const WALL_TINT = '#ff7a2a'
+
+/**
+ * A wall of fire: a glowing strip — or ring — on the ground, and a close row
+ * of tall flames standing on it. They rise when it goes up and sink as it
+ * burns out, so its last moment can be seen coming.
+ */
+function drawWall(renderer: Renderer, world: World, zone: Zone, loudness: number, ground: boolean): void {
+  const wall = zone.wall!
+  const rise = Math.min(1, (world.time - wall.bornAt) / 0.3)
+  const strength = rise * Math.min(1, zone.remaining / 0.6)
+  if (strength <= 0) return
+  if (ground) {
+    const flicker = (0.85 + 0.15 * Math.sin(world.time * 7 + zone.x * 0.01)) * strength * loudness
+    if (wall.kind === 'ring') {
+      renderer.fillWorldAnnulus(zone.x, zone.y, zone.radius, wall.halfWidth, zone.colour, 0.24 * flicker)
+      renderer.fillWorldAnnulus(zone.x, zone.y, zone.radius, wall.halfWidth * 0.4, '#fff1c2', 0.2 * flicker)
+      return
+    }
+    const ex = wall.dirX * wall.halfLength
+    const ey = wall.dirY * wall.halfLength
+    renderer.fillWorldBand(zone.x - ex, zone.y - ey, zone.x + ex, zone.y + ey, wall.halfWidth, zone.colour, 0.24 * flicker)
+    renderer.fillWorldBand(zone.x - ex, zone.y - ey, zone.x + ex, zone.y + ey, wall.halfWidth * 0.4, '#fff1c2', 0.2 * flicker)
+    return
+  }
+  const flames = zone.source.def.fx?.flames ? getSheet(`fx:${zone.source.def.fx.flames}`) : undefined
+  if (!flames) return
+  // Close together, each on its own frame and a little taller or shorter
+  // than its neighbours, drawn back to front so the near ones stand in front.
+  const spacing = 10
+  const spots: { x: number; y: number; i: number }[] = []
+  if (wall.kind === 'ring') {
+    const count = Math.max(16, Math.round((Math.PI * 2 * zone.radius) / spacing))
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2
+      spots.push({ x: zone.x + Math.cos(angle) * zone.radius, y: zone.y + Math.sin(angle) * zone.radius, i })
+    }
+  } else {
+    const count = Math.max(2, Math.round((wall.halfLength * 2) / spacing) + 1)
+    for (let i = 0; i < count; i++) {
+      const t = -wall.halfLength + (i / (count - 1)) * wall.halfLength * 2
+      spots.push({ x: zone.x + wall.dirX * t, y: zone.y + wall.dirY * t, i })
+    }
+  }
+  spots.sort((a, b) => a.y - b.y)
+  const alpha = 0.92 * strength * loudness
+  for (const spot of spots) {
+    const h = 26 * (0.35 + 0.65 * strength) * (0.8 + 0.4 * (((spot.i * 37) % 11) / 10))
+    const frame = (Math.floor(world.time * 10) + spot.i * 3) % flames.frames
+    renderer.drawWorldSprite(flames, frame, spot.x, spot.y, h / 2, h * flames.aspect, h, alpha, WALL_TINT, 0.35)
+  }
+}
+
 /**
  * Hot Streak's tell: when his next bolt will be the big one, the ground at
  * his feet glows, so it can be seen coming rather than just arriving.
@@ -307,8 +367,10 @@ function drawProjectiles(renderer: Renderer, world: World, loudness: number): vo
     }
     const h = Math.max(14, projectile.radius * 3.4)
     const frame = Math.floor(world.time * 10 + i) % 4
-    // An empowered bolt burns with a halo round it.
+    // An empowered bolt burns with a halo round it, and one fired up coming
+    // through a wall (Kiln) glows orange, whatever it was to begin with.
     if (projectile.empowered) renderer.drawWorldOrb(projectile.x, projectile.y, projectile.radius * 1.6, FLIGHT_HEIGHT, projectile.colour, loudness)
+    if (projectile.kilnBurn) renderer.drawWorldOrb(projectile.x, projectile.y, projectile.radius * 1.5, FLIGHT_HEIGHT, WALL_TINT, 0.7 * loudness)
     renderer.drawWorldSprite(sheet, frame, projectile.x, projectile.y, FLIGHT_HEIGHT, h * sheet.aspect, h, loudness)
   }
 }

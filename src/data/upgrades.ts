@@ -404,6 +404,107 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     weight: 400,
   },
 
+  // --- Firewall -------------------------------------------------------------------
+  //
+  // Wall stats (sim/walls.ts), so any wall spell could be given the same.
+
+  {
+    id: 'up_fw_coals',
+    spellId: 'spell_wall_01',
+    kind: 'mutation',
+    displayName: 'Hot Coals',
+    description: 'Enemies that walk through the wall keep burning afterwards',
+    tags: ['offence', 'fire'],
+    // Each pick a hotter burn: a share of the wall's own, for wall.coalsSeconds after.
+    modifiers: [{ target: 'coals', op: 'add', value: 0.5 }],
+    grantsTags: ['burning'],
+    maxStacks: 3,
+    weight: 55,
+  },
+  {
+    id: 'up_fw_embers',
+    spellId: 'spell_wall_01',
+    kind: 'mutation',
+    displayName: 'Wall of Embers',
+    description: 'The wall spits embers at enemies near it',
+    tags: ['offence', 'fire'],
+    // Embers a second, per wall.
+    modifiers: [{ target: 'embers', op: 'add', value: 1.5 }],
+    maxStacks: 3,
+    weight: 55,
+  },
+  {
+    id: 'up_fw_kiln',
+    spellId: 'spell_wall_01',
+    kind: 'mutation',
+    displayName: 'Kiln',
+    description: 'Any bolt that flies through the wall comes out 50% stronger and sets what it hits burning',
+    tags: ['offence', 'fire'],
+    // Every bolt of his, whichever spell: forks, returns, Frostbolt too. Once per bolt.
+    modifiers: [{ target: 'kiln', op: 'add', value: 0.5 }],
+    maxStacks: 1,
+    weight: 55,
+  },
+  {
+    id: 'up_fw_hungry',
+    spellId: 'spell_wall_01',
+    kind: 'mutation',
+    displayName: 'Hungry Flames',
+    description: 'Every enemy that dies in the wall keeps it burning a second longer',
+    tags: ['offence', 'fire'],
+    // Up to its full duration again, so it only lasts while it keeps killing.
+    modifiers: [{ target: 'hungry', op: 'add', value: 1 }],
+    maxStacks: 1,
+    weight: 55,
+  },
+  {
+    id: 'up_fw_lane',
+    spellId: 'spell_wall_01',
+    kind: 'mutation',
+    displayName: 'Kiting Lane',
+    description: 'He lays the wall behind him along his escape route, so whatever chases him runs the length of the fire',
+    tags: ['offence', 'fire'],
+    modifiers: [{ target: 'lane', op: 'add', value: 1 }],
+    maxStacks: 1,
+    weight: 50,
+  },
+  {
+    id: 'up_fw_dancer',
+    spellId: 'spell_wall_01',
+    kind: 'mutation',
+    displayName: 'Wall Dancer',
+    description: 'He keeps his walls between himself and the crowd, so they have to come through the fire to reach him',
+    tags: ['offence', 'fire'],
+    // How much his movement cares about the far side of his walls (sim/engagement.ts).
+    modifiers: [{ target: 'engage', op: 'add', value: 1 }],
+    maxStacks: 1,
+    weight: 50,
+  },
+  {
+    id: 'up_fw_ring',
+    spellId: 'spell_wall_01',
+    kind: 'evolution',
+    displayName: 'Burning Ring',
+    description: 'The wall closes into a great ring of fire around the crowd. Anything that crosses it burns',
+    tags: ['offence', 'fire'],
+    // The ring is the fire, not what's inside it. A ring has no lane to lay.
+    modifiers: [{ target: 'ring', op: 'add', value: 1 }],
+    retires: ['up_fw_lane'],
+    maxStacks: 1,
+    weight: 400,
+  },
+  {
+    id: 'up_fw_creep',
+    spellId: 'spell_wall_01',
+    kind: 'evolution',
+    displayName: 'Creeping Blaze',
+    description: 'The wall creeps towards the enemies like a grass fire, growing longer as it goes',
+    tags: ['offence', 'fire'],
+    modifiers: [{ target: 'creep', op: 'add', value: 1 }],
+    maxStacks: 1,
+    weight: 400,
+  },
+
   // --- Offence: by element ----------------------------------------------------
 
   {

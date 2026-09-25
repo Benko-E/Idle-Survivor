@@ -10,15 +10,19 @@ import type { WeaponDef } from './types'
  *              fire             frost          lightning
  *   tier 1     Firebolt         Frostbolt      Chain Lightning
  *   tier 2     Righteous Fire   Frozen Orb     Ball Lightning
- *   tier 3     Meteor           Blizzard       Thunderstorm
+ *   tier 3     Firewall         Blizzard       Thunderstorm
+ *
+ * Meteor is tier 3 fire too, switched off while Firewall is being tried out
+ * in its place. A tier can hold more than one spell per element; the choice
+ * shows every enabled one.
  *
  * The tiers differ in shape as well as power. Tier 1 aims at single enemies.
  * Tier 2 covers the ground around him: an aura, a line, an orbit. Tier 3 is
- * placed on the map, on the crowd: one heavy impact, a lasting field, a storm.
+ * placed on the map, on the crowd: a wall, a lasting field, a storm.
  *
  * Every spell is built from a handful of generic behaviours
- * (sim/behaviours.ts): projectile, chain, aura, orbit, zone, plus nova and
- * curse for the shelved ones. Meteor, Blizzard and Thunderstorm are all
+ * (sim/behaviours.ts): projectile, chain, aura, orbit, zone, wall, plus nova
+ * and curse for the shelved ones. Meteor, Blizzard and Thunderstorm are all
  * 'zone' with different numbers. A new spell that reuses a behaviour is data.
  *
  * To take a spell out of the game, set `enabled: false`. Every number is live
@@ -203,7 +207,8 @@ export const WEAPON_DEFS: WeaponDef[] = [
     classId: 'class_wizard',
     displayName: 'Meteor',
     description: 'Calls a meteor down on the biggest crowd. Slow, but it hits hard',
-    enabled: true,
+    // Off while Firewall takes its place at tier 3; both are staying.
+    enabled: false,
     tier: 3,
     tags: ['spell', 'fire', 'zone', 'area'],
     behaviour: 'zone',
@@ -221,6 +226,35 @@ export const WEAPON_DEFS: WeaponDef[] = [
     },
     fx: { fall: 'meteor', impact: 'explosion' },
     colour: '#ff7b3d',
+  },
+  {
+    id: 'spell_wall_01',
+    classId: 'class_wizard',
+    displayName: 'Firewall',
+    description: 'Raises a wall of fire just in front of the biggest crowd, burning everything that walks through it',
+    enabled: true,
+    tier: 3,
+    tags: ['spell', 'fire', 'wall', 'area', 'dot'],
+    behaviour: 'wall',
+    targeting: 'densest',
+    // The rules — where it goes, how the upgrades behave — are under `wall`
+    // in the config, and sim/walls.ts. Base Firewall doesn't change how he
+    // moves (`engage` 0); Wall Dancer is the upgrade that does.
+    stats: {
+      cooldown: 15,
+      range: 420,
+      // The wall's length. Area upgrades make it longer.
+      area: 240,
+      // How thick it is: about two enemies, so walking through takes a moment.
+      width: 34,
+      duration: 6,
+      // Per second, to everything touching it.
+      dotDamage: 30,
+      // More than this and the oldest goes out.
+      maxWalls: 3,
+    },
+    fx: { flames: 'holy_flames' },
+    colour: '#ffb347',
   },
   {
     id: 'spell_blizzard_01',

@@ -212,6 +212,34 @@ export const config = {
     zealotryToHim: 0.35,
   },
 
+  /** Wall spells — Firewall. The upgrade numbers are on the upgrades; these are the rules. See sim/walls.ts. */
+  wall: {
+    /** How far a crowd reaches from its densest point, for finding its front and its middle. */
+    packRadius: 90,
+    /** Fewest enemies in that crowd worth a wall. Fewer, and the spell waits. */
+    minPack: 4,
+    /** How far in front of the crowd's leading edge the wall goes up, and never nearer him than this. */
+    lead: 30,
+    minDistance: 50,
+    /** Kiting Lane: the gap between him and the near end of the lane. */
+    laneGap: 20,
+    /** Hot Coals: how long the burn lasts after an enemy leaves the fire. */
+    coalsSeconds: 3,
+    /** Wall of Embers: how far an ember looks for a target, and its hit as a share of the wall's burn per second. */
+    emberRange: 170,
+    emberDamage: 0.6,
+    /** Kiln: the burn a bolt leaves after coming through, as a share of its hit, over combat.igniteSeconds. */
+    kilnBurn: 0.5,
+    /** Burning Ring: its radius, as a share of the wall's length. */
+    ringRadius: 0.45,
+    /** Creeping Blaze: world units a second it creeps, and how much longer it grows each second, up to double. */
+    creepSpeed: 28,
+    creepGrowth: 0.2,
+    creepMaxGrowth: 1,
+    /** Wall Dancer: how far off an enemy still counts when he looks for the far side of a wall. */
+    dancerReach: 300,
+  },
+
   combat: {
     projectileRadius: 5,
     /** Plain bolts — forks, Backdraft — are this much of a normal bolt's size. */

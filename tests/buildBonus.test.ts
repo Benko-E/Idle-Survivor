@@ -24,7 +24,7 @@ function build(starter: string, second: string, third: string) {
 }
 
 {
-  const { w, prospect } = build('spell_bolt_01', 'spell_aura_01', 'spell_meteor_01')
+  const { w, prospect } = build('spell_bolt_01', 'spell_aura_01', 'spell_wall_01')
   check('fire, fire: hint says Pure Fire 2/3', prospect?.bonus.kind === 'pure' && prospect.have === 2)
   const bolt = w.weapons[0], aura = w.weapons[1]
   check('three fire spells earn Pure Fire', w.buildBonus?.kind === 'pure' && (w.buildBonus as { element: string }).element === 'fire')

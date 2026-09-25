@@ -592,6 +592,54 @@ export class Renderer {
     ctx.globalAlpha = 1
   }
 
+  /**
+   * A straight strip lying on the ground from one point to another, `halfWidth`
+   * either side, with rounded ends: the floor of a wall of fire.
+   */
+  fillWorldBand(x1: number, y1: number, x2: number, y2: number, halfWidth: number, colour: string, alpha = 1): void {
+    if (halfWidth <= 0 || alpha <= 0) return
+    const length = Math.hypot(x2 - x1, y2 - y1)
+    const nx = length > 0 ? (-(y2 - y1) / length) * halfWidth : 0
+    const ny = length > 0 ? ((x2 - x1) / length) * halfWidth : halfWidth
+    // One path, sides and round ends together, so nothing is filled twice.
+    // A ground circle is an ellipse on screen whose angles match the world's,
+    // so each end is half of one, from one side round to the other.
+    const side = Math.atan2(ny, nx)
+    const rx = halfWidth * this.scale
+    const ry = halfWidth * config.render.yScale * this.scale
+    const { ctx } = this
+    ctx.globalAlpha = alpha
+    ctx.fillStyle = colour
+    ctx.beginPath()
+    ctx.moveTo(this.worldToScreenX(x1 + nx), this.worldToScreenY(y1 + ny))
+    ctx.lineTo(this.worldToScreenX(x2 + nx), this.worldToScreenY(y2 + ny))
+    ctx.ellipse(this.worldToScreenX(x2), this.worldToScreenY(y2), rx, ry, 0, side, side - Math.PI, true)
+    ctx.lineTo(this.worldToScreenX(x1 - nx), this.worldToScreenY(y1 - ny))
+    ctx.ellipse(this.worldToScreenX(x1), this.worldToScreenY(y1), rx, ry, 0, side + Math.PI, side, true)
+    ctx.closePath()
+    ctx.fill()
+    ctx.globalAlpha = 1
+  }
+
+  /** A ring lying on the ground, `halfWidth` either side of `radius`: the floor of a ring of fire. */
+  fillWorldAnnulus(worldX: number, worldY: number, radius: number, halfWidth: number, colour: string, alpha = 1): void {
+    if (alpha <= 0) return
+    const { ctx } = this
+    const sx = this.worldToScreenX(worldX)
+    const sy = this.worldToScreenY(worldY)
+    const outer = radius + halfWidth
+    const inner = Math.max(0, radius - halfWidth)
+    ctx.globalAlpha = alpha
+    ctx.fillStyle = colour
+    ctx.beginPath()
+    ctx.ellipse(sx, sy, outer * this.scale, outer * config.render.yScale * this.scale, 0, 0, Math.PI * 2)
+    // Its own subpath, or the fill would join the two with a sliver.
+    ctx.moveTo(sx + inner * this.scale, sy)
+    ctx.ellipse(sx, sy, inner * this.scale, inner * config.render.yScale * this.scale, 0, 0, Math.PI * 2, true)
+    ctx.fill('evenodd')
+    ctx.globalAlpha = 1
+  }
+
   /** Squashed by yScale, so it reads as a circle lying on the ground. */
   strokeWorldCircle(worldX: number, worldY: number, radius: number, colour: string, width = 2, alpha = 1): void {
     const { ctx } = this
