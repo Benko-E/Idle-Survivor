@@ -561,6 +561,10 @@ Three rules the stacking follows, each learned the hard way:
   upgrade that silently does nothing. When adding upgrades, check the stat
   lists above.
 
+Each level-up reserves a card for each of his spells that still has an
+upgrade to offer, and leaves `draft.openSlots` (1) free for anything else.
+With more spells than reserved cards, which spells get one is shuffled.
+
 ### Upgrades for one spell
 
 The redo of the upgrades is going spell by spell, starting with Firebolt; the

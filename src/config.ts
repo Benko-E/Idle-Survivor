@@ -746,6 +746,11 @@ export const config = {
      * a rule, so the draft still surprises.
      */
     slotBias: 0.75,
+    /**
+     * Every level-up reserves a card for each of his spells that has an
+     * upgrade to offer, leaving this many cards free for anything else.
+     */
+    openSlots: 1,
   },
 
   /** His thought bubble. The lines are in data/thoughts.ts. */

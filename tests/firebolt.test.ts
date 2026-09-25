@@ -5,7 +5,7 @@ import { ENEMY_DEFS } from '@game/data/enemies'
 import { UPGRADE_DEFS } from '@game/data/upgrades'
 import { WEAPON_DEFS } from '@game/data/weapons'
 import { updateCombat } from '@game/sim/combat'
-import { applyUpgrade, upgradeIsEligible } from '@game/sim/draft'
+import { applyUpgrade, currentOffers, upgradeIsEligible } from '@game/sim/draft'
 import { rebuildEnemyGrid } from '@game/sim/enemyGrid'
 import { spellTags, weaponStat } from '@game/sim/stats'
 import { applyCondition, hasCondition } from '@game/sim/statusEffects'
@@ -257,6 +257,26 @@ const lost = (e: Enemy) => e.maxHp - e.hp
   const a = plain.trail[0]?.condition?.magnitude ?? 0
   const b = heated.trail[0]?.condition?.magnitude ?? 0
   check('...hotter for each Pierce taken before it', Math.abs(b - a * 1.5) < 1e-9, `trail ${a} -> ${b} with 2 Pierce`)
+}
+
+// Every level-up has a card for each of his spells while it has upgrades
+// to offer, and a free card besides.
+{
+  const w = createWorld(1, 'spell_bolt_01')
+  const rf = WEAPON_DEFS.find((def) => def.id === 'spell_aura_01')!
+  w.weapons.push({ def: rf, cooldownRemaining: 0, timesCast: 0, idleSeconds: 0, damageDealt: 0 })
+  let both = 0
+  let free = 0
+  for (let i = 0; i < 400; i++) {
+    w.pendingLevelUps = 1
+    w.draftOffers = null
+    const offers = currentOffers(w)
+    const ids = offers.map((o) => o.def.spellId)
+    if (ids.includes('spell_bolt_01') && ids.includes('spell_aura_01')) both++
+    if (offers.length === 3) free++
+  }
+  check('Every draft offers Firebolt AND Righteous Fire', both === 400, `${both}/400 drafts`)
+  check('...and still three cards', free === 400, `${free}/400`)
 }
 
 console.log(failures === 0 ? '\nALL PASS' : `\n${failures} FAILED`)

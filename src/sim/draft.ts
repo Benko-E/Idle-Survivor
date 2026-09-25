@@ -121,7 +121,24 @@ function buildOffers(world: World): Offer[] {
   const chosen: Offer[] = []
   const wanted = Math.min(Math.max(1, Math.round(config.draft.choices)), pool.length)
 
-  for (let slot = 0; slot < wanted; slot++) {
+  // A card for each of his spells first, while it has an upgrade to offer:
+  // three picks of health and speed while Firebolt waits for Pierce was the
+  // draft at its most frustrating. `draft.openSlots` stay free for anything,
+  // so there's always room for comfort too; with more spells than reserved
+  // cards, which spells get one this level is shuffled.
+  const reserved = Math.max(0, wanted - Math.max(0, Math.round(config.draft.openSlots)))
+  const spells = world.weapons.map((weapon) => weapon.def.id)
+  for (let i = spells.length - 1; i > 0; i--) {
+    const j = Math.floor(world.draftRng() * (i + 1))
+    ;[spells[i], spells[j]] = [spells[j], spells[i]]
+  }
+  for (const spellId of spells) {
+    if (chosen.length >= reserved) break
+    const forSpell = pool.filter((entry) => entry.offer.def.spellId === spellId)
+    if (forSpell.length > 0) chosen.push(pickWeighted(world, pool, forSpell))
+  }
+
+  for (let slot = chosen.length; slot < wanted; slot++) {
     const theme = config.draft.slots[slot] ?? 'any'
     // Rolled every time, even when there's no theme, so the random stream
     // doesn't shift depending on which slots have one.

@@ -111,7 +111,7 @@ function createWorldWithAura(): World {
   w.level = config.draft.evolutionLevel
   const [r, burn] = [auraRadius(w, aura(w)), auraBurn(w, aura(w))]
   applyUpgrade(w, UPGRADE_DEFS.find((def) => def.id === 'up_rf_crown')!)
-  check('Crown of Flames: 30% the size, 5x the burn', Math.abs(auraRadius(w, aura(w)) - r * 0.3) < 1e-9 && Math.abs(auraBurn(w, aura(w)) - burn * 5) < 1e-9)
+  check('Crown of Flames: half the size, 5x the burn', Math.abs(auraRadius(w, aura(w)) - r * 0.5) < 1e-9 && Math.abs(auraBurn(w, aura(w)) - burn * 5) < 1e-9)
 }
 // Zealotry: enemies inside carry a little aura that burns their neighbours.
 {

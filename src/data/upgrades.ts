@@ -383,9 +383,10 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     displayName: 'Crown of Flames',
     description: 'The aura shrinks to a tight crown of fire that burns ferociously',
     tags: ['offence', 'fire'],
-    // Area upgrades still grow it.
+    // Area upgrades still grow it. Half size: at 30% it was barely wider than
+    // him, and a percentage of that tiny ring hardly showed.
     modifiers: [
-      { target: 'area', op: 'multiply', value: 0.3 },
+      { target: 'area', op: 'multiply', value: 0.5 },
       { target: 'dotDamage', op: 'multiply', value: 5 },
     ],
     maxStacks: 1,
