@@ -603,6 +603,17 @@ the carrier's neighbours, and him). His own fire — the pyre, Zealotry —
 is `hurtCharacter(..., self = true)`: not scaled by difficulty, and not a
 hit, so Backdraft ignores it.
 
+With an aura he also wants enemies *in* it (`engage`): every enemy stamps a
+ring onto his map (`InfluenceMap.stampRing`) of the spots where standing
+would put it between his safe bubble (`aura.bubble`, a third of the radius)
+and the aura's edge, so each spot scores how many would be burning there.
+Only while farming, and only while he's healthy — it fades as he's hurt and
+is gone below `aura.engageBelow` (half health). Without that, plain Righteous
+Fire walked him into crowds it couldn't kill and every run died; with it, at
+`engageWeight` 1, three 6-minute runs gave +45% aura damage, +24% kills and
++30% gold with no deaths. Consuming Flames adds to `engage`, since its healing
+is what makes crowding safe.
+
 Ideas that need a small new mechanic first, for later:
 
 - **Critical hits** — a chance for a hit to deal extra damage. One roll in

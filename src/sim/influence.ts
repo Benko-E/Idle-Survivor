@@ -2,7 +2,8 @@ import { config } from '../config'
 import { InfluenceMap, type LayerSettings } from './influenceMap'
 import { pickupPull } from './pickupTiers'
 import { forEachObstacleNear } from './obstacles'
-import { zealOf } from './auras'
+import { auraRadius, isAura, zealOf } from './auras'
+import { weaponStat } from './stats'
 import { distanceToShop, shopEagerness } from './shop'
 import { markFreshness } from './trail'
 import type { World } from './world'
@@ -43,6 +44,29 @@ function rebuild(world: World): void {
   // Flagged as hazard so the flow pass knows where the walls are.
   for (const enemy of world.enemies) {
     influenceMap.stamp(layers.enemyDanger, enemy.x, enemy.y, enemy.def.dangerWeight * fear, true)
+  }
+
+  // An aura wants enemies in it — but not right on top of him. For every
+  // enemy, the ring of spots where standing would put it between the aura's
+  // safe bubble (aura.bubble of its radius) and its edge; summed, each cell
+  // says how many enemies would be burning there. Only while farming, so it
+  // never pulls against a trip to the shop.
+  // Keen only while he's healthy: the pull fades as he's hurt and is gone
+  // below aura.engageBelow, so a mauling sends him away to recover rather
+  // than deeper in. Without that, plain Righteous Fire walked him into
+  // crowds it couldn't kill and every run died.
+  const health = character.hp / Math.max(1, character.maxHp)
+  const keen = Math.max(0, (health - config.aura.engageBelow) / (1 - config.aura.engageBelow))
+  if (world.intent === 'farming' && keen > 0) {
+    for (const weapon of world.weapons) {
+      if (!weapon.def.enabled || !isAura(weapon)) continue
+      const engage = weaponStat(world, weapon, 'engage')
+      if (engage <= 0) continue
+      const outer = auraRadius(world, weapon)
+      const inner = outer * config.aura.bubble
+      const amount = engage * config.aura.engageWeight * keen
+      for (const enemy of world.enemies) influenceMap.stampRing(enemy.x, enemy.y, inner, outer, amount)
+    }
   }
 
   // Danger that belongs to a place rather than to whoever's standing on it:

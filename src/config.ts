@@ -185,6 +185,18 @@ export const config = {
     feedEase: 3,
     /** How long Beacon's vulnerability outlasts the last tick of the aura. */
     beaconSeconds: 0.6,
+    /**
+     * Where he wants enemies while he has an aura: between this share of its
+     * radius — his safe bubble — and its edge. And how strongly, per enemy in
+     * that band, times the aura's own `engage` stat.
+     */
+    // Measured over three 6-minute runs with plain Righteous Fire: at 1,
+    // +45% aura damage, +24% kills, +30% gold, no deaths; at 2 and up it
+    // walked him into crowds and runs died.
+    bubble: 1 / 3,
+    engageWeight: 1,
+    /** Below this share of his health he stops wanting them close at all. */
+    engageBelow: 0.5,
     /** Zealotry's little auras: reach as a multiple of the carrier's size, and their share against him. */
     zealotryReach: 1.5,
     zealotryToHim: 0.35,

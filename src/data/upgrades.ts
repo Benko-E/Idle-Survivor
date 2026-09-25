@@ -353,9 +353,14 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     spellId: 'spell_aura_01',
     kind: 'mutation',
     displayName: 'Consuming Flames',
-    description: 'Enemies that die inside the aura heal him a little',
+    description: 'Enemies that die inside the aura heal him a little, and he dares let them closer',
     tags: ['defence', 'fire'],
-    modifiers: [{ target: 'consume', op: 'add', value: 1 }],
+    // The healing is what makes crowding safe, so he leans into it harder:
+    // his pull towards keeping them in the aura grows with each pick.
+    modifiers: [
+      { target: 'consume', op: 'add', value: 1 },
+      { target: 'engage', op: 'add', value: 0.5 },
+    ],
     maxStacks: 3,
     weight: 55,
   },
