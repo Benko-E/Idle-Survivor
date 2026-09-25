@@ -28,6 +28,7 @@ import { DraftUi } from './ui/draft'
 import { MENU_ENTRIES } from './ui/menu/entries'
 import { installSkin } from './ui/skin'
 import { SpellBar } from './ui/spellBar'
+import { DamageMeter } from './ui/damageMeter'
 import { ThoughtBubbles } from './ui/thoughts'
 import { SpellChoiceUi } from './ui/spellChoice'
 import { Menu } from './ui/menu/menu'
@@ -56,6 +57,7 @@ let world = createWorld()
 const draftUi = new DraftUi(() => world)
 const spellChoiceUi = new SpellChoiceUi(() => world)
 const spellBar = new SpellBar(() => world, () => spellChoiceUi.show())
+const damageMeter = new DamageMeter()
 const thoughts = new ThoughtBubbles()
 new DebugPanel()
 let bestTime = 0
@@ -275,6 +277,7 @@ function render(): void {
   draftUi.update()
   spellChoiceUi.update()
   spellBar.update(mode === 'playing')
+  damageMeter.update(world, mode === 'playing')
   thoughts.update(world, renderer, mode === 'playing')
   renderer.beginFrame()
 
