@@ -131,12 +131,16 @@ export function isHeld(enemy: Enemy): boolean {
 
 /**
  * Damage multiplier from being made vulnerable — shocked, and anything like
- * it. The strongest one counts, for the same reason slows don't add up.
+ * it. The strongest one that applies counts, for the same reason slows don't
+ * add up. One that's only vulnerable to a kind of damage (`vulnerableTo`)
+ * counts only when the hit's source carries that tag.
  */
-export function vulnerability(enemy: Enemy): number {
+export function vulnerability(enemy: Enemy, sourceTags: readonly string[] = []): number {
   let strongest = 0
   for (const effect of enemy.effects) {
-    if (effect.def.effect === 'vulnerable' && effect.magnitude > strongest) strongest = effect.magnitude
+    if (effect.def.effect !== 'vulnerable' || effect.magnitude <= strongest) continue
+    if (effect.def.vulnerableTo && !sourceTags.includes(effect.def.vulnerableTo)) continue
+    strongest = effect.magnitude
   }
   return 1 + strongest
 }

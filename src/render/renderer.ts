@@ -535,14 +535,19 @@ export class Renderer {
    * off the ground — a bolt in flight drawn with real art rather than a glow.
    * Width and height are world units.
    */
-  drawWorldSprite(sheet: SpriteSheet, frame: number, worldX: number, worldY: number, lift: number, w: number, h: number, alpha = 1): void {
+  drawWorldSprite(sheet: SpriteSheet, frame: number, worldX: number, worldY: number, lift: number, w: number, h: number, alpha = 1, tint?: string, tintAmount = 0): void {
     const { ctx } = this
     const sw = w * this.scale
     const sh = h * this.scale
-    const sx = this.worldToScreenX(worldX) - sw / 2
-    const sy = this.worldToScreenY(worldY) - lift * this.scale - sh / 2
+    const sx = Math.round(this.worldToScreenX(worldX) - sw / 2)
+    const sy = Math.round(this.worldToScreenY(worldY) - lift * this.scale - sh / 2)
     ctx.globalAlpha = alpha
-    ctx.drawImage(sheet.image, frame * sheet.frameWidth, 0, sheet.frameWidth, sheet.frameHeight, Math.round(sx), Math.round(sy), Math.ceil(sw), Math.ceil(sh))
+    ctx.drawImage(sheet.image, frame * sheet.frameWidth, 0, sheet.frameWidth, sheet.frameHeight, sx, sy, Math.ceil(sw), Math.ceil(sh))
+    // A colour washed over it, the way enemies take on their conditions.
+    if (tint && tintAmount > 0) {
+      ctx.globalAlpha = alpha * Math.min(1, tintAmount)
+      ctx.drawImage(this.tintOf(sheet.image, tint), frame * sheet.frameWidth, 0, sheet.frameWidth, sheet.frameHeight, sx, sy, Math.ceil(sw), Math.ceil(sh))
+    }
     ctx.globalAlpha = 1
   }
 

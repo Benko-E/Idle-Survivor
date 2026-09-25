@@ -56,6 +56,26 @@ export const CONDITION_DEFS: ConditionDef[] = [
     tintStrength: 0.35,
   },
   {
+    id: 'beaconed',
+    displayName: 'Beaconed',
+    // Beacon: everything inside Righteous Fire takes more from fire.
+    effect: 'vulnerable',
+    vulnerableTo: 'fire',
+    stacking: 'refresh',
+    tint: '#ffd27a',
+    tintStrength: 0,
+  },
+  {
+    id: 'zealotry',
+    displayName: 'Zealotry',
+    // Its own little Righteous Fire: burns it, and (sim/auras.ts) whatever
+    // it touches.
+    effect: 'damage',
+    stacking: 'refresh',
+    tint: '#ffcf4a',
+    tintStrength: 0.45,
+  },
+  {
     id: 'rooted',
     displayName: 'Rooted',
     effect: 'hold',

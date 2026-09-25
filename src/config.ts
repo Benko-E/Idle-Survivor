@@ -172,6 +172,24 @@ export const config = {
     startingWeaponIds: [] as string[],
   },
 
+  /** Aura spells — Righteous Fire. The upgrade numbers are on the upgrades; these are the rules. */
+  aura: {
+    /** Zealot's Pyre goes out below this share of his health, and is relit at this one. */
+    pyreOffAt: 0.3,
+    pyreOnAt: 1,
+    /** Feed the Flames: seconds each kill adds, the most it can bank, the biggest the aura can grow. */
+    feedSeconds: 1.5,
+    feedMaxSeconds: 6,
+    feedMaxBonus: 0.6,
+    /** How quickly the fed radius eases towards where it's heading. Higher is snappier. */
+    feedEase: 3,
+    /** How long Beacon's vulnerability outlasts the last tick of the aura. */
+    beaconSeconds: 0.6,
+    /** Zealotry's little auras: reach as a multiple of the carrier's size, and their share against him. */
+    zealotryReach: 1.5,
+    zealotryToHim: 0.35,
+  },
+
   combat: {
     projectileRadius: 5,
     /** Plain bolts — forks, Backdraft — are this much of a normal bolt's size. */

@@ -1,7 +1,8 @@
 import { config } from '../config'
+import { auraRadius, isAura, pyreLit } from '../sim/auras'
 import { orbitPositions } from '../sim/orbit'
 import { weaponStat } from '../sim/stats'
-import type { World } from '../sim/world'
+import type { WeaponInstance, World } from '../sim/world'
 import type { Renderer } from './renderer'
 import { getSheet, type SpriteSheet } from './sprites'
 
@@ -23,6 +24,7 @@ export function drawGroundEffects(renderer: Renderer, world: World): void {
   const loudness = config.render.effectsAlpha
   if (loudness <= 0) return
   drawAuras(renderer, world, loudness, true)
+  drawZealotry(renderer, world, loudness)
   drawHotStreakReady(renderer, world, loudness)
   drawZones(renderer, world, loudness, true)
   drawRoots(renderer, world, loudness)
@@ -89,26 +91,66 @@ function drawAuras(renderer: Renderer, world: World, loudness: number, ground: b
   if (world.state !== 'running') return
   const { x, y } = world.character
   for (const weapon of world.weapons) {
-    if (weapon.def.behaviour !== 'aura' || !weapon.def.enabled) continue
-    const radius = weaponStat(world, weapon, 'area')
+    if (!isAura(weapon) || !weapon.def.enabled) continue
+    const radius = auraRadius(world, weapon)
+    const { colour, shift } = auraColour(world, weapon)
+    const lit = pyreLit(world, weapon)
     // A slow breath rather than a flicker, so it reads as alive, not busy.
-    const breathe = 0.85 + 0.15 * Math.sin(world.time * 3)
+    // With Zealot's Pyre lit it burns brighter and breathes faster.
+    const breathe = 0.85 + 0.15 * Math.sin(world.time * (lit ? 6 : 3))
+    const glow = lit ? 1.7 : 1
     const flames = weapon.def.fx?.flames ? getSheet(`fx:${weapon.def.fx.flames}`) : undefined
     if (ground) {
-      renderer.fillWorldCircle(x, y, radius, weapon.def.colour, 0.1 * breathe * loudness)
-      if (!flames) renderer.strokeWorldCircle(x, y, radius, weapon.def.colour, 1.5, 0.35 * breathe * loudness)
+      renderer.fillWorldCircle(x, y, radius, colour, 0.1 * glow * breathe * loudness)
+      // The edge as one unbroken line of fire, so the flames stood on it
+      // read as a ring rather than a scatter of campfires.
+      renderer.strokeWorldCircle(x, y, radius, colour, lit ? 3 : 2, 0.55 * glow * breathe * loudness)
       continue
     }
     if (!flames) continue
-    // Flames stood round the edge, slowly turning, each on its own frame so
-    // they flicker out of step.
-    const count = Math.max(6, Math.round(radius / 12))
-    const h = 26
+    // Small flames all the way round, close together, slowly turning, each on
+    // its own frame so they flicker out of step.
+    const h = 13
+    const count = Math.max(12, Math.round((Math.PI * 2 * radius) / (h * 0.75)))
     for (let i = 0; i < count; i++) {
       const angle = (i / count) * Math.PI * 2 + world.time * 0.4
       const frame = (Math.floor(world.time * 9) + i) % flames.frames
-      renderer.drawWorldSprite(flames, frame, x + Math.cos(angle) * radius, y + Math.sin(angle) * radius, h / 2, h * flames.aspect, h, 0.9 * loudness)
+      // Martyr's Fervour turns the flames themselves towards red; a lit
+      // pyre washes them whiter, burning brighter.
+      const tint = shift > 0 ? colour : lit ? '#fff4d6' : undefined
+      const tintAmount = shift > 0 ? 0.75 * shift : lit ? 0.3 : 0
+      renderer.drawWorldSprite(flames, frame, x + Math.cos(angle) * radius, y + Math.sin(angle) * radius, h / 2, h * flames.aspect, h, 0.9 * loudness, tint, tintAmount)
     }
+  }
+}
+
+/**
+ * An aura's colour: its own, turning towards deep red as he's hurt when
+ * Martyr's Fervour is making it burn hotter for it — fully red at the point
+ * Zealot's Pyre goes out.
+ */
+function auraColour(world: World, weapon: WeaponInstance): { colour: string; shift: number } {
+  const base = weapon.def.colour
+  if (weaponStat(world, weapon, 'fervour') <= 0) return { colour: base, shift: 0 }
+  const c = world.character
+  const health = c.hp / Math.max(1, c.maxHp)
+  const shift = Math.max(0, Math.min(1, (1 - health) / (1 - config.aura.pyreOffAt)))
+  return { colour: mixColour(base, '#d10f0f', shift), shift }
+}
+
+function mixColour(a: string, b: string, t: number): string {
+  const pa = parseInt(a.slice(1), 16)
+  const pb = parseInt(b.slice(1), 16)
+  const channel = (shift: number) => Math.round(((pa >> shift) & 255) * (1 - t) + ((pb >> shift) & 255) * t)
+  return `#${((channel(16) << 16) | (channel(8) << 8) | channel(0)).toString(16).padStart(6, '0')}`
+}
+
+/** Zealotry: a flickering little ring of holy fire round everything carrying one. */
+function drawZealotry(renderer: Renderer, world: World, loudness: number): void {
+  for (const enemy of world.enemies) {
+    if (!enemy.effects.some((effect) => effect.condition === 'zealotry')) continue
+    const flicker = 0.7 + 0.3 * Math.sin(world.time * 14 + enemy.id)
+    renderer.strokeWorldCircle(enemy.x, enemy.y, enemy.def.radius * config.aura.zealotryReach, '#ffcf4a', 1.5, 0.8 * flicker * loudness)
   }
 }
 
@@ -179,13 +221,18 @@ function drawZones(renderer: Renderer, world: World, loudness: number, ground: b
     // Active: a faint floor, plus whatever the zone does drawn on top.
     const life = zone.durationTotal > 0 ? zone.remaining / zone.durationTotal : 0
     const fade = Math.min(1, life * 4)
-    // A patch of a trail is just its scorched floor, fading as it cools.
+    // A patch of a trail is a small flame standing on it, shrinking and
+    // fading as it burns out, over a faint glow.
     if (zone.quiet) {
-      if (!ground) continue
-      const floor = fx?.ground ? getSheet(`fx:${fx.ground}`) : undefined
-      const w = zone.radius * 2.4
-      if (floor) renderer.drawWorldSprite(floor, Math.floor(world.time * 8 + zone.x) % floor.frames, zone.x, zone.y, 0, w, w * config.render.yScale, 0.8 * life * loudness)
-      else renderer.fillWorldCircle(zone.x, zone.y, zone.radius, zone.colour, 0.3 * life * loudness)
+      if (ground) {
+        renderer.fillWorldCircle(zone.x, zone.y, zone.radius * 0.8, zone.colour, 0.18 * life * loudness)
+        continue
+      }
+      const flame = fx?.flames ? getSheet(`fx:${fx.flames}`) : undefined
+      if (!flame) continue
+      const h = 12 + 10 * life
+      const frame = (Math.floor(world.time * 10) + Math.round(zone.x + zone.y)) % flame.frames
+      renderer.drawWorldSprite(flame, frame, zone.x, zone.y, h / 2, h * flame.aspect, h, 0.9 * Math.min(1, life * 2) * loudness)
       continue
     }
     if (!ground) {

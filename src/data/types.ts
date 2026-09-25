@@ -89,6 +89,11 @@ export interface ConditionDef {
    */
   effect: 'damage' | 'slow' | 'hold' | 'vulnerable'
   /**
+   * For 'vulnerable': only damage from a source carrying this tag counts —
+   * 'fire' for Beacon. Left out, every hit does.
+   */
+  vulnerableTo?: string
+  /**
    * What a second application does:
    *   refresh  from the same spell, tops up the time and keeps the stronger;
    *            from a different spell, sits alongside and both count

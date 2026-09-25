@@ -18,16 +18,20 @@ import type { World } from './world'
  * damage reduction. `amount` is already whatever this step's share is;
  * `source` is who to blame, kept in world.damageTakenBy for tuning.
  */
-export function hurtCharacter(world: World, amount: number, source: string): void {
+export function hurtCharacter(world: World, amount: number, source: string, self = false): void {
   if (world.state !== 'running' || amount <= 0) return
   const character = world.character
   // A multiplier stat, so "take 10% less damage" picks compound rather than
   // adding up: four of them leave him taking 66%, never 60% less and never
   // invulnerable.
-  const taken = characterStat(world, 'damageTaken', 1)
-  const dealt = amount * damageMultiplier(world.time) * taken
+  //
+  // `self` is his own fire — Zealot's Pyre — which costs what it says, isn't
+  // scaled by the difficulty curve, and isn't a hit: nothing that reacts to
+  // him being hurt (Backdraft) fires on it.
+  const taken = self ? 1 : characterStat(world, 'damageTaken', 1)
+  const dealt = amount * (self ? 1 : damageMultiplier(world.time)) * taken
   character.hp -= dealt
-  world.lastHurtAt = world.time
+  if (!self) world.lastHurtAt = world.time
   world.damageTakenBy[source] = (world.damageTakenBy[source] ?? 0) + dealt
 
   if (character.hp <= 0) {

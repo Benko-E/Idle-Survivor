@@ -1,6 +1,7 @@
 import { config } from '../config'
 import type { WeaponDef } from '../data/types'
 import { damageEnemy } from './damageEnemy'
+import { auraBurn, auraRadius } from './auras'
 import { type BoltMutations } from './projectiles'
 import { applyCondition } from './statusEffects'
 import { orbitPositions } from './orbit'
@@ -233,12 +234,20 @@ const curse: Behaviour = ({ world, weapon, def, stat }) => {
  */
 const aura: Behaviour = ({ world, weapon, def, stat }) => {
   const caster = world.character
-  const targets = enemiesInRadius(world, caster.x, caster.y, stat('area'), scratchTargets)
+  const targets = enemiesInRadius(world, caster.x, caster.y, auraRadius(world, weapon), scratchTargets)
   if (targets.length === 0) return false
 
-  const dotDamage = stat('dotDamage')
+  // Its pyre, his health and his upgrades all in the one number; see sim/auras.ts.
+  const burn = auraBurn(world, weapon)
   const duration = stat('duration')
-  for (const enemy of targets) applyCondition(world, enemy, def.dotCondition ?? 'burning', dotDamage, duration, weapon)
+  const beacon = stat('beacon')
+  // Zealotry's little auras burn with the full pyre, lit or not.
+  const zealotry = stat('zealotry') > 0 ? stat('dotDamage') * (1 + stat('pyreDamage')) : 0
+  for (const enemy of targets) {
+    applyCondition(world, enemy, def.dotCondition ?? 'burning', burn, duration, weapon)
+    if (beacon > 0) applyCondition(world, enemy, 'beaconed', beacon, config.aura.beaconSeconds, weapon)
+    if (zealotry > 0) applyCondition(world, enemy, 'zealotry', zealotry, duration, weapon)
+  }
   return true
 }
 

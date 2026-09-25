@@ -2,6 +2,7 @@ import { config } from '../config'
 import { InfluenceMap, type LayerSettings } from './influenceMap'
 import { pickupPull } from './pickupTiers'
 import { forEachObstacleNear } from './obstacles'
+import { zealOf } from './auras'
 import { distanceToShop, shopEagerness } from './shop'
 import { markFreshness } from './trail'
 import type { World } from './world'
@@ -36,7 +37,8 @@ function rebuild(world: World): void {
 
   // Danger counts for more the more hurt he is — see influence.hurtFear.
   const missing = 1 - character.hp / Math.max(1, character.maxHp)
-  const fear = 1 + config.influence.hurtFear * missing
+  // Zeal: with an aura to burn them in, he's less afraid of letting them close.
+  const fear = (1 + config.influence.hurtFear * missing) * (1 - zealOf(world))
 
   // Flagged as hazard so the flow pass knows where the walls are.
   for (const enemy of world.enemies) {

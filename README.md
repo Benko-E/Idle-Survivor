@@ -535,6 +535,7 @@ will be more modifiers into the same list, so they need no new code either.
 | Every spell | Focused Will (damage), Quickened Mind (recharge), Farsight (range) |
 | Kind of spell | Widened Sigils (area), Lancing Bolt (frost bolts pierce), Forked Arc, Conduction (chain falloff), Permafrost (chill), Deepening Rot (damage over time), Gathering Storm (strikes), Deep Roots |
 | One spell | Firebolt: Ignite, Fork, Pierce, Returning Bolt, Combustion, Hot Streak, Backdraft; evolutions Fireball and Phoenix Bolt |
+| | Righteous Fire: Zealot's Pyre, Clinging Flames, Feed the Flames, Beacon, Consuming Flames, Martyr's Fervour; evolutions Crown of Flames and Zealotry |
 | Element | Kindled Fury (fire), Winter's Bite (frost), Static Charge (lightning) |
 | Defence | Hardy (max health), Second Wind (regeneration), Warding (damage taken) |
 | Utility | Miser's Instinct (pickup radius), Fleet Step (speed), Keen Study (XP), Gilded Touch (gold) |
@@ -578,6 +579,19 @@ bolts: damage, nothing else, so an evolved Fireball forks into ordinary
 firebolts. Combustion detonates burns from any source, and a burning enemy
 caught in the blast goes off too, up to `combat.combustionChain`. Numbers
 for all of it are under `combat` in the config.
+
+Righteous Fire's kit is aura stats (`sim/auras.ts`), so any aura spell can
+be given it with data: `zeal` (how much of his fear of close enemies he sets
+aside — 0.6 by default on Righteous Fire, so enemies actually walk into it;
+at 0.35 it barely changed anything, at 0.6 it burned 65% more for damage his
+regeneration covers), `selfBurn` and `pyreDamage` (Zealot's Pyre: only the
+pyre goes out below `aura.pyreOffAt` health, relit at `pyreOnAt`), `fervour`,
+`feed` (eased growth per kill inside it), `consume` (healing per kill inside
+it), `beacon` (the `beaconed` condition: vulnerable to fire only, via
+`ConditionDef.vulnerableTo`) and `zealotry` (a condition whose hook burns
+the carrier's neighbours, and him). His own fire — the pyre, Zealotry —
+is `hurtCharacter(..., self = true)`: not scaled by difficulty, and not a
+hit, so Backdraft ignores it.
 
 Ideas that need a small new mechanic first, for later:
 
@@ -685,3 +699,6 @@ That completes the spec's definition of done for the prototype. Past it:
 - [x] **22 — spell upgrades.** Upgrades for one spell, with prerequisites,
   retirements, keywords and exclusive evolutions; Firebolt's seven
   mutations and two evolutions. Splitting Bolt removed. See "Upgrades".
+- [x] **23 — Righteous Fire.** Zeal by default, six mutations and two
+  evolutions; a ring of small flames that turns red with Martyr's Fervour
+  and burns brighter with the pyre lit. Phoenix Bolt's trail is flames now.

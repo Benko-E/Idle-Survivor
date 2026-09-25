@@ -1,4 +1,5 @@
 import { config } from '../config'
+import { updateAuras } from './auras'
 import { resolveDeaths } from './enemyBehaviours'
 import { BEHAVIOURS } from './behaviours'
 import { spawnPlainBolt, updateProjectiles } from './projectiles'
@@ -99,6 +100,7 @@ function backdraft(world: World): void {
 }
 
 export function updateCombat(world: World, dt: number): void {
+  updateAuras(world, dt)
   backdraft(world)
   castReadySpells(world, dt)
   updateProjectiles(world, dt)

@@ -1,4 +1,5 @@
 import { equilibriumMultiplier } from './buildBonus'
+import { auraKill } from './auras'
 import { rollDrops } from './drops'
 import { gameEvents, type GameEvents } from './events'
 import { grantXp } from './progression'
@@ -29,7 +30,7 @@ const payload: GameEvents['enemyDamaged'] = { enemyId: 0, x: 0, y: 0, amount: 0,
  */
 export function damageEnemy(world: World, enemy: Enemy, amount: number, source: WeaponInstance | null, overTime = false): void {
   if (enemy.hp <= 0 || amount <= 0) return
-  amount *= equilibriumMultiplier(world, enemy, source) * vulnerability(enemy)
+  amount *= equilibriumMultiplier(world, enemy, source) * vulnerability(enemy, source?.def.tags)
 
   // Overkill doesn't count. A 400-damage meteor landing on a 10 hp enemy
   // dealt 10, and counting 400 would make slow heavy hitters look far better
@@ -59,6 +60,7 @@ export function damageEnemy(world: World, enemy: Enemy, amount: number, source: 
   grantXp(world, characterStat(world, 'xpGain', enemy.def.xpValue, enemy.def.tags))
 
   rollDrops(world, enemy)
+  auraKill(world, enemy)
 
   // Blasts, bursts and gas wait until the fight this step is over; see
   // resolveDeaths in enemyBehaviours.ts.

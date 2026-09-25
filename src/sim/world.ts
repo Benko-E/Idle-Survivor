@@ -116,6 +116,10 @@ export interface WeaponInstance {
   streak?: number
   /** World time Backdraft can next go off. */
   backdraftReady?: number
+  /** An aura's pyre, put out by low health until he's healed. See sim/auras.ts. */
+  pyreOut?: boolean
+  /** What kills inside an aura have fed it: target and eased current radius bonus, and time left. */
+  feed?: { target: number; current: number; timer: number }
   /**
    * When each enemy was last hit by this spell, by enemy id. Only spells that
    * touch the same enemies over and over use it — an orb circling through a

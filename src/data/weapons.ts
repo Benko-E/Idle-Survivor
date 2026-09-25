@@ -53,8 +53,8 @@ export const WEAPON_DEFS: WeaponDef[] = [
       range: 520,
       spread: 0.14,
     },
-    // The scorch is Phoenix Bolt's trail.
-    fx: { hit: 'hit_fire', ground: 'scorch' },
+    // The flames are Phoenix Bolt's trail.
+    fx: { hit: 'hit_fire', flames: 'holy_flames' },
     colour: '#ff8a3d',
   },
   {
@@ -128,6 +128,12 @@ export const WEAPON_DEFS: WeaponDef[] = [
       area: 130,
       dotDamage: 10,
       duration: 1,
+      // Zeal: he's this much less afraid of close enemies while he has it, so
+      // they walk into the burn. A spell that never touched anything was the
+      // problem this fixes. See sim/auras.ts. Measured over three 5-minute
+      // runs: at 0.35 barely anything (+10% burn); at 0.6, +65% burn and +32%
+      // kills, for 132 damage taken instead of 30 — well within his regen.
+      zeal: 0.6,
     },
     fx: { flames: 'holy_flames' },
     colour: '#ff6a2a',

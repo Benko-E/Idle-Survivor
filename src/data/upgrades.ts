@@ -294,6 +294,110 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     weight: 400,
   },
 
+  // --- Righteous Fire -----------------------------------------------------------
+  //
+  // Aura stats (sim/auras.ts), so any aura spell could be given the same.
+
+  {
+    id: 'up_rf_pyre',
+    spellId: 'spell_aura_01',
+    kind: 'mutation',
+    displayName: "Zealot's Pyre",
+    description: 'The aura burns far hotter, and burns him too. It goes out when he is badly hurt',
+    tags: ['offence', 'fire'],
+    // Each pick hotter both ways. Out below aura.pyreOffAt, relit at pyreOnAt.
+    modifiers: [
+      { target: 'pyreDamage', op: 'add', value: 0.6 },
+      { target: 'selfBurn', op: 'add', value: 2 },
+    ],
+    maxStacks: 3,
+    weight: 55,
+  },
+  {
+    id: 'up_rf_cling',
+    spellId: 'spell_aura_01',
+    kind: 'mutation',
+    displayName: 'Clinging Flames',
+    description: 'Enemies that leave the aura keep burning for longer',
+    tags: ['offence', 'fire'],
+    modifiers: [{ target: 'duration', op: 'add', value: 1.5 }],
+    maxStacks: 3,
+    weight: 55,
+  },
+  {
+    id: 'up_rf_feed',
+    spellId: 'spell_aura_01',
+    kind: 'mutation',
+    displayName: 'Feed the Flames',
+    description: 'Each kill inside the aura makes it grow for a while',
+    tags: ['offence', 'fire'],
+    // A share of radius per kill, for aura.feedSeconds each, up to its caps.
+    modifiers: [{ target: 'feed', op: 'add', value: 0.05 }],
+    maxStacks: 3,
+    weight: 55,
+  },
+  {
+    id: 'up_rf_beacon',
+    spellId: 'spell_aura_01',
+    kind: 'mutation',
+    displayName: 'Beacon',
+    description: 'Enemies inside the aura take 15% more fire damage',
+    tags: ['offence', 'fire'],
+    // From every fire spell, the aura itself included.
+    modifiers: [{ target: 'beacon', op: 'add', value: 0.15 }],
+    maxStacks: 3,
+    weight: 55,
+  },
+  {
+    id: 'up_rf_consume',
+    spellId: 'spell_aura_01',
+    kind: 'mutation',
+    displayName: 'Consuming Flames',
+    description: 'Enemies that die inside the aura heal him a little',
+    tags: ['defence', 'fire'],
+    modifiers: [{ target: 'consume', op: 'add', value: 1 }],
+    maxStacks: 3,
+    weight: 55,
+  },
+  {
+    id: 'up_rf_fervour',
+    spellId: 'spell_aura_01',
+    kind: 'mutation',
+    displayName: "Martyr's Fervour",
+    description: 'The lower his health, the hotter the aura burns',
+    tags: ['offence', 'fire'],
+    // +100% at no health, so +70% at 30%.
+    modifiers: [{ target: 'fervour', op: 'add', value: 1 }],
+    maxStacks: 1,
+    weight: 50,
+  },
+  {
+    id: 'up_rf_crown',
+    spellId: 'spell_aura_01',
+    kind: 'evolution',
+    displayName: 'Crown of Flames',
+    description: 'The aura shrinks to a tight crown of fire that burns ferociously',
+    tags: ['offence', 'fire'],
+    // Area upgrades still grow it.
+    modifiers: [
+      { target: 'area', op: 'multiply', value: 0.3 },
+      { target: 'dotDamage', op: 'multiply', value: 5 },
+    ],
+    maxStacks: 1,
+    weight: 400,
+  },
+  {
+    id: 'up_rf_zealotry',
+    spellId: 'spell_aura_01',
+    kind: 'evolution',
+    displayName: 'Zealotry',
+    description: 'Enemies in the aura catch a little Righteous Fire of their own, burning themselves, their neighbours, and him',
+    tags: ['offence', 'fire'],
+    modifiers: [{ target: 'zealotry', op: 'add', value: 1 }],
+    maxStacks: 1,
+    weight: 400,
+  },
+
   // --- Offence: by element ----------------------------------------------------
 
   {
