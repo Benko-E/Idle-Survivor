@@ -86,12 +86,15 @@
 .draft-button:hover { background: #242c36; }
 .draft-button[hidden] { display: none; }
 
+/* A strip just above the XP bar rather than a dimmed screen: the fight stays
+   in view while you choose, and only the cards themselves catch the mouse. */
 .draft-panel {
-  position: fixed; inset: 0; z-index: 20; display: flex;
-  align-items: center; justify-content: center; gap: 14px;
-  background: rgba(6, 9, 12, 0.72); padding: 20px; flex-wrap: wrap;
+  position: fixed; left: 0; right: 0; bottom: 62px; z-index: 20; display: flex;
+  align-items: flex-end; justify-content: center; gap: 14px;
+  padding: 0 20px; flex-wrap: wrap; pointer-events: none;
 }
 .draft-panel[hidden] { display: none; }
+.draft-panel .draft-card, .draft-panel .draft-dismiss { pointer-events: auto; }
 /* The cards' own row: stretch makes every card as tall as the tallest, so they
    line up without a fixed height that long text could overflow. */
 .draft-row { display: flex; gap: 14px; align-items: stretch; justify-content: center; flex-wrap: wrap; }
