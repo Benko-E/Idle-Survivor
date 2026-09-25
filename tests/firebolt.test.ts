@@ -122,15 +122,39 @@ const lost = (e: Enemy) => e.maxHp - e.hp
   castAndFly(w2)
   check('Pierce reaches the enemy behind', plain[0] && !plain[1] && lost(c) > 0 && lost(d) > 0)
 }
-// Returning Bolt: out, back, one enemy hit twice.
+// Returning Bolt: out, bounce off what it hits, all the way back to him —
+// hitting what's in the way again on the return.
 {
   const w = createWorld(1)
   take(w, 'up_fb_return')
-  const e = enemy(w, 120, 0)
+  const e = enemy(w, 150, 0)
+  w.weapons[0].cooldownRemaining = 0
+  rebuildEnemyGrid(w)
+  updateCombat(w, DT)
+  w.weapons[0].cooldownRemaining = 99
+  const bolt = w.projectiles[0]
+  let closest = Infinity
+  let turnedAt = -1
+  for (let i = 0; i < 180 && w.projectiles.includes(bolt); i++) {
+    w.time += DT
+    rebuildEnemyGrid(w)
+    updateCombat(w, DT)
+    if (bolt.returning && turnedAt < 0) turnedAt = bolt.x
+    if (bolt.returning) closest = Math.min(closest, Math.hypot(bolt.x - w.character.x, bolt.y - w.character.y))
+  }
+  const damage = WEAPON_DEFS[0].stats.damage
+  check('Returning Bolt bounces off what it hits', turnedAt > 100 && lost(e) === damage * 2, `turned at x ${turnedAt.toFixed(0)}, enemy took ${lost(e)} (one hit is ${damage})`)
+  check('...and flies all the way back to him', closest < 30 && !w.projectiles.includes(bolt), `came within ${closest.toFixed(0)} of him`)
+}
+{
+  // A second enemy halfway: hit on the way out, and again on the way back.
+  const w = createWorld(1)
+  take(w, 'up_fb_return')
+  take(w, 'up_fb_pierce')
+  const near = enemy(w, 80, 0), far = enemy(w, 170, 0)
   castAndFly(w, 3)
   const damage = WEAPON_DEFS[0].stats.damage
-  check('Returning Bolt hits on the way out and back', lost(e) === damage * 2, `took ${lost(e)} (one hit is ${damage})`)
-  check('...and is gone once it reaches him', w.projectiles.length === 0, `${w.projectiles.length} still flying`)
+  check('...hitting what it passes both ways', lost(near) === damage * 2 && lost(far) === damage * 2, `near ${lost(near)}, far ${lost(far)}`)
 }
 // Combustion: a burn already on the target goes off at once, and chains.
 {

@@ -37,9 +37,23 @@ export function shopEagerness(world: World): number {
   if (!config.shop.enabled) return 0
   if (world.intent !== 'banking') return 0
 
-  const { spendThreshold, maxEagerness } = config.shop
+  const { maxEagerness } = config.shop
   // At least 1, so committing has real force even at exactly the threshold.
-  return Math.min(maxEagerness, Math.max(1, world.gold / spendThreshold))
+  return Math.min(maxEagerness, Math.max(1, world.gold / bankThreshold(world)))
+}
+
+/**
+ * How much he carries before heading to the shop: at least
+ * `shop.spendThreshold`, and more as he earns faster — about
+ * `shop.thresholdMinutes` of his income. A fixed amount meant that the richer
+ * a build got, the more of the run he spent walking to the shop with his
+ * eye off the gold: with Righteous Fire's full kit, 41% of it.
+ */
+export function bankThreshold(world: World): number {
+  const { spendThreshold, thresholdMinutes } = config.shop
+  if (thresholdMinutes <= 0 || world.time < 60) return spendThreshold
+  const perMinute = world.goldEarned / (world.time / 60)
+  return Math.max(spendThreshold, perMinute * thresholdMinutes)
 }
 
 export function distanceToShop(world: World): number {
@@ -58,7 +72,7 @@ export function updateShop(world: World): void {
   if (!config.shop.enabled) return
 
   if (world.intent === 'farming') {
-    if (world.gold >= config.shop.spendThreshold) world.intent = 'banking'
+    if (world.gold >= bankThreshold(world)) world.intent = 'banking'
     return
   }
 

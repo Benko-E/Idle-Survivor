@@ -292,10 +292,12 @@ export function updateProjectiles(world: World, dt: number): void {
         else if (mutations && mutations.returns > 0 && !projectile.returning) {
           // It bounces off the enemy that stopped it — and that bounce is its
           // hit on the way back, since it's heading away from it from here on.
+          // The bounce is free: it then flies all the way back to him, and
+          // only what it hits on the return costs it pierce. (Spending the
+          // bounce ended the bolt on the spot, so it only ever came back
+          // from a miss.)
           turnBack(projectile)
           hit(world, projectile, enemy)
-          if (projectile.pierce > 0) projectile.pierce--
-          else spent = true
         } else spent = true
       })
     }

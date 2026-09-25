@@ -488,6 +488,16 @@ event: a white flash on a direct hit (damage over time doesn't flash, or a
 burning crowd would strobe), a squash, fade and puff of dust on death, and a
 fade in on arrival. Timings are `render.enemyFx`.
 
+### He banks when he's carrying a minute's income
+
+He heads for the shop once he's carrying `shop.spendThreshold` (60) — or about
+`shop.thresholdMinutes` of his income, whichever is more. With a fixed 60, a
+rich build hit it in seconds and spent most of the run walking to the shop
+with its eye off the gold: with Righteous Fire's full kit, 41% of the run,
+leaving coins lying everywhere. Scaling it with income, measured over three
+10-minute runs: coins left behind 35 → 2, gold earned +46%. A run earning
+under 60 a minute is unchanged.
+
 ## Classes
 
 Everything that makes him a wizard is one entry in `data/classes.ts`: name,

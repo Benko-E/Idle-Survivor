@@ -500,6 +500,14 @@ export const config = {
      */
     spendThreshold: 60,
     /**
+     * ...or about this many minutes of his income, whichever is more, so a
+     * rich build doesn't spend its whole run walking to the shop. 0 turns it
+     * off and the threshold is always spendThreshold. Measured with
+     * Righteous Fire's kit, three 10-minute runs: coins left behind 35 -> 2,
+     * gold earned +46%; runs earning under 60 a minute are unchanged.
+     */
+    thresholdMinutes: 1,
+    /**
      * How far he must travel towards the shop to gain `layers.shop.weight`
      * points of score, at eagerness 1.
      *
