@@ -8,7 +8,7 @@ import { updateCombat } from '@game/sim/combat'
 import { damageEnemy } from '@game/sim/damageEnemy'
 import { applyUpgrade } from '@game/sim/draft'
 import { rebuildEnemyGrid } from '@game/sim/enemyGrid'
-import { InfluenceMap } from '@game/sim/influenceMap'
+import { engagementAt, engagementShapes } from '@game/sim/engagement'
 import { hasCondition } from '@game/sim/statusEffects'
 import { createWorld, type Enemy, type World } from '@game/sim/world'
 
@@ -33,15 +33,30 @@ function enemy(w: World, x: number, y: number, hp = 1e9): Enemy {
   return e
 }
 
-// The ring stamp: nothing in the middle, full in the band, nothing past it.
+// The shapes: a ring counts enemies between his elbow room and the aura's
+// edge and nothing else; a cone only what's in front of him.
 {
-  const map = new InfluenceMap(10, 20)
-  map.beginUpdate(0, 0)
-  map.stampRing(0, 0, 40, 120, 1)
-  const at = (x: number) => map.sample(x, 0)
-  check('Ring: nothing inside the bubble', at(20) === 0, `${at(20).toFixed(2)}`)
-  check('...full in the band', Math.abs(at(80) - 1) < 1e-9, `${at(80).toFixed(2)}`)
-  check('...nothing past the edge', at(150) === 0, `${at(150).toFixed(2)}`)
+  const w = withAura()
+  const shapes = engagementShapes(w)
+  const ring = shapes[0]
+  check('Righteous Fire engages with a ring', shapes.length === 1 && ring.kind === 'ring', `${shapes.map((s) => s.kind)}`)
+  check('...from just past his body to the aura edge', Math.abs(ring.inner - w.character.radius * config.engage.bubble) < 1e-9 && ring.outer === auraRadius(w, aura(w)), `${ring.inner}-${ring.outer}`)
+  const count = (xs: number[], shape = ring, dir = 1) => {
+    w.enemies = []
+    for (const x of xs) enemy(w, x, 0)
+    rebuildEnemyGrid(w)
+    return engagementAt(w, [{ ...shape, weight: 1 }], 0, 0, dir, 0)
+  }
+  const one = count([70])
+  check('...counts an enemy in the band', one > 0.9, one.toFixed(2))
+  check('...not one inside his elbow room', count([5]) === 0)
+  check('...not one past the edge', count([200]) === 0)
+  check('...more for more, less than their number', count([60, 70, 80]) > one * 2 && count([60, 70, 80]) < 3)
+  const cone = { kind: 'cone' as const, inner: 18, outer: 130, halfAngle: Math.PI / 4, weight: 1 }
+  check('A cone counts what is in front', count([70], cone, 1) > 0.9)
+  check('...and nothing behind him', count([-70], cone, 1) === 0)
+  w.character.hp = w.character.maxHp * 0.25
+  check('Not keen at all when badly hurt', engagementShapes(w).length === 0)
 }
 // Zealot's Pyre: burns him, goes out below 30%, relit at full; only the pyre.
 {

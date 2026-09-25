@@ -617,16 +617,32 @@ the carrier's neighbours, and him). His own fire — the pyre, Zealotry —
 is `hurtCharacter(..., self = true)`: not scaled by difficulty, and not a
 hit, so Backdraft ignores it.
 
-With an aura he also wants enemies *in* it (`engage`): every enemy stamps a
-ring onto his map (`InfluenceMap.stampRing`) of the spots where standing
-would put it between his safe bubble (`aura.bubble`, a third of the radius)
-and the aura's edge, so each spot scores how many would be burning there.
-Only while farming, and only while he's healthy — it fades as he's hurt and
-is gone below `aura.engageBelow` (half health). Without that, plain Righteous
-Fire walked him into crowds it couldn't kill and every run died; with it, at
-`engageWeight` 1, three 6-minute runs gave +45% aura damage, +24% kills and
-+30% gold with no deaths. Consuming Flames adds to `engage`, since its healing
-is what makes crowding safe.
+With an aura he also wants enemies *in* it (`engage`, `sim/engagement.ts`).
+A spell with `engage` describes a shape around him — for an aura, the band
+between a small circle just past his body (`engage.bubble`, 1.2× his radius)
+and the aura's edge — and while he picks a direction, each candidate is
+scored by how many enemies would be in that shape if he went that way (soft
+edges, and a soft cap so a giant blob isn't worth dying for). It's judged
+from his side rather than stamped onto the map, so a later breath or cleave
+can be a cone (`kind: 'cone'`, already understood) that cares which way he'd
+be facing. Only while farming, and it fades with his health: full above
+`engage.fadeFrom` (60%), gone below `fadeTo` (30%).
+
+The first version faded out below *half* health, which is why picking
+Righteous Fire made him dive in once and then act as if he'd never picked
+it: the dive got him hurt, and with Zealot's Pyre he spends most of a run
+below half anyway. Measured over eight 6-minute runs per setting (Firebolt
+plus Righteous Fire, the draft left alone), at `engage.weight` 1: with two
+Zealot's Pyres, 47% more enemies in the fire, +31% fire damage, +37% gold
+and +19% kills, for about the deaths the pyre already costs (4/8 against
+3/8); with the whole Righteous Fire kit, +5% fire damage and +20% gold with
+no deaths either way. Plain Righteous Fire with *no* upgrades at all is the
+one that suffers (0/8 deaths becomes 3/8), since it pulls him into crowds
+nothing he has can kill. Played properly — eight 8-minute runs taking a
+random card at every level — weight 1 gave 46% more enemies in the fire,
++85% fire damage, +41% kills and more than twice the gold, for the same one
+death in eight; weight 2 got four of the eight killed. Consuming Flames adds to `engage`,
+since its healing is what makes crowding safe.
 
 Ideas that need a small new mechanic first, for later:
 

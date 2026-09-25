@@ -203,38 +203,6 @@ export class InfluenceMap {
   }
 
   /**
-   * A ring rather than a blob: `amount` everywhere between `inner` and
-   * `outer` from the source, easing in and out over the ring's edges, and
-   * nothing inside or beyond. Summed over every enemy, a cell's ring total is
-   * how many of them would be in that band around him if he stood there —
-   * which is what an aura wants to maximise.
-   */
-  stampRing(x: number, y: number, inner: number, outer: number, amount: number): void {
-    if (amount === 0 || outer <= inner) return
-    const gx = (x - this.originX) / this.cellSize
-    const gy = (y - this.originY) / this.cellSize
-    const reach = outer / this.cellSize
-    const minIy = Math.max(0, Math.ceil(gy - reach))
-    const maxIy = Math.min(this.size - 1, Math.floor(gy + reach))
-    const minIx = Math.max(0, Math.ceil(gx - reach))
-    const maxIx = Math.min(this.size - 1, Math.floor(gx + reach))
-    // Edges eased over a fifth of the band each side, so the value slopes
-    // into the ring and steering has something to climb.
-    const edge = (outer - inner) * 0.2
-    for (let iy = minIy; iy <= maxIy; iy++) {
-      const dy = (iy - gy) * this.cellSize
-      const row = iy * this.size
-      for (let ix = minIx; ix <= maxIx; ix++) {
-        const dx = (ix - gx) * this.cellSize
-        const d = Math.sqrt(dx * dx + dy * dy)
-        if (d <= inner || d >= outer) continue
-        const t = Math.min(1, (d - inner) / edge, (outer - d) / edge)
-        this.scores[row + ix] += amount * t * t * (3 - 2 * t)
-      }
-    }
-  }
-
-  /**
    * Add a layer that is defined per cell rather than stamped from sources.
    *
    * Needed for anything whose influence is a property of the *ground* — how

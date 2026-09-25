@@ -172,6 +172,28 @@ export const config = {
     startingWeaponIds: [] as string[],
   },
 
+  /**
+   * Spells that want enemies in a shape around him — an aura's burning band,
+   * later a breath's cone — and how hard he tries to keep them there. See
+   * sim/engagement.ts.
+   */
+  engage: {
+    /** The shape's inner edge, as a multiple of his own radius: his elbow room. */
+    bubble: 1.2,
+    /** Per enemy in the shape, before the spell's own `engage`. The point of it all. */
+    weight: 1,
+    /** How far ahead along a candidate direction he judges it from. */
+    lookAhead: [40, 100],
+    /** Soft edges: world units across the shape's rim, radians across a cone's sides. */
+    edge: 14,
+    edgeAngle: 0.25,
+    /** Enemies count for less than their number past about this many. */
+    softCap: 10,
+    /** Full keenness above this share of his health, none below `fadeTo`. */
+    fadeFrom: 0.6,
+    fadeTo: 0.3,
+  },
+
   /** Aura spells — Righteous Fire. The upgrade numbers are on the upgrades; these are the rules. */
   aura: {
     /** Zealot's Pyre goes out below this share of his health, and is relit at this one. */
@@ -185,18 +207,6 @@ export const config = {
     feedEase: 3,
     /** How long Beacon's vulnerability outlasts the last tick of the aura. */
     beaconSeconds: 0.6,
-    /**
-     * Where he wants enemies while he has an aura: between this share of its
-     * radius — his safe bubble — and its edge. And how strongly, per enemy in
-     * that band, times the aura's own `engage` stat.
-     */
-    // Measured over three 6-minute runs with plain Righteous Fire: at 1,
-    // +45% aura damage, +24% kills, +30% gold, no deaths; at 2 and up it
-    // walked him into crowds and runs died.
-    bubble: 1 / 3,
-    engageWeight: 1,
-    /** Below this share of his health he stops wanting them close at all. */
-    engageBelow: 0.5,
     /** Zealotry's little auras: reach as a multiple of the carrier's size, and their share against him. */
     zealotryReach: 1.5,
     zealotryToHim: 0.35,

@@ -1,4 +1,5 @@
 import { config } from '../config'
+import { engagementAt, engagementShapes } from './engagement'
 import { influenceMap } from './influence'
 import { pushOutOfObstacles } from './obstacles'
 import { characterStat } from './stats'
@@ -48,6 +49,11 @@ export function updateCharacterMovement(world: World, dt: number): void {
   // Truncate in case the direction count was retuned live.
   movementDebug.scores.length = sampleDirections
 
+  // What his spells want around him — the pack in the fire — scored for each
+  // candidate from where he'd be a moment later. See sim/engagement.ts.
+  const shapes = engagementShapes(world)
+  const { lookAhead: engageAhead, weight: engageWeight } = config.engage
+
   for (let i = 0; i < sampleDirections; i++) {
     const angle = (i / sampleDirections) * Math.PI * 2
     const dx = Math.cos(angle)
@@ -68,6 +74,12 @@ export function updateCharacterMovement(world: World, dt: number): void {
       totalWeight += weight
     }
     score /= totalWeight || 1
+
+    if (shapes.length > 0) {
+      let engaged = 0
+      for (const ahead of engageAhead) engaged += engagementAt(world, shapes, character.x + dx * ahead, character.y + dy * ahead, dx, dy)
+      score += (engageWeight * engaged) / engageAhead.length
+    }
 
     // A nudge in favour of carrying on the way he's already going. Two
     // near-identical options with no tiebreaker is how an AI ends up

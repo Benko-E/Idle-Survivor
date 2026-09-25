@@ -134,8 +134,8 @@ export const WEAPON_DEFS: WeaponDef[] = [
       // runs: at 0.35 barely anything (+10% burn); at 0.6, +65% burn and +32%
       // kills, for 132 damage taken instead of 30 — well within his regen.
       zeal: 0.6,
-      // How much he wants enemies in the band between his safe bubble and
-      // the aura's edge. See aura.bubble and aura.engageWeight.
+      // How much he wants enemies in the band between his elbow room and
+      // the aura's edge. See sim/engagement.ts and config.engage.
       engage: 1,
     },
     fx: { flames: 'holy_flames' },
