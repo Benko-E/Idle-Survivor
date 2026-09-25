@@ -127,8 +127,9 @@ each death starts the next run by itself instead of going back to the menu.
 ## Damage meter
 
 Bottom left, like a raid meter: one flat bar per spell in its colour, biggest
-first. Click it to switch between damage per second over the last five
-seconds and the total for the run; the choice is remembered in the browser.
+first. Click it to switch between damage per second over the last minute
+(like the raid meters; over five seconds the bars jumped about) and the
+total for the run; the choice is remembered in the browser.
 It reads each spell's `damageDealt` — everything the spell caused, forks and
 burns and blasts included — on the world's clock, so a paused draft doesn't
 drag the per-second numbers down (`ui/damageMeter.ts`).

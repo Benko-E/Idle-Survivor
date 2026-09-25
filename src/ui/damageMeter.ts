@@ -4,7 +4,7 @@ import type { World } from '../sim/world'
 /**
  * A damage meter, bottom left, the way raid meters do it: one flat bar per
  * spell in its own colour, biggest first. Click it to switch between damage
- * per second over the last few seconds and the total for the run.
+ * per second over the last minute and the total for the run.
  *
  * Read-only: it watches each spell's running `damageDealt` (everything the
  * spell caused — its bolts, forks, burns, blasts) and never touches the sim.
@@ -29,8 +29,11 @@ const STYLES = `
 .damage-meter .meter-text .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 6px; }
 `
 
-/** Seconds the per-second figure is measured over. */
-const WINDOW = 5
+/**
+ * Seconds the per-second figure is measured over. A minute, like the raid
+ * meters: over five seconds every burst and lull swung the bars about.
+ */
+const WINDOW = 60
 /** How often it samples and redraws, in world seconds. */
 const SAMPLE = 0.25
 
@@ -48,6 +51,8 @@ export class DamageMeter {
   private world: World | null = null
   private samples: Sample[] = []
   private lastSampleAt = -Infinity
+  /** World time each spell was first seen this run. */
+  private firstSeen = new Map<string, number>()
 
   constructor() {
     const style = document.createElement('style')
@@ -56,7 +61,7 @@ export class DamageMeter {
     this.root = document.createElement('div')
     this.root.className = 'damage-meter'
     this.root.hidden = true
-    this.root.title = 'Click: per second / this run'
+    this.root.title = 'Click: per second (last minute) / this run'
     this.root.addEventListener('click', () => {
       this.mode = this.mode === 'dps' ? 'total' : 'dps'
       // A preference, nothing more: fine if the browser won't keep it.
@@ -83,12 +88,16 @@ export class DamageMeter {
       this.world = world
       this.samples = []
       this.lastSampleAt = -Infinity
+      this.firstSeen.clear()
     }
     if (world.time - this.lastSampleAt < SAMPLE) return
     this.lastSampleAt = world.time
 
     const totals = new Map<string, number>()
-    for (const weapon of world.weapons) totals.set(weapon.def.id, weapon.damageDealt)
+    for (const weapon of world.weapons) {
+      totals.set(weapon.def.id, weapon.damageDealt)
+      if (!this.firstSeen.has(weapon.def.id)) this.firstSeen.set(weapon.def.id, world.time)
+    }
     this.samples.push({ time: world.time, totals })
     while (this.samples.length > 1 && world.time - this.samples[0].time > WINDOW) this.samples.shift()
 
@@ -97,9 +106,12 @@ export class DamageMeter {
 
   private draw(world: World, totals: Map<string, number>): void {
     const oldest = this.samples[0]
-    const span = Math.max(SAMPLE, world.time - oldest.time)
     const rows = world.weapons.map((weapon) => {
       const now = totals.get(weapon.def.id) ?? 0
+      // Over the time the spell has had in the window, so one picked twenty
+      // seconds ago isn't averaged over a minute it didn't exist for.
+      const since = Math.max(oldest.time, this.firstSeen.get(weapon.def.id) ?? oldest.time)
+      const span = Math.max(SAMPLE, world.time - since)
       const value = this.mode === 'total' ? now : (now - (oldest.totals.get(weapon.def.id) ?? 0)) / span
       return { name: weapon.def.displayName, colour: weapon.def.colour, value }
     })
