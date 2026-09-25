@@ -504,25 +504,35 @@ event: a white flash on a direct hit (damage over time doesn't flash, or a
 burning crowd would strobe), a squash, fade and puff of dust on death, and a
 fade in on arrival. Timings are `render.enemyFx`.
 
-### He banks when he's carrying a minute's income — or three, if it's going well
+### He banks when he's carrying four minutes' income — or twelve, if it's going well
 
-He heads for the shop once he's carrying `shop.spendThreshold` (60) — or about
-`shop.thresholdMinutes` of his income, whichever is more. With a fixed 60, a
-rich build hit it in seconds and spent most of the run walking to the shop
-with its eye off the gold: with Righteous Fire's full kit, 41% of the run,
-leaving coins lying everywhere. Scaling it with income, measured over three
-10-minute runs: coins left behind 35 → 2, gold earned +46%. A run earning
-under 60 a minute is unchanged.
+He heads for the shop once he's carrying `shop.spendThreshold` (240) — or
+`shop.thresholdMinutes` (4) of his income, whichever is more. With a fixed
+threshold, a rich build hit it in seconds and spent most of the run walking
+to the shop with its eye off the gold: with Righteous Fire's full kit, 41% of
+the run, leaving coins lying everywhere. Scaling it with income, measured
+over three 10-minute runs: coins left behind 35 → 2, gold earned +46%.
 
 While he's doing well he carries more: the minutes stretch towards
-`shop.confidentMinutes` (3) as his health rises from `nervousBelow` (40%) to
-`confidentAbove` (80%), so a fight that's going his way isn't dropped for a
+`shop.confidentMinutes` (12) as his health rises from `nervousBelow` (30%) to
+`confidentAbove` (60%), so a fight that's going his way isn't dropped for a
 walk, and a mauling still sends him to bank what he has. Righteous Fire
-engaging the pack made the old rule obvious — he'd dive in and then leave
-half a minute later. Measured with Firebolt and Righteous Fire, eight
-10-minute runs taking a card each level: banking went from 40% of the run to
-22%, time fighting between trips from 37s to 83s, fire damage +10%, kills
-+9%, banked +14%, same deaths (1/8). At 4 minutes three of the eight died.
+engaging the pack made the first rule (1 minute, 60 at least) obvious — he'd
+dive in and then leave half a minute later. At 3 minutes above 80% health,
+eight 10-minute runs with Firebolt and Righteous Fire went from 40% of the
+run banking to 22%, fighting 83s between trips instead of 37s, with fire
+damage +10%, kills +9%, banked +14% and the same deaths.
+
+The numbers now are from playtesting, dragged in the debug panel to what
+made him best to watch: farming between his walls for minutes at a time.
+Measured over eight 15-minute runs (Firebolt, Righteous Fire, Firewall, a
+random card each level), against 60 / 1 / 3 minutes: banking 9% of the run
+instead of 39%, 5.5 minutes of fighting between trips instead of 1.4, the
+first bank at 8.7 minutes instead of 4, about the same banked in the end
+(3049 against 2847) — and more lost when he dies carrying it (679 against
+299), which is the wager. Doubling them again (480 / 8 / 24) cut banking to
+6% and banked less in the end (2367). Deaths swung between four and seven of
+the eight across these settings, so eight runs can't say more than that.
 
 ## Classes
 

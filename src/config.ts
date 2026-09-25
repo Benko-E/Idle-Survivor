@@ -547,8 +547,17 @@ export const config = {
      * camped next to the shop instead, three visits without ever getting more
      * than 581 units away. It wants to be far enough that filling up means
      * farming somewhere other than the doorstep.
+     *
+     * 240 since playtesting (with the minutes below at 4 and 12): at 60, 1
+     * and 3 he still left fights he was winning every minute and a half, and
+     * watching him farm between his walls for minutes at a time was far
+     * better. Eight 15-minute runs with Firebolt, Righteous Fire and
+     * Firewall: banking 39% of the run became 9%, time fighting between
+     * trips 1.4 minutes became 5.5, first bank at 8.7 minutes instead of 4,
+     * about the same banked (3049 against 2847), more lost when he dies
+     * carrying it (679 against 299).
      */
-    spendThreshold: 60,
+    spendThreshold: 240,
     /**
      * ...or about this many minutes of his income, whichever is more, so a
      * rich build doesn't spend its whole run walking to the shop. 0 turns it
@@ -556,7 +565,7 @@ export const config = {
      * Righteous Fire's kit, three 10-minute runs: coins left behind 35 -> 2,
      * gold earned +46%; runs earning under 60 a minute are unchanged.
      */
-    thresholdMinutes: 1,
+    thresholdMinutes: 4,
     /**
      * ...stretching to this many minutes while he's doing well: fully above
      * `confidentAbove` of his health, not at all below `nervousBelow`. Set it
@@ -564,11 +573,12 @@ export const config = {
      * Righteous Fire, eight 10-minute runs taking a card each level: at 1 he
      * spent 40% of the run banking and farmed 37s between trips; at 3, 22%
      * and 83s, +10% fire damage, +9% kills, +14% banked, same deaths (1/8).
-     * At 4 three of the eight died. Firebolt alone barely changes.
+     * At 4 three of the eight died. Firebolt alone barely changes. Since
+     * raised to 12, above 60% health, with spendThreshold.
      */
-    confidentMinutes: 3,
-    confidentAbove: 0.8,
-    nervousBelow: 0.4,
+    confidentMinutes: 12,
+    confidentAbove: 0.6,
+    nervousBelow: 0.3,
     /**
      * How far he must travel towards the shop to gain `layers.shop.weight`
      * points of score, at eagerness 1.

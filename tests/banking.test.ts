@@ -23,6 +23,10 @@ gameEvents.on('banked', ({ amount }) => { bankedTotal += amount; bankEvents++ })
 gameEvents.on('died', (e) => { died = e })
 
 function fingerprint(): string {
+  // This checks the bookkeeping, not when he chooses to go: a low threshold,
+  // so there are banks to check inside seven minutes whatever the defaults.
+  const saved = { ...config.shop }
+  Object.assign(config.shop, { spendThreshold: 60, thresholdMinutes: 1, confidentMinutes: 1 })
   resetInfluenceClock()
   const world = createWorld()
   const hh = config.render.visibleWorldHeight / 2
@@ -61,6 +65,7 @@ function fingerprint(): string {
     && world.shopVisits > 0
     && world.bankedThisRun + world.gold <= world.goldEarned + 1e-9
   console.log(ok ? 'PASS' : 'FAIL')
+  Object.assign(config.shop, saved)
   return `${world.time.toFixed(4)} ${world.kills} ${world.bankedThisRun.toFixed(4)}`
 }
 fingerprint()
