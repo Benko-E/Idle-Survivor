@@ -10,7 +10,7 @@ import { updateZones } from './zones'
 import { casterOf, type WeaponInstance, type World } from './world'
 
 /**
- * Runs the character's spellbook, and his companions'.
+ * Runs the character's spellbook, and his summons'.
  *
  * Cooldowns tick down, ready spells cast, everything they created resolves,
  * and the dead get swept up. There is no branch on which spell is which —
@@ -116,7 +116,7 @@ export function updateCombat(world: World, dt: number): void {
   updateAuras(world, dt)
   backdraft(world)
   castReadySpells(world, world.weapons, dt)
-  for (const companion of world.companions) castReadySpells(world, companion.weapons, dt)
+  for (const summoned of world.summons) castReadySpells(world, summoned.weapons, dt)
   updateProjectiles(world, dt)
   updateZones(world, dt)
   updateStatusEffects(world, dt)

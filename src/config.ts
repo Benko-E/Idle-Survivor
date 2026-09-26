@@ -212,8 +212,8 @@ export const config = {
     zealotryToHim: 0.35,
   },
 
-  /** Companions: how they keep up with him and wander about. See sim/companions.ts. */
-  companions: {
+  /** Summons: how they keep up with him and wander about. See sim/summons.ts. */
+  summons: {
     /** Further than this many leashes behind, it hurries back at `catchUp` times its speed... */
     catchUpAt: 2,
     catchUp: 1.6,
@@ -224,6 +224,11 @@ export const config = {
     roamPause: 0.8,
     /** Fighting: how far off its preferred distance still counts as close enough. */
     engageSlack: 0.25,
+    /** Drifting: seconds before it picks somewhere new to wander to, even if it hasn't got there. */
+    driftRetarget: 4,
+    /** Seeking and slithering: how often it looks for the biggest crowd again, and how big "a crowd" is. */
+    seekRetarget: 1,
+    crowdRadius: 90,
   },
 
   /** Wall spells — Firewall. The upgrade numbers are on the upgrades; these are the rules. See sim/walls.ts. */
@@ -992,11 +997,20 @@ export const config = {
      */
     autoRestartSeconds: 0,
     /**
-     * A test Fire Elemental at his side (the first entry in
-     * data/companions.ts), summoned while this is on and sent away when it's
-     * switched off. Nothing grants companions in normal play yet.
+     * Test summons (data/summons.ts), each there while its switch is on and
+     * sent away when it's switched off. Nothing grants summons in normal play
+     * yet. The fire on the grass burns out after 8 seconds, and a new one
+     * goes down wherever he is while the switch stays on.
+     *
+     *   testCompanion       a Fire Elemental at his side, casting a bolt
+     *   testGroundFire      a Righteous Fire left burning on the grass
+     *   testWanderingFire   a Righteous Fire that wanders about near him
+     *   testSerpent         a lightning serpent coiling through the crowd
      */
     testCompanion: false,
+    testGroundFire: false,
+    testWanderingFire: false,
+    testSerpent: false,
   },
 
   menu: {

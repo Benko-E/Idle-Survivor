@@ -27,7 +27,7 @@ export interface CastContext {
   world: World
   /** The spell being cast, credited with everything it causes. */
   weapon: WeaponInstance
-  /** Who's casting it, and from where: him, a companion, one day a boss. */
+  /** Who's casting it, and from where: him, a summon, one day a boss. */
   caster: Caster
   def: WeaponDef
   /** Base value from the data entry, resolved through all active modifiers. */
@@ -340,6 +340,50 @@ const orbit: Behaviour = ({ world, weapon, stat }) => {
 const enemyReach = 20
 
 /**
+ * Hurts whatever touches its caster's body: a lightning serpent's coils. Like
+ * an orbit, it "casts" on a short tick, and `rehit` stops one enemy being hit
+ * sixty times a second. `size` is how thick the body is. A caster without a
+ * body has nothing to hurt with.
+ */
+const body: Behaviour = ({ world, weapon, caster, stat }) => {
+  const points = caster.body
+  if (!points || points.length < 2) return false
+  const half = stat('size') / 2
+  const damage = stat('damage')
+  const rehit = stat('rehit')
+  const log = (weapon.hitLog ??= new Map())
+  let hitAny = false
+
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1]
+    const b = points[i]
+    const midX = (a.x + b.x) / 2
+    const midY = (a.y + b.y) / 2
+    const reach = Math.hypot(b.x - a.x, b.y - a.y) / 2 + half + enemyReach
+    for (const enemy of enemiesInRadius(world, midX, midY, reach, scratchTargets)) {
+      if (enemy.hp <= 0 || distanceToSegment(enemy.x, enemy.y, a, b) > half + enemy.def.radius * 0.5) continue
+      const last = log.get(enemy.id)
+      if (last !== undefined && world.time - last < rehit) continue
+      log.set(enemy.id, world.time)
+      damageEnemy(world, enemy, damage, weapon)
+      if (weapon.def.fx?.hit) spawnSprite(world, weapon.def.fx.hit, enemy.x, enemy.y, HIT_SPARK_SIZE, HIT_SPARK_SECONDS, false)
+      hitAny = true
+    }
+  }
+
+  if (log.size > 500) for (const [id, time] of log) if (world.time - time > rehit) log.delete(id)
+  return hitAny
+}
+
+function distanceToSegment(x: number, y: number, a: { x: number; y: number }, b: { x: number; y: number }): number {
+  const dx = b.x - a.x
+  const dy = b.y - a.y
+  const lengthSquared = dx * dx + dy * dy
+  const t = lengthSquared > 0 ? Math.max(0, Math.min(1, ((x - a.x) * dx + (y - a.y) * dy) / lengthSquared)) : 0
+  return Math.hypot(x - (a.x + dx * t), y - (a.y + dy * t))
+}
+
+/**
  * The behaviours an enemy can cast, at him. Only bolts so far: the rest still
  * look for enemies to hurt, so an enemy casting them is skipped (with a
  * warning) until each learns to hurt him instead. The data side of an enemy
@@ -358,4 +402,5 @@ export const BEHAVIOURS: Record<string, Behaviour> = {
   orbit,
   // A strip of fire in front of the crowd, or a ring round it: sim/walls.ts.
   wall: castWall,
+  body,
 }

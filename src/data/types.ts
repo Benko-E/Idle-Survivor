@@ -356,28 +356,57 @@ export interface UpgradeDef {
 }
 
 /**
- * Something that fights at his side: a wizard's elemental, a ranger's wolf, a
- * warlock's demon. Entries are in data/companions.ts; sim/companions.ts runs
- * them. Enemies ignore them and they can't be hurt.
+ * Something conjured into the world that casts spells of its own: a
+ * wizard's elemental at his side, a Righteous Fire left burning on the grass,
+ * a lightning serpent coiling through the crowd, one day a ranger's wolf or a
+ * warlock's demon. Entries are in data/summons.ts; sim/summons.ts runs them.
+ * Enemies ignore them and they can't be hurt.
  */
-export interface CompanionDef {
+export interface SummonDef {
   id: string
   displayName: string
   /** The class it belongs to: only that class's abilities summon it. */
   classId: string
-  /** World units per second. A little quicker than him, so it keeps up. */
+  /**
+   * How it moves, by name (sim/summons.ts):
+   *   leash    a companion: follows him, fights near him, roams about him
+   *   still    stays where it was put
+   *   drift    wanders about near him, turning smoothly
+   *   seek     heads for the biggest crowd near him and hangs over it
+   *   circle   circles him
+   *   slither  winds through the crowd near him like a serpent
+   */
+  movement: 'leash' | 'still' | 'drift' | 'seek' | 'circle' | 'slither'
+  /** World units per second. */
   speed: number
   /** Its size, for drawing. */
   radius: number
-  /** How far from him it may stray before it heads back to him. */
+  /** Seconds before it fades. 0: until it's sent away. */
+  duration: number
+  /** How far from him it may go before it heads back (every movement but still and circle). */
   leash: number
-  /** It fights enemies within this far of *him*, not of itself, so it never chases off. */
+  /** It goes for enemies within this far of *him*, not of itself, so it never wanders off after them. */
   reach: number
-  /** How close it likes to get to what it's fighting. */
-  engageDistance: number
-  /** Its spells, by WeaponDef id: one or two, plain ones. */
+  /** leash: how close it likes to get to what it's fighting. */
+  engageDistance?: number
+  /** circle: how far from him it circles. */
+  orbitRadius?: number
+  /** drift, seek, slither: how quickly it can turn, in radians a second. */
+  turnRate?: number
+  /** slither: how far its path swings either side (radians) and how fast. */
+  weave?: number
+  weaveRate?: number
+  /** A body trailing its head: this many segments, this far apart. Spells like a 'body' spell hurt along it. */
+  body?: { segments: number; spacing: number }
+  /** Its spells, by WeaponDef id: plain ones of its own, or one of his to share his upgrades for it. */
   spells: string[]
-  /** Placeholder art: it's drawn as a glowing ball in this colour. */
+  /**
+   * How it's drawn until it has art: 'orb', a glowing ball; 'none', nothing
+   * but its spells (a fire on the grass is just its ring). A body is drawn as
+   * `bodyArt` (an effect sheet, like Chain Lightning's arc) between segments.
+   */
+  look: 'orb' | 'none'
+  bodyArt?: string
   colour: string
 }
 

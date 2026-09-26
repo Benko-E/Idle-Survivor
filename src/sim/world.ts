@@ -5,7 +5,7 @@ import { findWeaponDef } from '../data/weapons'
 import { findClass } from '../data/classes'
 import type { ClassDef, EnemyDef, PickupDef, WeaponDef } from '../data/types'
 import type { BuildBonus } from './buildBonus'
-import type { Companion } from './companions'
+import type { Summon } from './summons'
 import type { Offer } from './draft'
 import { spellsOfTier } from './spellTiers'
 import type { Projectile } from './projectiles'
@@ -27,7 +27,7 @@ export type RunState = 'running' | 'dead'
 
 /**
  * Whoever a spell is cast by: where from, which way they face, and whose side
- * they're on. The wizard, a companion of his and — later — a boss or an evil
+ * they're on. The wizard, a summon of his and — later — a boss or an evil
  * wizard casting at him all cast the same spells; see sim/behaviours.ts.
  */
 export interface Caster {
@@ -37,6 +37,8 @@ export interface Caster {
   facingY: number
   /** 'player' spells hurt enemies. 'enemy' spells hurt him, and ignore his upgrades. */
   side: 'player' | 'enemy'
+  /** Points along a body trailing it, head first — a serpent's coils. 'body' spells hurt along it. */
+  body?: readonly { x: number; y: number }[]
 }
 
 /** Who casts a spell: its own caster, or him. */
@@ -121,7 +123,7 @@ export interface Pickup {
 
 export interface WeaponInstance {
   def: WeaponDef
-  /** Who casts it. Left out, it's him; a companion's spells name the companion. */
+  /** Who casts it. Left out, it's him; a summon's spells name the summon. */
   caster?: Caster
   cooldownRemaining: number
   /** Casts that actually hit something. */
@@ -174,8 +176,8 @@ export interface World {
   enemies: Enemy[]
   pickups: Pickup[]
   projectiles: Projectile[]
-  /** Whatever fights at his side: an elemental, a wolf, a demon. See sim/companions.ts. */
-  companions: Companion[]
+  /** Whatever he has conjured: an elemental at his side, a fire on the grass, a serpent. See sim/summons.ts. */
+  summons: Summon[]
   /** Ground a spell has claimed: strikes on their way down, vortices, roots. */
   zones: Zone[]
   /** Ground that hurts him: gas left by a Stinkcap. */
@@ -286,7 +288,7 @@ export function createWorld(seed: number = config.world.seed, starterId?: string
     enemies: [],
     pickups: [],
     projectiles: [],
-    companions: [],
+    summons: [],
     zones: [],
     hazards: [],
     dying: [],

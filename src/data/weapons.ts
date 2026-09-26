@@ -308,11 +308,11 @@ export const WEAPON_DEFS: WeaponDef[] = [
     colour: '#f4e76e',
   },
 
-  // --- Companion spells ------------------------------------------------------------
+  // --- Summon spells ------------------------------------------------------------------
   //
-  // Cast by a companion from where it stands (data/companions.ts), never by
-  // him. No tier, so they're never offered; their own ids, so his upgrades for
-  // his own spells never reach them. Upgrades by tag — "+30% fire damage" — do.
+  // Cast by a summon from where it stands (data/summons.ts), never by him. No
+  // tier, so they're never offered; their own ids, so his upgrades for his own
+  // spells never reach them. Upgrades by tag — "+30% fire damage" — do.
 
   {
     id: 'spell_elemental_bolt_01',
@@ -320,7 +320,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     displayName: 'Elemental Bolt',
     description: "A fire elemental's little bolt at the nearest enemy",
     enabled: true,
-    tags: ['spell', 'fire', 'projectile', 'bolt', 'companion'],
+    tags: ['spell', 'fire', 'projectile', 'bolt', 'summon'],
     behaviour: 'projectile',
     stats: {
       cooldown: 1.3,
@@ -333,6 +333,26 @@ export const WEAPON_DEFS: WeaponDef[] = [
     },
     fx: { hit: 'hit_fire' },
     colour: '#ffb060',
+  },
+  {
+    id: 'spell_serpent_coil_01',
+    classId: 'class_wizard',
+    displayName: 'Serpent Coil',
+    description: "A lightning serpent's body, zapping whatever it coils through",
+    enabled: true,
+    tags: ['spell', 'lightning', 'summon'],
+    behaviour: 'body',
+    stats: {
+      // How often it checks what its body is touching.
+      cooldown: 0.1,
+      damage: 4,
+      // How thick its body is.
+      size: 10,
+      // Seconds before the same enemy can be zapped again.
+      rehit: 0.35,
+    },
+    fx: { hit: 'hit_lightning' },
+    colour: '#c9a6ff',
   },
 
   // --- Shelved ------------------------------------------------------------------------

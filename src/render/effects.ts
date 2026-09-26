@@ -1,6 +1,6 @@
 import { config } from '../config'
 import { auraRadius, isAura, pyreLit } from '../sim/auras'
-import { allWeapons, type Companion } from '../sim/companions'
+import { allWeapons, type Summon } from '../sim/summons'
 import { orbitPositions } from '../sim/orbit'
 import { weaponStat } from '../sim/stats'
 import { casterOf, type WeaponInstance, type World } from '../sim/world'
@@ -26,7 +26,7 @@ export function drawGroundEffects(renderer: Renderer, world: World): void {
   const loudness = config.render.effectsAlpha
   if (loudness <= 0) return
   drawAuras(renderer, world, loudness, true)
-  drawCompanions(renderer, world, loudness, true)
+  drawSummons(renderer, world, loudness, true)
   drawZealotry(renderer, world, loudness)
   drawHotStreakReady(renderer, world, loudness)
   drawZones(renderer, world, loudness, true)
@@ -42,7 +42,7 @@ export function drawEffects(renderer: Renderer, world: World): void {
   drawZones(renderer, world, loudness, false)
   drawProjectiles(renderer, world, loudness)
   drawOrbits(renderer, world, loudness)
-  drawCompanions(renderer, world, loudness, false)
+  drawSummons(renderer, world, loudness, false)
 
   for (const effect of world.vfx) {
     const remaining = effect.life / effect.maxLife
@@ -95,7 +95,7 @@ function drawAuras(renderer: Renderer, world: World, loudness: number, ground: b
   if (world.state !== 'running') return
   for (const weapon of allWeapons(world)) {
     if (!isAura(weapon) || !weapon.def.enabled) continue
-    // Round whoever casts it: him, or a companion.
+    // Round whoever casts it: him, or a summon.
     const { x, y } = casterOf(world, weapon)
     const radius = auraRadius(world, weapon)
     const { colour, shift } = auraColour(world, weapon)
@@ -283,22 +283,40 @@ function drawZones(renderer: Renderer, world: World, loudness: number, ground: b
 }
 
 /**
- * Companions, until they have art: a glowing ball floating about hand height,
- * bobbing on its own rhythm, over a soft glow on the ground.
+ * Summons, until they have art. An 'orb' is a glowing ball floating about
+ * hand height, bobbing on its own rhythm, over a soft glow on the ground; a
+ * 'none' is only its spells (a fire on the grass is just its ring). A body
+ * is its `bodyArt` stretched from segment to segment, crackling. One with a
+ * lifetime fades out over its last half second.
  */
-function drawCompanions(renderer: Renderer, world: World, loudness: number, ground: boolean): void {
-  for (const companion of world.companions) drawCompanion(renderer, companion, loudness, ground)
+function drawSummons(renderer: Renderer, world: World, loudness: number, ground: boolean): void {
+  for (const summoned of world.summons) drawSummon(renderer, world, summoned, loudness, ground)
 }
 
-function drawCompanion(renderer: Renderer, companion: Companion, loudness: number, ground: boolean): void {
-  const { x, y, def, age } = companion
+function drawSummon(renderer: Renderer, world: World, summoned: Summon, loudness: number, ground: boolean): void {
+  const { x, y, def, age } = summoned
+  const fade = Math.min(1, summoned.remaining / 0.5) * loudness
+  const lift = summoned.body ? FLIGHT_HEIGHT : 22 + Math.sin(age * 3) * 3
   if (ground) {
-    renderer.fillWorldCircle(x, y, def.radius * 1.8, def.colour, 0.22 * loudness)
+    if (def.look === 'orb') renderer.fillWorldCircle(x, y, def.radius * 1.8, def.colour, 0.22 * fade)
     return
   }
-  const bob = Math.sin(age * 3) * 3
-  const pulse = 1 + Math.sin(age * 7) * 0.08
-  renderer.drawWorldOrb(x, y, def.radius * pulse, 22 + bob, def.colour, loudness)
+  const body = summoned.body
+  const art = def.bodyArt ? getSheet(`fx:${def.bodyArt}`) : undefined
+  if (body) {
+    for (let i = 1; i < body.length; i++) {
+      const a = body[i - 1]
+      const b = body[i]
+      // Thinner towards the tail.
+      const thickness = 14 * (1 - (i / body.length) * 0.6)
+      if (art) renderer.drawWorldBeam(art, (Math.floor(world.time * 14) + i) % art.frames, a.x, a.y, b.x, b.y, thickness, lift, fade)
+      else renderer.strokeWorldLine(a.x, a.y, b.x, b.y, def.colour, 3, fade)
+    }
+  }
+  if (def.look === 'orb') {
+    const pulse = 1 + Math.sin(age * 7) * 0.08
+    renderer.drawWorldOrb(x, y, def.radius * pulse, lift, def.colour, fade)
+  }
 }
 
 /** Firewall's flames lean orange, so they don't read as Righteous Fire's. */

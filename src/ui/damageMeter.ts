@@ -8,7 +8,7 @@ import type { World } from '../sim/world'
  *
  * Read-only: it watches each spell's running `damageDealt` (everything the
  * spell caused — its bolts, forks, burns, blasts) and never touches the sim.
- * A companion's spells get a row of their own, under the companion's name.
+ * A summon's spells get a row of their own, under the summon's name.
  * Per second is measured on the world's clock, so a paused draft doesn't drag
  * the numbers down.
  */
@@ -46,7 +46,7 @@ interface Sample {
   totals: Map<string, number>
 }
 
-/** One row's worth: a spell of his, or one of a companion's. */
+/** One row's worth: a spell of his, or one of a summon's. */
 interface Entry {
   key: string
   name: string
@@ -56,12 +56,12 @@ interface Entry {
 
 function entries(world: World): Entry[] {
   const out: Entry[] = world.weapons.map((weapon) => ({ key: weapon.def.id, name: weapon.def.displayName, colour: weapon.def.colour, damage: weapon.damageDealt }))
-  world.companions.forEach((companion, index) => {
-    for (const weapon of companion.weapons) {
+  world.summons.forEach((summoned, index) => {
+    for (const weapon of summoned.weapons) {
       out.push({
-        key: `${companion.def.id}#${index}:${weapon.def.id}`,
-        name: companion.weapons.length > 1 ? `${companion.def.displayName}: ${weapon.def.displayName}` : companion.def.displayName,
-        colour: companion.def.colour,
+        key: `${summoned.def.id}#${index}:${weapon.def.id}`,
+        name: summoned.weapons.length > 1 ? `${summoned.def.displayName}: ${weapon.def.displayName}` : summoned.def.displayName,
+        colour: summoned.def.colour,
         damage: weapon.damageDealt,
       })
     }

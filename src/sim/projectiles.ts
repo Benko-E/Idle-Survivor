@@ -63,7 +63,7 @@ export interface Projectile {
   source: WeaponInstance
   /**
    * An enemy's bolt, flying at him: it hits him and passes through enemies.
-   * Left out, it's his side's — his, or a companion's.
+   * Left out, it's his side's — his, or a summon's.
    */
   side?: 'enemy'
   /** A condition left on everything it hits, by id; see data/conditions.ts. */

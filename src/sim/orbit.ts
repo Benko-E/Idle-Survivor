@@ -13,7 +13,7 @@ export function orbitPositions(world: World, weapon: WeaponInstance): { x: numbe
   const count = Math.max(1, Math.round(weaponStat(world, weapon, 'count')))
   const radius = weaponStat(world, weapon, 'area')
   const turn = weaponStat(world, weapon, 'speed') * world.time
-  // Round whoever casts it: him, or a companion.
+  // Round whoever casts it: him, or a summon.
   const { x, y } = casterOf(world, weapon)
   const positions: { x: number; y: number }[] = []
   for (let i = 0; i < count; i++) {

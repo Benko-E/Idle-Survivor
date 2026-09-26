@@ -567,19 +567,16 @@ for the whole save, whoever earned it.
 Only the wizard exists so far. The change was checked by replaying six
 five-minute bot runs from before and after: every one came out identical.
 
-## Casters and companions
+## Casters and summons
 
 Every spell is cast by a **caster** (`Caster` in `sim/world.ts`): a
-position, a facing and a side. He is one; `WeaponInstance.caster` names any
-other, and `casterOf(world, weapon)` answers "who casts this" for everything
-that needs to know — where a bolt starts, what an aura surrounds, where a
-wall goes up, what orbs circle, who a returning bolt flies home to. No spell
-assumes it's him any more.
+position, a facing, a side, and sometimes a body. He is one;
+`WeaponInstance.caster` names any other, and `casterOf(world, weapon)`
+answers "who casts this" for everything that needs to know — where a bolt
+starts, what an aura surrounds, where a wall goes up, what orbs circle, who a
+returning bolt flies home to. No spell assumes it's him any more.
 
-- **His side** (`side: 'player'`) — him and his companions — hurts enemies.
-  His upgrades reach his companions' spells only by tag ("+30% fire
-  damage"); upgrades for one of his spells never do, since a companion's
-  spells have their own ids.
+- **His side** (`side: 'player'`) — him and his summons — hurts enemies.
 - **The enemies' side** (`side: 'enemy'`) is for a boss or an evil wizard
   later. Its bolts fly at him, hurt him (credited in `damageTakenBy` to the
   spell's name), pass through enemies, and ignore his upgrades. Only bolts so
@@ -588,30 +585,52 @@ assumes it's him any more.
   first boss is data: a spell list on its enemy entry, with the enemy as the
   caster, cast through the exported `castReadySpells`.
 
-**Companions** (`sim/companions.ts`, entries in `data/companions.ts`) are
-whatever fights at his side: an elemental, a wolf, a demon. Deliberately
-simple — enemies ignore them, they can't be hurt, and they don't collide with
-anything — on a leash to him:
+**Summons** (`sim/summons.ts`, entries in `data/summons.ts`) are anything
+conjured into the world that casts spells of its own: a companion at his
+side, a Righteous Fire left burning on the grass, a lightning serpent. One
+thing with a few parts, each picked in its entry:
 
-- **follow** when he's further than its leash: back to him, hurrying at
-  `companions.catchUp` past `catchUpAt` leashes, reappearing beside him past
-  `teleportAt`
-- **fight** when an enemy is within its `reach` of *him* (not of itself, so
-  it never chases off): to its `engageDistance` from the nearest, never
-  leaving its leash, casting its spells from there
-- **roam** otherwise: wandering to spots round him, measured from him, so it
-  drifts along when he walks
+- **its spells**, cast by it from where it stands. Its own ones (no tier,
+  never offered to him) get only his upgrades that go by tag ("+30% fire
+  damage"). One of *his* spells shares everything he's picked for it: a
+  Righteous Fire on the grass burns with his Crown of Flames. The upgrades
+  about *him* don't follow it (the pyre burning him, Fervour reading his
+  health, Consuming Flames healing him, Feed the Flames growing on kills near
+  him) — which of those a loose fire should get is a design question. One
+  quirk to know: a loose fire gets the pyre's extra burn without its cost.
+- **how it moves**, one small rule by name:
+  - `leash` — a companion: back to him past its leash (hurrying at
+    `summons.catchUp` past `catchUpAt` leashes), to its `engageDistance` from
+    an enemy within its `reach` of *him*, otherwise wandering about near him
+  - `still` — stays where it was put
+  - `drift` — wanders from spot to spot near him, turning at most `turnRate`
+  - `seek` — heads for the biggest crowd near him and circles over it
+  - `circle` — circles him at `orbitRadius`
+  - `slither` — weaves (`weave`, `weaveRate`) to the crowd near him
+  Everything but `still` and `circle` stays within its leash of him and
+  reappears beside him if it's left far behind; where it wanders is measured
+  from him, so it drifts along when he walks.
+- **how long**: `duration` seconds, or 0 for until it's sent away.
+- **a body**: `body` segments trailing its head, each kept within its
+  spacing of the one before. A spell with the `body` behaviour hurts
+  whatever touches any part of it, every `rehit` seconds at most — the
+  serpent's Serpent Coil.
 
-Its spells are ordinary spell entries with no tier (never offered to him)
-and are cast from where it stands. They aren't in `world.weapons`, so they
-never show on his spell bar, get upgrade cards or count towards build
-bonuses, and his AI never changes for them. The damage meter gives each its
-own row under the companion's name. Until there's art it's a glowing ball.
+Enemies ignore summons, they can't be hurt, and they don't collide with
+anything. Their spells aren't in `world.weapons`, so they never show on his
+spell bar, get upgrade cards or count towards build bonuses, and his AI
+never changes for them. The damage meter gives each its own row. Until
+there's art, an `orb` is a glowing ball, a `none` is just its spells (the
+ground fire is only its ring), and a body is its `bodyArt` crackling from
+segment to segment.
 
-Nothing grants a companion in normal play yet: the debug panel's
-`debug.testCompanion` summons a test Fire Elemental with one plain bolt. In a
-live run it spent most of its time fighting, never strayed past its leash,
-and cast about once every 1.3 seconds.
+Nothing grants a summon in normal play yet. The debug panel has a switch for
+each test one: `testCompanion` (a Fire Elemental casting a bolt),
+`testGroundFire` (a Righteous Fire on the grass for 8 seconds, put down again
+where he stands while the switch stays on), `testWanderingFire` and
+`testSerpent`. In a live run the ground fire stayed put while he walked off
+and burned out on time, the wandering fire drifted about within 200 of him
+burning what it passed, and the serpent wound its way through the crabs.
 
 ## Conditions: burning, chilled, frozen, shocked
 
@@ -895,3 +914,7 @@ That completes the spec's definition of done for the prototype. Past it:
   (him, a companion, one day an enemy — enemy bolts already fly at him);
   companions on a leash that follow, fight and roam, casting their own
   spells. A test Fire Elemental behind a debug switch.
+- [x] **26 — summons.** Companions become one kind of summon: anything
+  conjured into the world with its own spells, a way of moving (leash, still,
+  drift, seek, circle, slither), a lifetime and a body. Test summons behind
+  debug switches: a fire on the grass, a wandering fire, a lightning serpent.

@@ -1,5 +1,5 @@
 import { config } from './config'
-import { COMPANION_DEFS } from './data/companions'
+import { findSummon } from './data/summons'
 import { startLoop, stats } from './core/loop'
 import { drawCandidates, drawFootprint, drawHeatmap, drawTrail } from './render/debugOverlay'
 import { loadProfile, saveProfile } from './meta/profile'
@@ -10,7 +10,7 @@ import { pushWorldProps } from './render/props'
 import { Renderer, type Drawable } from './render/renderer'
 import { coinFrame, getSheet, loadSprites, stickyFacingRow, walkFrame } from './render/sprites'
 import { updateCombat } from './sim/combat'
-import { dismissCompanion, summonCompanion, updateCompanions, type Companion } from './sim/companions'
+import { dismiss, summon, updateSummons, type Summon } from './sim/summons'
 import { updateContactDamage } from './sim/damage'
 import { hpMultiplier, spawnsPerSecond } from './sim/difficulty'
 import { updateEnemies } from './sim/enemyMovement'
@@ -164,7 +164,7 @@ function update(dt: number): void {
   }
 
   world.time += dt
-  syncTestCompanion()
+  syncTestSummons()
 
   // The spawner needs to know how much of the world is visible so it can place
   // enemies just outside it. Passed as plain numbers — nothing under sim/ ever
@@ -184,7 +184,7 @@ function update(dt: number): void {
   updateCharacterMovement(world, dt)
   // After him, so they follow where he is now, and before combat, so they
   // cast from where they've got to.
-  updateCompanions(world, dt)
+  updateSummons(world, dt)
   // After moving, so the mark lands where he now is.
   updateTrail(world)
   updateShop(world)
@@ -202,17 +202,31 @@ function update(dt: number): void {
 }
 
 /**
- * Debug: a test companion at his side while `debug.testCompanion` is on,
- * sent away when it's switched off. Only the one it summoned: companions
- * something else granted are none of its business.
+ * Debug: each test summon is there while its `debug.test…` switch is on, and
+ * sent away when it's switched off. One that burns out (the fire on the
+ * grass) is conjured again where he stands. Only the ones these switches
+ * summoned: summons something else granted are none of their business.
  */
-let testCompanion: Companion | null = null
-function syncTestCompanion(): void {
-  const has = testCompanion !== null && world.companions.includes(testCompanion)
-  if (config.debug.testCompanion && !has) testCompanion = summonCompanion(world, COMPANION_DEFS[0])
-  else if (!config.debug.testCompanion && has) {
-    dismissCompanion(world, testCompanion!)
-    testCompanion = null
+const TEST_SUMMONS = [
+  { key: 'testCompanion', id: 'summon_fire_elemental_01', where: 'beside' },
+  { key: 'testGroundFire', id: 'summon_ground_fire_01', where: 'underfoot' },
+  { key: 'testWanderingFire', id: 'summon_wandering_fire_01', where: 'beside' },
+  { key: 'testSerpent', id: 'summon_lightning_serpent_01', where: 'beside' },
+] as const
+const testSummons = new Map<string, Summon>()
+function syncTestSummons(): void {
+  for (const test of TEST_SUMMONS) {
+    const current = testSummons.get(test.key)
+    const has = current !== undefined && world.summons.includes(current)
+    const wanted = config.debug[test.key]
+    const def = findSummon(test.id)
+    if (wanted && !has && def) {
+      const at = test.where === 'underfoot' ? { x: world.character.x, y: world.character.y } : undefined
+      testSummons.set(test.key, summon(world, def, at))
+    } else if (!wanted && has) {
+      dismiss(world, current!)
+      testSummons.delete(test.key)
+    }
   }
 }
 
