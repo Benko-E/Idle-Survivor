@@ -1,11 +1,12 @@
 import { config } from '../config'
+import { hurtCharacter } from './damage'
 import { damageEnemy } from './damageEnemy'
 import { forEachEnemyNear, LARGEST_ENEMY_RADIUS } from './enemyGrid'
 import { applyCondition, hasCondition } from './statusEffects'
 import { enemiesInRadius } from './targeting'
 import { HIT_SPARK_SECONDS, HIT_SPARK_SIZE, spawnRing, spawnSprite } from './vfx'
 import { kilnPass, kilnWalls } from './walls'
-import type { Enemy, WeaponInstance, World } from './world'
+import { casterOf, type Enemy, type WeaponInstance, type World } from './world'
 import type { Zone } from './zones'
 
 /**
@@ -60,6 +61,11 @@ export interface Projectile {
   hits: Set<number>
   /** The spell that fired it. */
   source: WeaponInstance
+  /**
+   * An enemy's bolt, flying at him: it hits him and passes through enemies.
+   * Left out, it's his side's — his, or a companion's.
+   */
+  side?: 'enemy'
   /** A condition left on everything it hits, by id; see data/conditions.ts. */
   onHit: { condition: string; magnitude: number; duration: number } | null
   /** Upgrade behaviour. Absent on plain bolts, which is what forks are. */
@@ -110,6 +116,7 @@ export function spawnPlainBolt(
     hits: ignoreId === undefined ? new Set() : new Set([ignoreId]),
     source,
     onHit: null,
+    side: casterOf(world, source).side === 'enemy' ? 'enemy' : undefined,
   }
   world.projectiles.push(bolt)
   return bolt
@@ -269,14 +276,14 @@ export function updateProjectiles(world: World, dt: number): void {
     const projectile = world.projectiles[i]
     const mutations = projectile.mutations
 
-    // On the way back, it homes on him wherever he's got to.
+    // On the way back, it homes on whoever threw it, wherever they've got to.
     if (projectile.returning) {
-      const c = world.character
+      const c = casterOf(world, projectile.source)
       const dx = c.x - projectile.x
       const dy = c.y - projectile.y
       const distance = Math.hypot(dx, dy)
       const speed = Math.hypot(projectile.vx, projectile.vy)
-      if (distance < c.radius + projectile.radius) {
+      if (distance < (c === world.character ? world.character.radius : RETURN_CATCH) + projectile.radius) {
         world.projectiles[i] = world.projectiles[world.projectiles.length - 1]
         world.projectiles.pop()
         continue
@@ -290,7 +297,7 @@ export function updateProjectiles(world: World, dt: number): void {
     projectile.x += projectile.vx * dt
     projectile.y += projectile.vy * dt
     projectile.life -= dt
-    if (kilns.length > 0) kilnPass(world, projectile, kilns, fromX, fromY)
+    if (kilns.length > 0 && !projectile.side) kilnPass(world, projectile, kilns, fromX, fromY)
     if (mutations && mutations.trail > 0) layTrail(world, projectile, mutations.trail, Math.hypot(projectile.vx, projectile.vy) * dt)
 
     let spent = projectile.life <= 0
@@ -299,7 +306,10 @@ export function updateProjectiles(world: World, dt: number): void {
       spent = false
     }
 
-    if (!spent) {
+    if (!spent && projectile.side === 'enemy') {
+      // An enemy's bolt: it's him it's after, and enemies don't stop it.
+      if (hitsHim(world, projectile)) spent = true
+    } else if (!spent) {
       const reach = projectile.radius + config.combat.projectileHitPadding
 
       forEachEnemyNear(world, projectile.x, projectile.y, reach + LARGEST_ENEMY_RADIUS, (enemy) => {
@@ -331,6 +341,20 @@ export function updateProjectiles(world: World, dt: number): void {
     world.projectiles[i] = world.projectiles[world.projectiles.length - 1]
     world.projectiles.pop()
   }
+}
+
+/** How close a returning bolt must get to a caster other than him to be caught. */
+const RETURN_CATCH = 12
+
+/** An enemy's bolt reaching him: it hurts him, as the spell that threw it. */
+function hitsHim(world: World, projectile: Projectile): boolean {
+  const c = world.character
+  const reach = c.radius + projectile.radius + config.combat.projectileHitPadding
+  if ((c.x - projectile.x) ** 2 + (c.y - projectile.y) ** 2 > reach * reach) return false
+  if (world.state === 'running') hurtCharacter(world, projectile.damage, projectile.source.def.displayName)
+  const spark = projectile.source.def.fx?.hit
+  if (spark) spawnSprite(world, spark, c.x, c.y, HIT_SPARK_SIZE, HIT_SPARK_SECONDS, false)
+  return true
 }
 
 /** A ring where an empowered bolt goes off, so a Hot Streak reads as an event. */

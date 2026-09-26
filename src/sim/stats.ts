@@ -21,6 +21,9 @@ import type { World, WeaponInstance } from './world'
  */
 export function weaponStat(world: World, weapon: WeaponInstance, key: string, fallback = 0): number {
   const base = weapon.def.stats[key] ?? fallback
+  // His upgrades are his: a boss casting a fire bolt at him doesn't get
+  // Kindled Fury. His companions' spells do, by their tags.
+  if (weapon.caster?.side === 'enemy') return base
   return resolveStat(base, key, world.modifiers, spellTags(world, weapon))
 }
 

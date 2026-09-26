@@ -355,6 +355,32 @@ export interface UpgradeDef {
   requiresOwnedTags?: Tag[]
 }
 
+/**
+ * Something that fights at his side: a wizard's elemental, a ranger's wolf, a
+ * warlock's demon. Entries are in data/companions.ts; sim/companions.ts runs
+ * them. Enemies ignore them and they can't be hurt.
+ */
+export interface CompanionDef {
+  id: string
+  displayName: string
+  /** The class it belongs to: only that class's abilities summon it. */
+  classId: string
+  /** World units per second. A little quicker than him, so it keeps up. */
+  speed: number
+  /** Its size, for drawing. */
+  radius: number
+  /** How far from him it may stray before it heads back to him. */
+  leash: number
+  /** It fights enemies within this far of *him*, not of itself, so it never chases off. */
+  reach: number
+  /** How close it likes to get to what it's fighting. */
+  engageDistance: number
+  /** Its spells, by WeaponDef id: one or two, plain ones. */
+  spells: string[]
+  /** Placeholder art: it's drawn as a glowing ball in this colour. */
+  colour: string
+}
+
 export interface WeaponDef {
   /** Stable and generic. Never shown to a player. (spec 5.2) */
   id: string

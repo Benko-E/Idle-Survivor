@@ -1,24 +1,27 @@
 import { config } from '../config'
 import { updateAuras } from './auras'
 import { resolveDeaths } from './enemyBehaviours'
-import { BEHAVIOURS } from './behaviours'
+import { BEHAVIOURS, ENEMY_CASTABLE } from './behaviours'
 import { spawnPlainBolt, updateProjectiles } from './projectiles'
 import { weaponStat } from './stats'
 import { updateStatusEffects } from './statusEffects'
 import { updateVfx } from './vfx'
 import { updateZones } from './zones'
-import type { World } from './world'
+import { casterOf, type WeaponInstance, type World } from './world'
 
 /**
- * Runs the character's spellbook.
+ * Runs the character's spellbook, and his companions'.
  *
  * Cooldowns tick down, ready spells cast, everything they created resolves,
  * and the dead get swept up. There is no branch on which spell is which —
- * that lookup is a string into the behaviour registry.
+ * that lookup is a string into the behaviour registry — nor on who is casting:
+ * each spell casts from its own caster (casterOf).
  */
 
-function castReadySpells(world: World, dt: number): void {
-  for (const weapon of world.weapons) {
+const warnedEnemyCast = new Set<string>()
+
+export function castReadySpells(world: World, weapons: readonly WeaponInstance[], dt: number): void {
+  for (const weapon of weapons) {
     // Switched off in the data or the debug panel: holds its charge, casts
     // nothing, so switching it back on picks up where it left off.
     if (!weapon.def.enabled) continue
@@ -35,9 +38,19 @@ function castReadySpells(world: World, dt: number): void {
       continue
     }
 
+    const caster = casterOf(world, weapon)
+    if (caster.side === 'enemy' && !ENEMY_CASTABLE.has(weapon.def.behaviour)) {
+      // Not wrong data, just not built yet: see ENEMY_CASTABLE.
+      if (!warnedEnemyCast.has(weapon.def.id)) console.warn(`Enemies can't cast "${weapon.def.behaviour}" spells yet (${weapon.def.id})`)
+      warnedEnemyCast.add(weapon.def.id)
+      weapon.cooldownRemaining = Number.POSITIVE_INFINITY
+      continue
+    }
+
     const landed = behaviour({
       world,
       weapon,
+      caster,
       def: weapon.def,
       stat: (key, fallback) => weaponStat(world, weapon, key, fallback),
     })
@@ -102,7 +115,8 @@ function backdraft(world: World): void {
 export function updateCombat(world: World, dt: number): void {
   updateAuras(world, dt)
   backdraft(world)
-  castReadySpells(world, dt)
+  castReadySpells(world, world.weapons, dt)
+  for (const companion of world.companions) castReadySpells(world, companion.weapons, dt)
   updateProjectiles(world, dt)
   updateZones(world, dt)
   updateStatusEffects(world, dt)

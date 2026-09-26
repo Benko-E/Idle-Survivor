@@ -1,4 +1,5 @@
 import { config } from './config'
+import { COMPANION_DEFS } from './data/companions'
 import { startLoop, stats } from './core/loop'
 import { drawCandidates, drawFootprint, drawHeatmap, drawTrail } from './render/debugOverlay'
 import { loadProfile, saveProfile } from './meta/profile'
@@ -9,6 +10,7 @@ import { pushWorldProps } from './render/props'
 import { Renderer, type Drawable } from './render/renderer'
 import { coinFrame, getSheet, loadSprites, stickyFacingRow, walkFrame } from './render/sprites'
 import { updateCombat } from './sim/combat'
+import { dismissCompanion, summonCompanion, updateCompanions, type Companion } from './sim/companions'
 import { updateContactDamage } from './sim/damage'
 import { hpMultiplier, spawnsPerSecond } from './sim/difficulty'
 import { updateEnemies } from './sim/enemyMovement'
@@ -162,6 +164,7 @@ function update(dt: number): void {
   }
 
   world.time += dt
+  syncTestCompanion()
 
   // The spawner needs to know how much of the world is visible so it can place
   // enemies just outside it. Passed as plain numbers — nothing under sim/ ever
@@ -179,6 +182,9 @@ function update(dt: number): void {
   // it, and finally we find out whether that was a good idea.
   updateInfluence(world, dt)
   updateCharacterMovement(world, dt)
+  // After him, so they follow where he is now, and before combat, so they
+  // cast from where they've got to.
+  updateCompanions(world, dt)
   // After moving, so the mark lands where he now is.
   updateTrail(world)
   updateShop(world)
@@ -193,6 +199,21 @@ function update(dt: number): void {
   const k = 1 - Math.exp(-config.render.cameraFollowRate * dt)
   renderer.camera.x += (world.character.x - renderer.camera.x) * k
   renderer.camera.y += (world.character.y - renderer.camera.y) * k
+}
+
+/**
+ * Debug: a test companion at his side while `debug.testCompanion` is on,
+ * sent away when it's switched off. Only the one it summoned: companions
+ * something else granted are none of its business.
+ */
+let testCompanion: Companion | null = null
+function syncTestCompanion(): void {
+  const has = testCompanion !== null && world.companions.includes(testCompanion)
+  if (config.debug.testCompanion && !has) testCompanion = summonCompanion(world, COMPANION_DEFS[0])
+  else if (!config.debug.testCompanion && has) {
+    dismissCompanion(world, testCompanion!)
+    testCompanion = null
+  }
 }
 
 // --- input (debug only) ------------------------------------------------------

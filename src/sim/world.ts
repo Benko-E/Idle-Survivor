@@ -5,6 +5,7 @@ import { findWeaponDef } from '../data/weapons'
 import { findClass } from '../data/classes'
 import type { ClassDef, EnemyDef, PickupDef, WeaponDef } from '../data/types'
 import type { BuildBonus } from './buildBonus'
+import type { Companion } from './companions'
 import type { Offer } from './draft'
 import { spellsOfTier } from './spellTiers'
 import type { Projectile } from './projectiles'
@@ -24,9 +25,30 @@ import type { Hazard } from './enemyBehaviours'
 
 export type RunState = 'running' | 'dead'
 
+/**
+ * Whoever a spell is cast by: where from, which way they face, and whose side
+ * they're on. The wizard, a companion of his and — later — a boss or an evil
+ * wizard casting at him all cast the same spells; see sim/behaviours.ts.
+ */
+export interface Caster {
+  x: number
+  y: number
+  facingX: number
+  facingY: number
+  /** 'player' spells hurt enemies. 'enemy' spells hurt him, and ignore his upgrades. */
+  side: 'player' | 'enemy'
+}
+
+/** Who casts a spell: its own caster, or him. */
+export function casterOf(world: World, weapon: WeaponInstance): Caster {
+  return weapon.caster ?? world.character
+}
+
 export interface Character {
   x: number
   y: number
+  /** He casts his own spells: see Caster. */
+  side: 'player'
   radius: number
   speed: number
   hp: number
@@ -99,6 +121,8 @@ export interface Pickup {
 
 export interface WeaponInstance {
   def: WeaponDef
+  /** Who casts it. Left out, it's him; a companion's spells name the companion. */
+  caster?: Caster
   cooldownRemaining: number
   /** Casts that actually hit something. */
   timesCast: number
@@ -150,6 +174,8 @@ export interface World {
   enemies: Enemy[]
   pickups: Pickup[]
   projectiles: Projectile[]
+  /** Whatever fights at his side: an elemental, a wolf, a demon. See sim/companions.ts. */
+  companions: Companion[]
   /** Ground a spell has claimed: strikes on their way down, vortices, roots. */
   zones: Zone[]
   /** Ground that hurts him: gas left by a Stinkcap. */
@@ -248,6 +274,7 @@ export function createWorld(seed: number = config.world.seed, starterId?: string
     character: {
       x: 0,
       y: 0,
+      side: 'player',
       radius: stats.radius,
       speed: stats.moveSpeed,
       hp: stats.maxHp,
@@ -259,6 +286,7 @@ export function createWorld(seed: number = config.world.seed, starterId?: string
     enemies: [],
     pickups: [],
     projectiles: [],
+    companions: [],
     zones: [],
     hazards: [],
     dying: [],

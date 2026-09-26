@@ -308,6 +308,33 @@ export const WEAPON_DEFS: WeaponDef[] = [
     colour: '#f4e76e',
   },
 
+  // --- Companion spells ------------------------------------------------------------
+  //
+  // Cast by a companion from where it stands (data/companions.ts), never by
+  // him. No tier, so they're never offered; their own ids, so his upgrades for
+  // his own spells never reach them. Upgrades by tag — "+30% fire damage" — do.
+
+  {
+    id: 'spell_elemental_bolt_01',
+    classId: 'class_wizard',
+    displayName: 'Elemental Bolt',
+    description: "A fire elemental's little bolt at the nearest enemy",
+    enabled: true,
+    tags: ['spell', 'fire', 'projectile', 'bolt', 'companion'],
+    behaviour: 'projectile',
+    stats: {
+      cooldown: 1.3,
+      damage: 6,
+      count: 1,
+      speed: 320,
+      pierce: 0,
+      range: 300,
+      spread: 0.14,
+    },
+    fx: { hit: 'hit_fire' },
+    colour: '#ffb060',
+  },
+
   // --- Shelved ------------------------------------------------------------------------
   //
   // No place in the fire/frost/lightning grid yet. Kept, switched off and

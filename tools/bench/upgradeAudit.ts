@@ -32,7 +32,7 @@ for (const def of WEAPON_DEFS) {
   world.enemies.push({ id: 2, def: ENEMY_DEFS[0], x: 120, y: 0, hp: 1e9, maxHp: 1e9, speed: 0, effects: [], stride: 0 })
   rebuildEnemyGrid(world)
   const keys = new Set<string>(JSON.parse(process.env.COMBAT_KEYS ?? '["cooldown", "cooldownRecovery", "backdraft"]'))
-  const landed = BEHAVIOURS[def.behaviour]({ world, weapon: { def, cooldownRemaining: 0, timesCast: 0, idleSeconds: 0, damageDealt: 0 }, def, stat: (k) => { keys.add(k); return def.stats[k] ?? 0 } })
+  const landed = BEHAVIOURS[def.behaviour]({ world, weapon: { def, cooldownRemaining: 0, timesCast: 0, idleSeconds: 0, damageDealt: 0 }, caster: world.character, def, stat: (k) => { keys.add(k); return def.stats[k] ?? 0 } })
   reads[def.id] = keys
   console.log(`${def.displayName.padEnd(20)} reads: ${[...keys].join(', ')}${landed ? '' : '  (DID NOT CAST)'}`)
 }

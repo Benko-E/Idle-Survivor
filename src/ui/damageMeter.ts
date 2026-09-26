@@ -8,6 +8,7 @@ import type { World } from '../sim/world'
  *
  * Read-only: it watches each spell's running `damageDealt` (everything the
  * spell caused — its bolts, forks, burns, blasts) and never touches the sim.
+ * A companion's spells get a row of their own, under the companion's name.
  * Per second is measured on the world's clock, so a paused draft doesn't drag
  * the numbers down.
  */
@@ -43,6 +44,29 @@ const STORAGE_KEY = 'idle-survivor.damageMeter'
 interface Sample {
   time: number
   totals: Map<string, number>
+}
+
+/** One row's worth: a spell of his, or one of a companion's. */
+interface Entry {
+  key: string
+  name: string
+  colour: string
+  damage: number
+}
+
+function entries(world: World): Entry[] {
+  const out: Entry[] = world.weapons.map((weapon) => ({ key: weapon.def.id, name: weapon.def.displayName, colour: weapon.def.colour, damage: weapon.damageDealt }))
+  world.companions.forEach((companion, index) => {
+    for (const weapon of companion.weapons) {
+      out.push({
+        key: `${companion.def.id}#${index}:${weapon.def.id}`,
+        name: companion.weapons.length > 1 ? `${companion.def.displayName}: ${weapon.def.displayName}` : companion.def.displayName,
+        colour: companion.def.colour,
+        damage: weapon.damageDealt,
+      })
+    }
+  })
+  return out
 }
 
 export class DamageMeter {
@@ -93,27 +117,27 @@ export class DamageMeter {
     if (world.time - this.lastSampleAt < SAMPLE) return
     this.lastSampleAt = world.time
 
+    const current = entries(world)
     const totals = new Map<string, number>()
-    for (const weapon of world.weapons) {
-      totals.set(weapon.def.id, weapon.damageDealt)
-      if (!this.firstSeen.has(weapon.def.id)) this.firstSeen.set(weapon.def.id, world.time)
+    for (const entry of current) {
+      totals.set(entry.key, entry.damage)
+      if (!this.firstSeen.has(entry.key)) this.firstSeen.set(entry.key, world.time)
     }
     this.samples.push({ time: world.time, totals })
     while (this.samples.length > 1 && world.time - this.samples[0].time > WINDOW) this.samples.shift()
 
-    this.draw(world, totals)
+    this.draw(world, current)
   }
 
-  private draw(world: World, totals: Map<string, number>): void {
+  private draw(world: World, current: Entry[]): void {
     const oldest = this.samples[0]
-    const rows = world.weapons.map((weapon) => {
-      const now = totals.get(weapon.def.id) ?? 0
+    const rows = current.map((entry) => {
       // Over the time the spell has had in the window, so one picked twenty
       // seconds ago isn't averaged over a minute it didn't exist for.
-      const since = Math.max(oldest.time, this.firstSeen.get(weapon.def.id) ?? oldest.time)
+      const since = Math.max(oldest.time, this.firstSeen.get(entry.key) ?? oldest.time)
       const span = Math.max(SAMPLE, world.time - since)
-      const value = this.mode === 'total' ? now : (now - (oldest.totals.get(weapon.def.id) ?? 0)) / span
-      return { name: weapon.def.displayName, colour: weapon.def.colour, value }
+      const value = this.mode === 'total' ? entry.damage : (entry.damage - (oldest.totals.get(entry.key) ?? 0)) / span
+      return { name: entry.name, colour: entry.colour, value }
     })
     rows.sort((a, b) => b.value - a.value)
     const top = Math.max(1, rows[0]?.value ?? 1)

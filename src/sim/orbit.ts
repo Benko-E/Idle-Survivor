@@ -1,8 +1,9 @@
-import type { WeaponInstance, World } from './world'
+import { casterOf, type WeaponInstance, type World } from './world'
 import { weaponStat } from './stats'
 
 /**
- * Where a circling spell's orbs are right now — Ball Lightning.
+ * Where a circling spell's orbs are right now — Ball Lightning — round its
+ * caster.
  *
  * Worked out from the clock rather than stored, so the orbs need no state of
  * their own: the behaviour that damages with them and the renderer that
@@ -12,7 +13,8 @@ export function orbitPositions(world: World, weapon: WeaponInstance): { x: numbe
   const count = Math.max(1, Math.round(weaponStat(world, weapon, 'count')))
   const radius = weaponStat(world, weapon, 'area')
   const turn = weaponStat(world, weapon, 'speed') * world.time
-  const { x, y } = world.character
+  // Round whoever casts it: him, or a companion.
+  const { x, y } = casterOf(world, weapon)
   const positions: { x: number; y: number }[] = []
   for (let i = 0; i < count; i++) {
     const angle = turn + (i / count) * Math.PI * 2

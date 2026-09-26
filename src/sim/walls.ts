@@ -4,7 +4,7 @@ import { forEachEnemyNear, LARGEST_ENEMY_RADIUS } from './enemyGrid'
 import { spawnPlainBolt, type Projectile } from './projectiles'
 import { enemiesInRadius, pickTargets } from './targeting'
 import { spawnSprite } from './vfx'
-import type { Enemy, WeaponInstance, World } from './world'
+import type { Caster, Enemy, WeaponInstance, World } from './world'
 import type { Zone } from './zones'
 
 /**
@@ -82,8 +82,7 @@ interface Placement {
  * The biggest crowd in range, if it's big enough to be worth a wall: its
  * members and its middle.
  */
-function findPack(world: World, range: number): { pack: Enemy[]; x: number; y: number } | null {
-  const c = world.character
+function findPack(world: World, c: Caster, range: number): { pack: Enemy[]; x: number; y: number } | null {
   const { packRadius, minPack } = config.wall
   const [target] = pickTargets(world, c.x, c.y, range, 1, packRadius, 'densest', targetScratch)
   if (!target) return null
@@ -103,10 +102,9 @@ function findPack(world: World, range: number): { pack: Enemy[]; x: number; y: n
  * edge — between him and the crowd, so every one of them has to walk through
  * it to reach him.
  */
-function placeAcross(world: World, range: number): Placement | null {
-  const found = findPack(world, range)
+function placeAcross(world: World, c: Caster, range: number): Placement | null {
+  const found = findPack(world, c, range)
   if (!found) return null
-  const c = world.character
   let ux = found.x - c.x
   let uy = found.y - c.y
   const distance = Math.hypot(ux, uy)
@@ -130,10 +128,9 @@ function placeAcross(world: World, range: number): Placement | null {
  * Everything chasing him heads for the same point, so near him the whole
  * crowd funnels into it and runs the rest of its length.
  */
-function placeLane(world: World, range: number, length: number): Placement | null {
-  const found = findPack(world, range)
+function placeLane(world: World, c: Caster, range: number, length: number): Placement | null {
+  const found = findPack(world, c, range)
   if (!found) return null
-  const c = world.character
   let ux = found.x - c.x
   let uy = found.y - c.y
   const distance = Math.hypot(ux, uy)
@@ -156,8 +153,8 @@ function placeLane(world: World, range: number, length: number): Placement | nul
 }
 
 /** Burning Ring: closed round the crowd, centred on its middle. */
-function placeRing(world: World, range: number): Placement | null {
-  const found = findPack(world, range)
+function placeRing(world: World, c: Caster, range: number): Placement | null {
+  const found = findPack(world, c, range)
   if (!found) return null
   return { x: found.x, y: found.y, dirX: 1, dirY: 0, towardX: 0, towardY: 0 }
 }
@@ -179,12 +176,12 @@ function makeRoom(world: World, weapon: WeaponInstance, max: number): void {
 }
 
 /** Raises a wall. Waits, ready, while there's no crowd worth one. */
-export const castWall: Behaviour = ({ world, weapon, stat }) => {
+export const castWall: Behaviour = ({ world, weapon, caster, stat }) => {
   const length = stat('area')
   const range = stat('range')
   const ring = stat('ring') > 0
   const lane = !ring && stat('lane') > 0
-  const place = ring ? placeRing(world, range) : lane ? placeLane(world, range, length) : placeAcross(world, range)
+  const place = ring ? placeRing(world, caster, range) : lane ? placeLane(world, caster, range, length) : placeAcross(world, caster, range)
   if (!place) return false
 
   makeRoom(world, weapon, Math.max(1, Math.round(stat('maxWalls', 1))))

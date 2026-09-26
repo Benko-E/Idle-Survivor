@@ -567,6 +567,52 @@ for the whole save, whoever earned it.
 Only the wizard exists so far. The change was checked by replaying six
 five-minute bot runs from before and after: every one came out identical.
 
+## Casters and companions
+
+Every spell is cast by a **caster** (`Caster` in `sim/world.ts`): a
+position, a facing and a side. He is one; `WeaponInstance.caster` names any
+other, and `casterOf(world, weapon)` answers "who casts this" for everything
+that needs to know — where a bolt starts, what an aura surrounds, where a
+wall goes up, what orbs circle, who a returning bolt flies home to. No spell
+assumes it's him any more.
+
+- **His side** (`side: 'player'`) — him and his companions — hurts enemies.
+  His upgrades reach his companions' spells only by tag ("+30% fire
+  damage"); upgrades for one of his spells never do, since a companion's
+  spells have their own ids.
+- **The enemies' side** (`side: 'enemy'`) is for a boss or an evil wizard
+  later. Its bolts fly at him, hurt him (credited in `damageTakenBy` to the
+  spell's name), pass through enemies, and ignore his upgrades. Only bolts so
+  far (`ENEMY_CASTABLE` in `sim/behaviours.ts`); anything else an enemy tries
+  is skipped with a warning until it learns to hurt him. What's left for the
+  first boss is data: a spell list on its enemy entry, with the enemy as the
+  caster, cast through the exported `castReadySpells`.
+
+**Companions** (`sim/companions.ts`, entries in `data/companions.ts`) are
+whatever fights at his side: an elemental, a wolf, a demon. Deliberately
+simple — enemies ignore them, they can't be hurt, and they don't collide with
+anything — on a leash to him:
+
+- **follow** when he's further than its leash: back to him, hurrying at
+  `companions.catchUp` past `catchUpAt` leashes, reappearing beside him past
+  `teleportAt`
+- **fight** when an enemy is within its `reach` of *him* (not of itself, so
+  it never chases off): to its `engageDistance` from the nearest, never
+  leaving its leash, casting its spells from there
+- **roam** otherwise: wandering to spots round him, measured from him, so it
+  drifts along when he walks
+
+Its spells are ordinary spell entries with no tier (never offered to him)
+and are cast from where it stands. They aren't in `world.weapons`, so they
+never show on his spell bar, get upgrade cards or count towards build
+bonuses, and his AI never changes for them. The damage meter gives each its
+own row under the companion's name. Until there's art it's a glowing ball.
+
+Nothing grants a companion in normal play yet: the debug panel's
+`debug.testCompanion` summons a test Fire Elemental with one plain bolt. In a
+live run it spent most of its time fighting, never strayed past its leash,
+and cast about once every 1.3 seconds.
+
 ## Conditions: burning, chilled, frozen, shocked
 
 The states an enemy can be in are data, in `data/conditions.ts`, and
@@ -845,3 +891,7 @@ That completes the spec's definition of done for the prototype. Past it:
   shaped zones, placed in front of the crowd across its path; six mutations
   (Hot Coals, Wall of Embers, Kiln, Hungry Flames, Kiting Lane, Wall Dancer)
   and two evolutions (Burning Ring, Creeping Blaze).
+- [x] **25 — casters and companions.** Every spell casts from its caster
+  (him, a companion, one day an enemy — enemy bolts already fly at him);
+  companions on a leash that follow, fight and roam, casting their own
+  spells. A test Fire Elemental behind a debug switch.

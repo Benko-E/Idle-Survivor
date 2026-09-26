@@ -8,7 +8,7 @@ import { orbitPositions } from './orbit'
 import { enemiesInRadius, nearestEnemies, nearestEnemy, pickTargets } from './targeting'
 import { HIT_SPARK_SECONDS, HIT_SPARK_SIZE, spawnArtLine, spawnRing, spawnSprite } from './vfx'
 import { castWall } from './walls'
-import type { Enemy, WeaponInstance, World } from './world'
+import type { Caster, Enemy, WeaponInstance, World } from './world'
 
 /**
  * The behaviour registry. (agreed extension to spec 5.1)
@@ -27,6 +27,8 @@ export interface CastContext {
   world: World
   /** The spell being cast, credited with everything it causes. */
   weapon: WeaponInstance
+  /** Who's casting it, and from where: him, a companion, one day a boss. */
+  caster: Caster
   def: WeaponDef
   /** Base value from the data entry, resolved through all active modifiers. */
   /** A stat, through every modifier in play. `fallback` is its base when the spell doesn't list it: 1 for a multiplier. */
@@ -57,12 +59,15 @@ const scratchTargets: Enemy[] = []
  * strongest pick in the draft, and nothing like what it says. Only once there
  * are more bolts than targets do they double up, fanned by `spread`.
  */
-const projectile: Behaviour = ({ world, weapon, def, stat }) => {
-  const caster = world.character
+const projectile: Behaviour = ({ world, weapon, caster, def, stat }) => {
   const range = stat('range')
   const count = Math.max(1, Math.round(stat('count')))
 
-  const targets = nearestEnemies(world, caster.x, caster.y, range, count, scratchTargets)
+  // His side aims at the nearest enemies; the enemies' side aims at him.
+  const foe = caster.side === 'enemy'
+  const targets: readonly { x: number; y: number }[] = foe
+    ? aimAtHim(world, caster, range)
+    : nearestEnemies(world, caster.x, caster.y, range, count, scratchTargets)
   if (targets.length === 0) return false
 
   // Evolutions reshape the bolt through these three, not through its damage
@@ -138,7 +143,9 @@ const projectile: Behaviour = ({ world, weapon, def, stat }) => {
       life,
       hits: new Set(),
       source: weapon,
-      onHit,
+      // He has no conditions for a chill to go on.
+      onHit: foe ? null : onHit,
+      side: foe ? 'enemy' : undefined,
       mutations: mutated || hot ? { ...mutations, fork: hot ? Math.max(1, mutations.fork) : mutations.fork, forkEveryHit: hot } : undefined,
       empowered: hot,
       outLife: life,
@@ -148,12 +155,21 @@ const projectile: Behaviour = ({ world, weapon, def, stat }) => {
   return true
 }
 
+const aimScratch: { x: number; y: number }[] = []
+
+/** An enemy caster's target: him, if he's in range. */
+function aimAtHim(world: World, caster: Caster, range: number): { x: number; y: number }[] {
+  const c = world.character
+  aimScratch.length = 0
+  if ((c.x - caster.x) ** 2 + (c.y - caster.y) ** 2 <= range * range) aimScratch.push(c)
+  return aimScratch
+}
+
 /**
  * A burst centred on the caster that damages and chills everything caught in
  * it. Frost Nova, and any other "get away from me" spell.
  */
-const nova: Behaviour = ({ world, weapon, def, stat }) => {
-  const caster = world.character
+const nova: Behaviour = ({ world, weapon, caster, def, stat }) => {
   const area = stat('area')
   const damage = stat('damage')
   const slow = stat('slow')
@@ -177,8 +193,7 @@ const nova: Behaviour = ({ world, weapon, def, stat }) => {
  * Strikes the nearest enemy, then leaps to the nearest enemy to *that* one,
  * losing power with each jump. Chain Lightning.
  */
-const chain: Behaviour = ({ world, weapon, def, stat }) => {
-  const caster = world.character
+const chain: Behaviour = ({ world, weapon, caster, def, stat }) => {
   const jumps = Math.max(1, Math.round(stat('count')))
   const jumpRange = stat('jumpRange')
   const falloff = stat('falloff')
@@ -210,8 +225,7 @@ const chain: Behaviour = ({ world, weapon, def, stat }) => {
  * Lays a lingering affliction on everything nearby. No immediate damage — it
  * all arrives over the duration. Curse of Withering.
  */
-const curse: Behaviour = ({ world, weapon, def, stat }) => {
-  const caster = world.character
+const curse: Behaviour = ({ world, weapon, caster, def, stat }) => {
   const area = stat('area')
   const dotDamage = stat('dotDamage')
   const duration = stat('duration')
@@ -232,8 +246,7 @@ const curse: Behaviour = ({ world, weapon, def, stat }) => {
  * Righteous Fire. No ring on each refresh — it's drawn as a steady glow for as
  * long as he has it, because a pulse every 0.4s would be a strobe.
  */
-const aura: Behaviour = ({ world, weapon, def, stat }) => {
-  const caster = world.character
+const aura: Behaviour = ({ world, weapon, caster, def, stat }) => {
   const targets = enemiesInRadius(world, caster.x, caster.y, auraRadius(world, weapon), scratchTargets)
   if (targets.length === 0) return false
 
@@ -256,8 +269,7 @@ const aura: Behaviour = ({ world, weapon, def, stat }) => {
  * a vortex, roots. Everything about what the patch does is in its numbers;
  * see sim/zones.ts.
  */
-const zone: Behaviour = ({ world, weapon, def, stat }) => {
-  const caster = world.character
+const zone: Behaviour = ({ world, weapon, caster, def, stat }) => {
   const area = stat('area')
   const count = Math.max(1, Math.round(stat('count')))
   const targets = pickTargets(world, caster.x, caster.y, stat('range'), count, area, def.targeting ?? 'densest', scratchTargets)
@@ -326,6 +338,15 @@ const orbit: Behaviour = ({ world, weapon, stat }) => {
 
 /** Slack when asking the grid what an orb might touch: the biggest enemy's radius. */
 const enemyReach = 20
+
+/**
+ * The behaviours an enemy can cast, at him. Only bolts so far: the rest still
+ * look for enemies to hurt, so an enemy casting them is skipped (with a
+ * warning) until each learns to hurt him instead. The data side of an enemy
+ * casting — a spell list on its entry, and it as the caster — is for the step
+ * that adds the first boss.
+ */
+export const ENEMY_CASTABLE = new Set(['projectile'])
 
 export const BEHAVIOURS: Record<string, Behaviour> = {
   projectile,

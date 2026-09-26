@@ -212,6 +212,20 @@ export const config = {
     zealotryToHim: 0.35,
   },
 
+  /** Companions: how they keep up with him and wander about. See sim/companions.ts. */
+  companions: {
+    /** Further than this many leashes behind, it hurries back at `catchUp` times its speed... */
+    catchUpAt: 2,
+    catchUp: 1.6,
+    /** ...and further than this many, it simply reappears beside him. */
+    teleportAt: 5,
+    /** Wandering: how far round him, as a share of its leash, and how long it lingers at each spot. */
+    roamSpread: 0.6,
+    roamPause: 0.8,
+    /** Fighting: how far off its preferred distance still counts as close enough. */
+    engageSlack: 0.25,
+  },
+
   /** Wall spells — Firewall. The upgrade numbers are on the upgrades; these are the rules. See sim/walls.ts. */
   wall: {
     /** How far a crowd reaches from its densest point, for finding its front and its middle. */
@@ -977,6 +991,12 @@ export const config = {
      * survival time is a real before/after measurement rather than a guess.
      */
     autoRestartSeconds: 0,
+    /**
+     * A test Fire Elemental at his side (the first entry in
+     * data/companions.ts), summoned while this is on and sent away when it's
+     * switched off. Nothing grants companions in normal play yet.
+     */
+    testCompanion: false,
   },
 
   menu: {
