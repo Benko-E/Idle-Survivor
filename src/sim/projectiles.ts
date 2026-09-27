@@ -251,6 +251,26 @@ function turnBack(projectile: Projectile): void {
   projectile.vy = -projectile.vy
 }
 
+/**
+ * Accelerating Bolt: how fast it's going now, as a share of its speed. From
+ * accelerateStart at launch to accelerateEnd at the end of its outward flight,
+ * still rising on the way back, never past accelerateMax.
+ */
+function accelerationFactor(projectile: Projectile): number {
+  const { accelerateStart, accelerateEnd, accelerateMax } = config.combat
+  const t = (projectile.flown ?? 0) / Math.max(1e-6, projectile.outLife ?? 1)
+  return Math.min(accelerateMax, accelerateStart + (accelerateEnd - accelerateStart) * t)
+}
+
+/** What it hits for right now: its base, times Accelerating Bolt's speed and Stoked's heat. */
+function boltDamageNow(projectile: Projectile): number {
+  const mutations = projectile.mutations
+  let damage = projectile.baseDamage ?? projectile.damage
+  if (mutations?.accelerate) damage *= accelerationFactor(projectile) + config.combat.accelerateDamageLead
+  if (mutations && mutations.stoked > 0) damage *= 1 + Math.min(config.combat.stokedMax, (projectile.heat ?? 0) * mutations.stoked)
+  return damage
+}
+
 /** One hit on one enemy: damage, sparks, conditions, and everything the bolt's upgrades add. */
 function hit(world: World, projectile: Projectile, enemy: Enemy): void {
   const mutations = projectile.mutations
@@ -281,6 +301,12 @@ function hit(world: World, projectile: Projectile, enemy: Enemy): void {
       projectile.forked = true
     }
   }
+
+  // Stoked: every enemy it passes through heats it for the rest of its flight.
+  if (mutations && mutations.stoked > 0) {
+    projectile.heat = (projectile.heat ?? 0) + 1
+    projectile.damage = boltDamageNow(projectile)
+  }
 }
 
 const kilnScratch: Zone[] = []
@@ -306,6 +332,16 @@ export function updateProjectiles(world: World, dt: number): void {
       }
       projectile.vx = (dx / distance) * speed
       projectile.vy = (dy / distance) * speed
+    }
+
+    // Accelerating Bolt: its speed follows its time in the air, its damage its speed.
+    if (mutations?.accelerate && projectile.baseSpeed) {
+      projectile.flown = (projectile.flown ?? 0) + dt
+      const current = Math.hypot(projectile.vx, projectile.vy) || 1
+      const wanted = projectile.baseSpeed * accelerationFactor(projectile)
+      projectile.vx *= wanted / current
+      projectile.vy *= wanted / current
+      projectile.damage = boltDamageNow(projectile)
     }
 
     const fromX = projectile.x

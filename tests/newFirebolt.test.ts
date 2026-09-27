@@ -206,5 +206,88 @@ const damageOf = (world: World) => weaponStat(world, world.weapons[0], 'damage')
   check('...every bolt of that cast, Split Shot too', w.projectiles.length === 3 && w.projectiles.every((b) => b.whiteHot === true))
 }
 
+// --- Heavy or Accelerating ------------------------------------------------------------
+
+{
+  const w = fireWorld()
+  check('Heavy and Accelerating are an either-or pair', up('up_firebolt_heavy').pairedWith === 'up_firebolt_accelerating')
+  take(w, 'up_firebolt_heavy')
+  const s = w.weapons[0]
+  check('Heavy: 40% slower, 50% bigger, 1.6x damage', near(weaponStat(w, s, 'boltSpeed', 1), 0.6) && near(weaponStat(w, s, 'boltSize', 1), 1.5) && near(weaponStat(w, s, 'boltDamage', 1), 1.6))
+  check('...and rules out Accelerating', !eligible(w, 'up_firebolt_accelerating'))
+}
+{
+  const w = fireWorld()
+  take(w, 'up_firebolt_accelerating')
+  enemy(w, 515, 0)
+  cast(w)
+  const bolt = w.projectiles[0]
+  const base = weaponStat(w, w.weapons[0], 'speed')
+  const start = Math.hypot(bolt.vx, bolt.vy)
+  fly(w, (bolt.outLife ?? 1) * 0.85)
+  const late = Math.hypot(bolt.vx, bolt.vy)
+  // Measured after the cast's own step, so it has already sped up a touch.
+  check('Accelerating: starts at half speed', near(start, base * 0.5, base * 0.05), `${start.toFixed(0)} of ${base}`)
+  check('...and is nearly twice as fast late on', late > base * 1.6, `${late.toFixed(0)}`)
+}
+{
+  const hitAt = (x: number) => {
+    const w = fireWorld()
+    take(w, 'up_firebolt_accelerating')
+    const e = enemy(w, x, 0)
+    cast(w)
+    fly(w, 3)
+    return lost(e)
+  }
+  const close = hitAt(40)
+  const far = hitAt(480)
+  check('...and hits harder the faster it goes', far > close * 1.8, `close ${close.toFixed(1)}, far ${far.toFixed(1)}`)
+}
+{
+  const w = fireWorld()
+  take(w, 'up_firebolt_accelerating')
+  take(w, 'up_firebolt_return')
+  enemy(w, 500, 0)
+  cast(w)
+  const bolt = w.projectiles[0]
+  const base = weaponStat(w, w.weapons[0], 'speed')
+  let fastest = 0
+  for (let i = 0; i < 400 && w.projectiles.includes(bolt); i++) {
+    fly(w, DT)
+    fastest = Math.max(fastest, Math.hypot(bolt.vx, bolt.vy))
+  }
+  check('With Return: faster still, never past 3x', fastest > base * 2 && fastest <= base * config.combat.accelerateMax + 1e-6, `${(fastest / base).toFixed(2)}x`)
+}
+
+// --- Stoked ------------------------------------------------------------------------
+
+{
+  const w = fireWorld()
+  check('Stoked needs Pierce first', !eligible(w, 'up_firebolt_stoked'))
+  take(w, 'up_firebolt_pierce', 3)
+  check('...offered once Pierce is in', eligible(w, 'up_firebolt_stoked'))
+  take(w, 'up_firebolt_stoked')
+  const line = [80, 110, 140, 170].map((x) => enemy(w, x, 0))
+  cast(w)
+  fly(w, 1)
+  const expected = [1, 1.15, 1.3, 1.45].map((k) => damageOf(w) * k)
+  check('Stoked: +15% for each enemy burned through', line.every((e, i) => near(lost(e), expected[i], 0.01)), line.map((e) => lost(e).toFixed(2)).join(', '))
+}
+{
+  const w = fireWorld()
+  take(w, 'up_firebolt_pierce', 3)
+  take(w, 'up_firebolt_stoked')
+  take(w, 'up_firebolt_return')
+  for (let k = 0; k < 12; k++) enemy(w, 60 + k * 25, 0)
+  cast(w)
+  const bolt = w.projectiles[0]
+  let hottest = 0
+  for (let i = 0; i < 200 && w.projectiles.includes(bolt); i++) {
+    fly(w, DT)
+    hottest = Math.max(hottest, bolt.damage)
+  }
+  check('...never past +120%, even back through a crowd', near(hottest, damageOf(w) * (1 + config.combat.stokedMax), 0.01), `${(hottest / damageOf(w)).toFixed(2)}x`)
+}
+
 console.log(failures === 0 ? '\nALL PASS' : `\n${failures} FAILED`)
 if (failures > 0) process.exitCode = 1
