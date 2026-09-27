@@ -184,6 +184,72 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   // Firebolt's section below stays for the old build.
 
   ...boltUpgrades('spell_firebolt_01', 'up_firebolt'),
+  {
+    id: 'up_firebolt_ignite',
+    spellId: 'spell_firebolt_01',
+    kind: 'mutation',
+    displayName: 'Ignite',
+    description: 'Hits set the target burning',
+    details: "Every enemy the bolt hits starts burning for a few seconds. Enemies it pierces and hits on its way back count too; the small forked bolts don't.",
+    tags: ['offence', 'fire'],
+    // 40% of each hit again as burning over combat.igniteSeconds; refreshes, never stacks.
+    modifiers: [{ target: 'ignite', op: 'add', value: 0.4 }],
+    grantsTags: ['burning'],
+    maxStacks: 1,
+    weight: 60,
+  },
+  {
+    id: 'up_firebolt_kindling',
+    spellId: 'spell_firebolt_01',
+    kind: 'mutation',
+    displayName: 'Kindling',
+    description: "Aims at enemies that aren't burning yet",
+    details: "Firebolt aims at the nearest enemy that isn't burning yet, so its burns spread through the crowd instead of piling onto one target.",
+    tags: ['offence', 'fire'],
+    modifiers: [{ target: 'kindling', op: 'add', value: 1 }],
+    requires: ['up_firebolt_ignite'],
+    maxStacks: 1,
+    weight: 55,
+  },
+  {
+    id: 'up_firebolt_hotstreak',
+    spellId: 'spell_firebolt_01',
+    kind: 'mutation',
+    displayName: 'Hot Streak',
+    description: 'Every 5th cast is white-hot and hits harder',
+    details: 'Every fifth cast comes out white-hot and hits much harder. It flies and looks like any other bolt, just hotter.',
+    tags: ['offence', 'fire'],
+    modifiers: [{ target: 'whiteHot', op: 'add', value: 5 }],
+    maxStacks: 1,
+    weight: 55,
+  },
+  {
+    id: 'up_firebolt_stoked',
+    spellId: 'spell_firebolt_01',
+    kind: 'mutation',
+    displayName: 'Stoked',
+    description: 'Burning through enemies makes it hotter',
+    details: 'Each enemy the bolt passes through makes it hotter and harder-hitting for the rest of its flight. It glows deeper red as it heats up, but never gets bigger.',
+    tags: ['offence', 'fire'],
+    // +15% per enemy passed through, up to combat.stokedMax.
+    modifiers: [{ target: 'stoked', op: 'add', value: 0.15 }],
+    requires: ['up_firebolt_pierce'],
+    maxStacks: 1,
+    weight: 55,
+  },
+  {
+    id: 'up_firebolt_backdraft',
+    spellId: 'spell_firebolt_01',
+    kind: 'mutation',
+    displayName: 'Backdraft',
+    description: "When he's hit, bolts burst out of him",
+    details: 'When an enemy hits him, a ring of small firebolts bursts out of him in every direction. It needs a few seconds before it can happen again.',
+    // The comfort pick: plain bolts, combat.backdraftCooldown between rings.
+    tags: ['defence', 'fire'],
+    modifiers: [{ target: 'backdraft', op: 'add', value: 8 }],
+    maxStacks: 1,
+    weight: 45,
+  },
 
   // --- Firebolt ------------------------------------------------------------------
   //

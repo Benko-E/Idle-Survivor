@@ -42,6 +42,10 @@ export interface BoltMutations {
   combust: boolean
   /** Burning strength of the ground it leaves along its path. */
   trail: number
+  /** Accelerating Bolt: speeds up over its flight, hitting harder as it does. */
+  accelerate: boolean
+  /** Stoked: extra damage for each enemy it has passed through, as a share (0.15 = +15%). */
+  stoked: number
 }
 
 export interface Projectile {
@@ -84,6 +88,18 @@ export interface Projectile {
   kilned?: boolean
   /** The wall spell that fired it up, credited with the burns it now leaves. */
   kilnBurn?: WeaponInstance
+  /** The enemy it was aimed at, for Kindling to look past. */
+  targetId?: number
+  /** Its damage before Accelerating Bolt and Stoked, which recompute `damage` from it. */
+  baseDamage?: number
+  /** Its speed before Accelerating Bolt. */
+  baseSpeed?: number
+  /** Hot Streak (new build): the white-hot cast. Drawn white. */
+  whiteHot?: boolean
+  /** Seconds in the air, for Accelerating Bolt. */
+  flown?: number
+  /** Enemies passed through, for Stoked. */
+  heat?: number
 }
 
 /**

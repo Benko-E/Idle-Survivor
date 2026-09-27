@@ -6,6 +6,9 @@ import { updateCombat } from '@game/sim/combat'
 import { applyUpgrade, upgradeIsEligible } from '@game/sim/draft'
 import { rebuildEnemyGrid } from '@game/sim/enemyGrid'
 import { createWorld, type Enemy, type World } from '@game/sim/world'
+import { config } from '@game/config'
+import { weaponStat } from '@game/sim/stats'
+import { applyCondition, hasCondition } from '@game/sim/statusEffects'
 
 const FIREBOLT = 'spell_firebolt_01'
 const DT = 1 / 60
@@ -47,6 +50,8 @@ function fly(world: World, seconds: number): void {
     updateCombat(world, DT)
   }
 }
+const near = (a: number, b: number, slack = 1e-6) => Math.abs(a - b) <= slack
+const damageOf = (world: World) => weaponStat(world, world.weapons[0], 'damage')
 
 // --- The spell and its generic bolt upgrades ----------------------------------
 
@@ -90,6 +95,115 @@ function fly(world: World, seconds: number): void {
     if (w.projectiles.some((p) => p.returning)) turned = true
   }
   check('Return: it comes back to him', turned && w.projectiles.length === 0)
+}
+
+// --- Ignite ----------------------------------------------------------------
+
+{
+  const w = fireWorld()
+  take(w, 'up_firebolt_pierce')
+  take(w, 'up_firebolt_ignite')
+  const a = enemy(w, 90, 0)
+  const b = enemy(w, 120, 0)
+  cast(w)
+  fly(w, 1)
+  check('Ignite: sets what it hits burning, pierced ones too', hasCondition(a, 'burning') && hasCondition(b, 'burning'))
+}
+{
+  const w = fireWorld()
+  take(w, 'up_firebolt_fork')
+  take(w, 'up_firebolt_ignite')
+  enemy(w, 90, 0)
+  const side = enemy(w, 130, 60)
+  cast(w)
+  fly(w, 1)
+  check("...but its plain fork doesn't", lost(side) > 0 && !hasCondition(side, 'burning'), `fork dealt ${lost(side).toFixed(1)}`)
+}
+
+// --- Kindling ----------------------------------------------------------------
+
+{
+  const w = fireWorld()
+  check('Kindling needs Ignite first', !eligible(w, 'up_firebolt_kindling'))
+  take(w, 'up_firebolt_ignite')
+  check('...offered once Ignite is in', eligible(w, 'up_firebolt_kindling'))
+  take(w, 'up_firebolt_kindling')
+  const nearBurning = enemy(w, 80, 0)
+  const far = enemy(w, 0, 160)
+  applyCondition(w, nearBurning, 'burning', 1, 5, null)
+  cast(w)
+  check('...aims past a burning enemy at an unburnt one', w.projectiles[0]?.targetId === far.id)
+  cast(w)
+  check('...all burning or taken: the nearest as usual', w.projectiles[1]?.targetId === nearBurning.id)
+}
+{
+  const w = fireWorld()
+  take(w, 'up_firebolt_ignite')
+  take(w, 'up_firebolt_kindling')
+  const a = enemy(w, 100, 0)
+  const b = enemy(w, 0, 130)
+  cast(w)
+  cast(w)
+  const targets = w.projectiles.map((p) => p.targetId)
+  check('...two casts in a row spread to two enemies', targets.includes(a.id) && targets.includes(b.id), JSON.stringify(targets))
+}
+
+// --- Split Shot ----------------------------------------------------------------
+
+{
+  const w = fireWorld()
+  take(w, 'up_firebolt_split', 2)
+  take(w, 'up_firebolt_fork')
+  take(w, 'up_firebolt_return')
+  take(w, 'up_firebolt_ignite')
+  enemy(w, 100, 0)
+  enemy(w, 100, 60)
+  enemy(w, 100, -60)
+  cast(w)
+  const bolts = w.projectiles
+  check('Split Shot x2: three bolts', bolts.length === 3, `${bolts.length}`)
+  check('...sharing the damage, a third each', bolts.every((b) => near(b.damage, damageOf(w) / 3)))
+  check('...each at its own enemy', new Set(bolts.map((b) => b.targetId)).size === 3)
+  check('...every one carries Ignite', bolts.every((b) => (b.mutations?.ignite ?? 0) > 0))
+  check('...only the main bolt forks and returns', bolts.filter((b) => (b.mutations?.fork ?? 0) > 0 || (b.mutations?.returns ?? 0) > 0).length === 1)
+  check('...and it stops at three bolts', !eligible(w, 'up_firebolt_split'))
+}
+{
+  const w = fireWorld()
+  take(w, 'up_firebolt_split', 2)
+  enemy(w, 100, 0)
+  cast(w)
+  const angles = new Set(w.projectiles.map((b) => Math.atan2(b.vy, b.vx).toFixed(3)))
+  check('...one enemy: the extras fan out either side', angles.size === 3)
+}
+
+// --- Hot Streak ----------------------------------------------------------------
+
+{
+  const w = fireWorld()
+  take(w, 'up_firebolt_hotstreak')
+  enemy(w, 400, 0)
+  const casts: { damage: number; radius: number; white: boolean }[] = []
+  for (let n = 0; n < 5; n++) {
+    w.projectiles.length = 0
+    cast(w)
+    const b = w.projectiles[0]
+    casts.push({ damage: b.damage, radius: b.radius, white: b.whiteHot === true })
+  }
+  check('Hot Streak: the 5th cast is white-hot', casts.map((c) => c.white).join() === 'false,false,false,false,true')
+  check('...at twice the damage', near(casts[4].damage, casts[0].damage * config.combat.whiteHotDamage))
+  check('...and the same size', casts[4].radius === casts[0].radius)
+}
+{
+  const w = fireWorld()
+  take(w, 'up_firebolt_hotstreak')
+  take(w, 'up_firebolt_split', 2)
+  enemy(w, 400, 0)
+  for (let n = 0; n < 5; n++) {
+    w.projectiles.length = 0
+    cast(w)
+  }
+  check('...every bolt of that cast, Split Shot too', w.projectiles.length === 3 && w.projectiles.every((b) => b.whiteHot === true))
 }
 
 console.log(failures === 0 ? '\nALL PASS' : `\n${failures} FAILED`)

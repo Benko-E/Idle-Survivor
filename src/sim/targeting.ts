@@ -43,6 +43,23 @@ export function nearestEnemies(world: World, x: number, y: number, maxRange: num
 }
 
 /**
+ * Kindling: up to `count` enemies within range, unburnt ones that no bolt is
+ * already flying at (`taken`) first, nearest first within each group. When
+ * everything is burning or taken, that's simply the nearest.
+ *
+ * Reads `effects` itself rather than importing hasCondition, which would be a
+ * circular import (statusEffects → damageEnemy → walls → targeting).
+ */
+export function unburntEnemies(world: World, x: number, y: number, maxRange: number, count: number, taken: Set<number>, out: Enemy[]): Enemy[] {
+  enemiesInRadius(world, x, y, maxRange, out)
+  const burning = (enemy: Enemy) => enemy.effects.some((effect) => effect.condition === 'burning')
+  const fresh = (enemy: Enemy) => (!taken.has(enemy.id) && !burning(enemy) ? 0 : 1)
+  out.sort((a, b) => fresh(a) - fresh(b) || (a.x - x) ** 2 + (a.y - y) ** 2 - ((b.x - x) ** 2 + (b.y - y) ** 2))
+  if (out.length > count) out.length = count
+  return out
+}
+
+/**
  * Choose up to `count` enemies to drop something on, `spacing` apart where
  * possible so several strikes cover more ground. When the crowd is too tight
  * for that, the rest double up rather than being thrown away — three strikes

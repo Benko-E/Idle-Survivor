@@ -46,5 +46,17 @@ export function boltUpgrades(spellId: string, prefix: string): UpgradeDef[] {
       maxStacks: 1,
       weight: 45,
     },
+    {
+      id: `${prefix}_split`,
+      spellId,
+      displayName: 'Split Shot',
+      description: 'More bolts, sharing the damage',
+      details: 'Fires more bolts at once, fanned out, sharing the damage between them. Only the main bolt returns and forks.',
+      tags: ['offence'],
+      // +1 bolt a pick, up to 3 bolts: each hits for a third.
+      modifiers: [{ target: 'split', op: 'add', value: 1 }],
+      maxStacks: 2,
+      weight: 50,
+    },
   ]
 }

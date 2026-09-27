@@ -293,6 +293,20 @@ export const config = {
     hotStreakRange: 700,
     /** Backdraft goes off at most this often. */
     backdraftCooldown: 4,
+    /** Hot Streak (new build): every bolt of the white-hot cast hits this many times harder. Colour only; no growth. */
+    whiteHotDamage: 2,
+    /**
+     * Accelerating Bolt: speed at the start and at the end of its outward
+     * flight, as a share of its speed; it keeps rising on the way back, up to
+     * accelerateMax. Its damage multiplier is its speed multiplier plus
+     * accelerateDamageLead: 0.7x at the start, 2.2x at the end.
+     */
+    accelerateStart: 0.5,
+    accelerateEnd: 2,
+    accelerateMax: 3,
+    accelerateDamageLead: 0.2,
+    /** Stoked: the most extra damage heat can add, as a share (1.2 = +120%). */
+    stokedMax: 1.2,
     /** Phoenix Bolt's trail: a patch every this far, this big, lasting this long, burning this long after. */
     trailSpacing: 26,
     trailRadius: 22,

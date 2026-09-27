@@ -5,7 +5,7 @@ import { auraBurn, auraRadius } from './auras'
 import { type BoltMutations } from './projectiles'
 import { applyCondition } from './statusEffects'
 import { orbitPositions } from './orbit'
-import { enemiesInRadius, nearestEnemies, nearestEnemy, pickTargets } from './targeting'
+import { enemiesInRadius, nearestEnemies, nearestEnemy, pickTargets, unburntEnemies } from './targeting'
 import { HIT_SPARK_SECONDS, HIT_SPARK_SIZE, spawnArtLine, spawnRing, spawnSprite } from './vfx'
 import { castWall } from './walls'
 import type { Caster, Enemy, WeaponInstance, World } from './world'
@@ -62,12 +62,18 @@ const scratchTargets: Enemy[] = []
 const projectile: Behaviour = ({ world, weapon, caster, def, stat }) => {
   const range = stat('range')
   const count = Math.max(1, Math.round(stat('count')))
+  // Split Shot: each bolt becomes 1 + split bolts, sharing its damage.
+  const split = Math.max(0, Math.round(stat('split')))
+  const volley = count * (1 + split)
 
-  // His side aims at the nearest enemies; the enemies' side aims at him.
+  // His side aims at the nearest enemies (with Kindling, the nearest unburnt
+  // ones); the enemies' side aims at him.
   const foe = caster.side === 'enemy'
-  const targets: readonly { x: number; y: number }[] = foe
+  const targets: readonly { x: number; y: number; id?: number }[] = foe
     ? aimAtHim(world, caster, range)
-    : nearestEnemies(world, caster.x, caster.y, range, count, scratchTargets)
+    : stat('kindling') > 0
+      ? unburntEnemies(world, caster.x, caster.y, range, volley, takenBy(world, weapon), scratchTargets)
+      : nearestEnemies(world, caster.x, caster.y, range, volley, scratchTargets)
   if (targets.length === 0) return false
 
   // Evolutions reshape the bolt through these three, not through its damage
@@ -87,10 +93,13 @@ const projectile: Behaviour = ({ world, weapon, caster, def, stat }) => {
     ignite: Math.max(0, stat('ignite')),
     combust: stat('combustion') > 0,
     trail: Math.max(0, stat('flameTrail')),
+    accelerate: stat('accelerate') > 0,
+    stoked: Math.max(0, stat('stoked')),
   }
-  const mutated = mutations.fork > 0 || mutations.returns > 0 || mutations.explode > 0 || mutations.ignite > 0 || mutations.combust || mutations.trail > 0
+  const mutated =
+    mutations.fork > 0 || mutations.returns > 0 || mutations.explode > 0 || mutations.ignite > 0 || mutations.combust || mutations.trail > 0 || mutations.accelerate || mutations.stoked > 0
 
-  // Hot Streak: every Nth cast, the first bolt is an empowered one.
+  // Hot Streak (old build): every Nth cast, the first bolt is an empowered one.
   const streakEvery = Math.round(stat('hotStreak'))
   let empowered = false
   if (streakEvery > 0) {
@@ -98,6 +107,16 @@ const projectile: Behaviour = ({ world, weapon, caster, def, stat }) => {
     if (weapon.streak >= streakEvery) {
       weapon.streak = 0
       empowered = true
+    }
+  }
+  // Hot Streak (new build): every Nth cast is white-hot, every bolt of it.
+  const whiteEvery = Math.round(stat('whiteHot'))
+  let white = false
+  if (whiteEvery > 0) {
+    weapon.streak = (weapon.streak ?? 0) + 1
+    if (weapon.streak >= whiteEvery) {
+      weapon.streak = 0
+      white = true
     }
   }
 
@@ -115,7 +134,14 @@ const projectile: Behaviour = ({ world, weapon, caster, def, stat }) => {
           ? { condition: def.dotCondition ?? 'burning', magnitude: burn, duration }
           : null
 
-  for (let i = 0; i < count; i++) {
+  // Accelerating Bolt goes from accelerateStart to accelerateEnd of its speed,
+  // so it averages their middle: its flight lasts long enough to cover its range.
+  const { accelerateStart, accelerateEnd } = config.combat
+  const cruise = mutations.accelerate ? speed * ((accelerateStart + accelerateEnd) / 2) : speed
+  const launch = mutations.accelerate ? speed * accelerateStart : speed
+  const shared = (damage / (1 + split)) * (white ? config.combat.whiteHotDamage : 1)
+
+  for (let i = 0; i < volley; i++) {
     const target = targets[i % targets.length]
     // Bolts beyond the number of targets go round again, fanned out either
     // side of the line: +spread, -spread, +2 spread...
@@ -123,18 +149,24 @@ const projectile: Behaviour = ({ world, weapon, caster, def, stat }) => {
     const offset = round === 0 ? 0 : Math.ceil(round / 2) * spread * (round % 2 === 1 ? 1 : -1)
     const angle = Math.atan2(target.y - caster.y, target.x - caster.x) + offset
 
-    // The empowered bolt pierces everything, forks off every enemy it goes
-    // through, hits harder, is bigger and flies further.
+    // The empowered bolt (old build) pierces everything, forks off every enemy
+    // it goes through, hits harder, is bigger and flies further.
     const hot = empowered && i === 0
     const reach = hot ? config.combat.hotStreakRange : range
-    const life = speed > 0 ? reach / speed : 0
+    const life = cruise > 0 ? reach / cruise : 0
     const boltPierce = hot ? 999 : pierce
+    // The first `count` bolts are the main ones: Split Shot's extras leave
+    // forking and returning to them.
+    const main = i < count
+    const hit = hot ? shared * config.combat.hotStreakDamage : shared
     world.projectiles.push({
       x: caster.x,
       y: caster.y,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed,
-      damage: hot ? damage * config.combat.hotStreakDamage : damage,
+      vx: Math.cos(angle) * launch,
+      vy: Math.sin(angle) * launch,
+      damage: hit,
+      baseDamage: hit,
+      baseSpeed: speed,
       pierce: boltPierce,
       // A spell can set its own bolt size — Frozen Orb is a big slow ball.
       radius: hot ? size * config.combat.hotStreakSize : size,
@@ -146,13 +178,29 @@ const projectile: Behaviour = ({ world, weapon, caster, def, stat }) => {
       // He has no conditions for a chill to go on.
       onHit: foe ? null : onHit,
       side: foe ? 'enemy' : undefined,
-      mutations: mutated || hot ? { ...mutations, fork: hot ? Math.max(1, mutations.fork) : mutations.fork, forkEveryHit: hot } : undefined,
+      mutations:
+        mutated || hot
+          ? { ...mutations, fork: hot ? Math.max(1, mutations.fork) : main ? mutations.fork : 0, returns: main ? mutations.returns : 0, forkEveryHit: hot }
+          : undefined,
       empowered: hot,
+      whiteHot: white || undefined,
+      targetId: foe ? undefined : target.id,
       outLife: life,
     })
   }
 
   return true
+}
+
+const takenScratch = new Set<number>()
+
+/** Enemies a bolt of this spell is already flying at: Kindling looks past them. */
+function takenBy(world: World, weapon: WeaponInstance): Set<number> {
+  takenScratch.clear()
+  for (const bolt of world.projectiles) {
+    if (bolt.source === weapon && bolt.targetId !== undefined && !bolt.returning) takenScratch.add(bolt.targetId)
+  }
+  return takenScratch
 }
 
 const aimScratch: { x: number; y: number }[] = []
