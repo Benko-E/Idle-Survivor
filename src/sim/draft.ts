@@ -1,4 +1,4 @@
-import { config } from '../config'
+import { config, type DraftBreakpoint } from '../config'
 import type { UpgradeDef } from '../data/types'
 import { UPGRADE_DEFS } from '../data/upgrades'
 import type { Modifier } from '../core/modifiers'
@@ -30,16 +30,66 @@ import type { World } from './world'
  */
 export type Offer = { kind: 'upgrade'; id: string; displayName: string; description: string; def: UpgradeDef }
 
+/**
+ * The level the waiting draft belongs to. Levels can be saved up and are
+ * spent oldest first, so at level 14 with three waiting, the next card is
+ * level 12's. Gaining another level before choosing doesn't change it.
+ */
+export function draftLevel(world: World): number {
+  return world.level - Math.max(0, world.pendingLevelUps - 1)
+}
+
+/** The breakpoint the waiting draft falls on, if any (`draft.breakpoints`). */
+export function draftBreakpoint(world: World): DraftBreakpoint | null {
+  const level = draftLevel(world)
+  for (const breakpoint of Object.values(config.draft.breakpoints)) {
+    if (Math.round(breakpoint.level) === level) return breakpoint
+  }
+  return null
+}
+
+/** His spell of a tier, the one a `spellTier` breakpoint is about. */
+export function spellOfTier(world: World, tier: number): string | undefined {
+  return world.weapons.find((weapon) => weapon.def.tier === tier)?.def.id
+}
+
+/** Whether a breakpoint narrows the cards at all, rather than only adding some. */
+function hasFocus(breakpoint: DraftBreakpoint): boolean {
+  return Boolean(breakpoint.kind) || (breakpoint.spellTier ?? 0) > 0
+}
+
+function inFocus(world: World, def: UpgradeDef, breakpoint: DraftBreakpoint): boolean {
+  if (breakpoint.kind && def.kind !== breakpoint.kind) return false
+  if ((breakpoint.spellTier ?? 0) > 0) {
+    const spellId = spellOfTier(world, Math.round(breakpoint.spellTier!))
+    if (!spellId || def.spellId !== spellId) return false
+  }
+  return true
+}
+
+/** How many cards the waiting draft deals: the usual, this run's extra, and the breakpoint's. */
+export function cardsThisLevel(world: World): number {
+  const extra = draftBreakpoint(world)?.extraCards ?? 0
+  return Math.max(1, Math.round(config.draft.choices + world.extraCards + extra))
+}
+
+/** The other half of an either-or pair, if it has one. */
+export function partnerOf(def: UpgradeDef): UpgradeDef | undefined {
+  if (def.pairedWith) return UPGRADE_DEFS.find((other) => other.id === def.pairedWith)
+  return UPGRADE_DEFS.find((other) => other.pairedWith === def.id)
+}
+
 function ownsTag(world: World, tag: string): boolean {
   return world.weapons.some((weapon) => spellTags(world, weapon).includes(tag))
 }
 
-/** Whether any taken upgrade has retired this one. */
-function retired(world: World, id: string): boolean {
+/** Whether any taken upgrade has retired this one, or its partner has been taken. */
+function retired(world: World, def: UpgradeDef): boolean {
   for (const taken of Object.keys(world.upgradesTaken)) {
-    if (UPGRADE_DEFS.find((def) => def.id === taken)?.retires?.includes(id)) return true
+    if (UPGRADE_DEFS.find((other) => other.id === taken)?.retires?.includes(def.id)) return true
   }
-  return false
+  const partner = partnerOf(def)
+  return partner !== undefined && (world.upgradesTaken[partner.id] ?? 0) > 0
 }
 
 /** Whether one of this spell's evolutions has already been taken. */
@@ -52,9 +102,9 @@ export function upgradeIsEligible(world: World, def: UpgradeDef): boolean {
   if ((world.upgradesTaken[def.id] ?? 0) >= def.maxStacks) return false
   if (def.spellId && !world.weapons.some((weapon) => weapon.def.id === def.spellId)) return false
   if (def.requires && !def.requires.every((id) => (world.upgradesTaken[id] ?? 0) > 0)) return false
-  if (retired(world, def.id)) return false
+  if (retired(world, def)) return false
   if (def.kind === 'evolution') {
-    if (world.level < config.draft.evolutionLevel) return false
+    if (draftLevel(world) < config.draft.evolutionLevel) return false
     if (def.spellId && evolved(world, def.spellId)) return false
   }
   if (def.classIds && !def.classIds.includes(world.classDef.id)) return false
@@ -85,6 +135,18 @@ function fitsTheme(entry: Entry, theme: string): boolean {
   return entry.offer.def.tags.some((tag) => tags.includes(tag))
 }
 
+/**
+ * What a card slot leans towards, with `count` cards dealt. The first and
+ * last cards keep the first and last of `draft.slots` however many cards
+ * there are, so the right-hand card still leans to comfort with five; the
+ * cards between take the middle slots in turn, then lean nowhere.
+ */
+function slotTheme(slot: number, count: number): string {
+  const slots = config.draft.slots
+  if (count > 1 && slot === count - 1) return slots[slots.length - 1] ?? 'any'
+  return slot < slots.length - 1 ? slots[slot] : 'any'
+}
+
 /** One weighted pick from `entries`, removed from `pool` so it can't repeat. */
 function pickWeighted(world: World, pool: Entry[], entries: Entry[]): Offer {
   let total = 0
@@ -104,13 +166,46 @@ function pickWeighted(world: World, pool: Entry[], entries: Entry[]): Offer {
   return chosen.offer
 }
 
+/** The entry in the pool for this card's either-or partner, if it's there to be dealt. */
+function partnerEntry(pool: Entry[], def: UpgradeDef): Entry | undefined {
+  const partner = partnerOf(def)
+  return partner ? pool.find((entry) => entry.offer.def === partner) : undefined
+}
+
 /**
- * Deal the cards, left to right, one per slot.
+ * Deal one card from `entries` into the hand. A card with an either-or
+ * partner brings it along, the two side by side in data order, so a pair is
+ * only drawn when there's room left for both. False if nothing fits.
+ */
+function deal(world: World, pool: Entry[], entries: Entry[], hand: Offer[], wanted: number): boolean {
+  const room = wanted - hand.length
+  // A plain filter when there are no pairs about, so the random stream is
+  // exactly what it was before pairs existed.
+  const fits = room >= 2 ? entries : entries.filter((entry) => !partnerEntry(pool, entry.offer.def))
+  if (fits.length === 0) return false
+
+  const offer = pickWeighted(world, pool, fits)
+  const partner = partnerEntry(pool, offer.def)
+  if (!partner) {
+    hand.push(offer)
+    return true
+  }
+  pool.splice(pool.indexOf(partner), 1)
+  const first = UPGRADE_DEFS.indexOf(offer.def) < UPGRADE_DEFS.indexOf(partner.offer.def)
+  hand.push(...(first ? [offer, partner.offer] : [partner.offer, offer]))
+  return true
+}
+
+/**
+ * Deal the cards, left to right.
  *
- * Each slot leans towards a theme (`draft.slots`, `draft.slotThemes`): the
- * left one towards fighting and surviving, the right one towards comfort —
- * XP, gold, reach, speed — and the middle towards nothing. So each level-up
- * asks a readable question: do I need more power, or can I afford comfort?
+ * On a breakpoint level (`draft.breakpoints`) the focus goes first: every
+ * card it can fill comes from it. Otherwise, and for whatever a focus leaves
+ * over, each of his spells gets a card, then each remaining slot leans
+ * towards a theme (`draft.slots`, `draft.slotThemes`): the left one towards
+ * fighting and surviving, the right one towards comfort — XP, gold, reach,
+ * speed — and those between towards nothing. So each level-up asks a
+ * readable question: do I need more power, or can I afford comfort?
  *
  * A lean, not a rule: a slot keeps to its theme with `draft.slotBias`
  * probability, otherwise it draws from everything. And a theme that has run
@@ -118,8 +213,16 @@ function pickWeighted(world: World, pool: Entry[], entries: Entry[]): Offer {
  */
 function buildOffers(world: World): Offer[] {
   const pool = candidates(world)
-  const chosen: Offer[] = []
-  const wanted = Math.min(Math.max(1, Math.round(config.draft.choices)), pool.length)
+  const hand: Offer[] = []
+  const wanted = Math.min(cardsThisLevel(world), pool.length)
+
+  const breakpoint = draftBreakpoint(world)
+  if (breakpoint && hasFocus(breakpoint)) {
+    while (hand.length < wanted) {
+      const focused = pool.filter((entry) => inFocus(world, entry.offer.def, breakpoint))
+      if (!deal(world, pool, focused, hand, wanted)) break
+    }
+  }
 
   // A card for each of his spells first, while it has an upgrade to offer:
   // three picks of health and speed while Firebolt waits for Pierce was the
@@ -133,21 +236,27 @@ function buildOffers(world: World): Offer[] {
     ;[spells[i], spells[j]] = [spells[j], spells[i]]
   }
   for (const spellId of spells) {
-    if (chosen.length >= reserved) break
+    if (hand.length >= reserved) break
+    // Already has one, from a breakpoint's focus.
+    if (hand.some((offer) => offer.def.spellId === spellId)) continue
     const forSpell = pool.filter((entry) => entry.offer.def.spellId === spellId)
-    if (forSpell.length > 0) chosen.push(pickWeighted(world, pool, forSpell))
+    // Room counted against every card, not just the reserved ones: a pair is
+    // one choice, even if it takes the free card's place beside it.
+    if (forSpell.length > 0) deal(world, pool, forSpell, hand, wanted)
   }
 
-  for (let slot = chosen.length; slot < wanted; slot++) {
-    const theme = config.draft.slots[slot] ?? 'any'
+  while (hand.length < wanted) {
+    const theme = slotTheme(hand.length, wanted)
     // Rolled every time, even when there's no theme, so the random stream
     // doesn't shift depending on which slots have one.
     const leans = world.draftRng() < config.draft.slotBias
     const themed = leans ? pool.filter((entry) => fitsTheme(entry, theme)) : pool
-    chosen.push(pickWeighted(world, pool, themed.length > 0 ? themed : pool))
+    if (deal(world, pool, themed.length > 0 ? themed : pool, hand, wanted)) continue
+    // Only pairs left in the theme with one slot to go: anything else will do.
+    if (!deal(world, pool, pool, hand, wanted)) break
   }
 
-  return chosen
+  return hand
 }
 
 /**

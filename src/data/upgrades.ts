@@ -41,6 +41,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     id: 'up_haste_01',
     displayName: 'Quickened Mind',
     description: 'Spells recharge 15% faster',
+    details: 'A rate, not a percentage off: each pick helps, and none can make a spell free.',
     tags: ['offence'],
     modifiers: [{ target: 'cooldownRecovery', op: 'increase', value: 0.15 }],
     maxStacks: 5,
@@ -67,6 +68,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     // Radius, which is what the number actually is. "+25% area of effect"
     // undersold it: a quarter more radius is over half as much again of area.
     description: 'Area spells reach 25% further',
+    details: 'Radius, not area: a quarter further is over half as much ground again.',
     tags: ['offence', 'area'],
     modifiers: [{ target: 'area', op: 'increase', value: 0.25 }],
     maxStacks: 4,
@@ -79,6 +81,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     // Frost only, until frost gets its own upgrades: Firebolt has its own
     // Pierce now, and a generic one would have stacked on top of it.
     description: 'Frost bolts pass through 1 more enemy',
+    details: 'Frost bolts carry on through one more enemy per pick. Frost only until frost gets upgrades of its own; Firebolt has its own Pierce.',
     tags: ['offence', 'projectile'],
     modifiers: [{ target: 'pierce', op: 'add', value: 1, tags: ['projectile', 'frost'] }],
     maxStacks: 3,
@@ -99,6 +102,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     id: 'up_conduct_01',
     displayName: 'Conduction',
     description: 'Chains lose less power with each jump',
+    details: 'Each jump keeps more of the damage the last one did.',
     tags: ['offence', 'chain'],
     // The fraction kept per jump, 0.78 at base. Three stacks reach 0.96 — the
     // stack cap is what stops a chain ever gaining power as it goes.
@@ -111,6 +115,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     id: 'up_chill_01',
     displayName: 'Permafrost',
     description: 'Chills slow 10% more and last 30% longer',
+    details: 'Slowed enemies are never frozen solid by this alone: slows stop at 90%.',
     tags: ['offence', 'frost'],
     // Slow is a fraction of speed removed, added flat: 45% becomes 55%.
     // statusEffects caps the total at 90%, so nothing is ever frozen solid.
@@ -169,7 +174,8 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     spellId: 'spell_bolt_01',
     kind: 'mutation',
     displayName: 'Ignite',
-    description: 'Hits leave the target burning. More picks, hotter burns',
+    description: 'Hits set the target burning',
+    details: "A share of each hit's damage is dealt again as burning over 3 seconds. Each pick burns hotter.",
     tags: ['offence', 'fire'],
     // A share of each hit's damage, dealt again as burning over igniteSeconds.
     modifiers: [{ target: 'ignite', op: 'add', value: 0.4 }],
@@ -182,7 +188,8 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     spellId: 'spell_bolt_01',
     kind: 'mutation',
     displayName: 'Fork',
-    description: 'After a hit, a smaller bolt seeks out another enemy nearby',
+    description: 'Hits throw a small bolt at another enemy',
+    details: "After a hit, a smaller bolt flies off to another enemy nearby. Forks are plain bolts: half the damage, and none of Firebolt's other upgrades. Each pick adds a fork.",
     tags: ['offence', 'fire'],
     // Forks are plain bolts: half damage, no other upgrades on them.
     modifiers: [{ target: 'fork', op: 'add', value: 1 }],
@@ -194,7 +201,8 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     spellId: 'spell_bolt_01',
     kind: 'mutation',
     displayName: 'Pierce',
-    description: 'Firebolt passes through 1 more enemy',
+    description: 'Passes through 1 more enemy',
+    details: 'Each pick lets Firebolt carry on through one more enemy. Should he take Phoenix Bolt later, which pierces everything, each Pierce he took makes its trail burn hotter instead.',
     tags: ['offence', 'fire'],
     modifiers: [
       { target: 'pierce', op: 'add', value: 1 },
@@ -211,7 +219,8 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     spellId: 'spell_bolt_01',
     kind: 'mutation',
     displayName: 'Returning Bolt',
-    description: 'The bolt flies out and comes back to him, piercing everything on the way back',
+    description: 'The bolt comes back to him',
+    details: "At the end of its flight, or when an enemy stops it, the bolt turns round and flies back to him, passing through everything on the way. Only the bolt itself returns; its forks don't.",
     tags: ['offence', 'fire'],
     // The main bolt only; forks never come back.
     modifiers: [{ target: 'returns', op: 'add', value: 1 }],
@@ -223,7 +232,8 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     spellId: 'spell_bolt_01',
     kind: 'mutation',
     displayName: 'Combustion',
-    description: 'Hitting a burning enemy sets its burn off at once, in an explosion that can chain',
+    description: 'Hitting a burning enemy detonates it',
+    details: "The rest of its burn goes off at once as an explosion, and any burning enemy caught in the blast goes off too, so it can chain through a crowd. Works on burns from any spell, Righteous Fire's included.",
     tags: ['offence', 'fire'],
     // Detonates burns from any source — Righteous Fire, Meteor — and any
     // burning enemy caught in the blast goes off too.
@@ -238,7 +248,8 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     spellId: 'spell_bolt_01',
     kind: 'mutation',
     displayName: 'Hot Streak',
-    description: 'Every 5th Firebolt is huge: it pierces everything and forks off every enemy it hits',
+    description: 'Every 5th Firebolt is huge',
+    details: 'Every fifth cast is a huge bolt that pierces everything and forks off every enemy it hits.',
     tags: ['offence', 'fire'],
     modifiers: [{ target: 'hotStreak', op: 'add', value: 5 }],
     requires: ['up_fb_pierce', 'up_fb_fork'],
@@ -250,7 +261,8 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     spellId: 'spell_bolt_01',
     kind: 'mutation',
     displayName: 'Backdraft',
-    description: 'When he is hurt, he fires a ring of firebolts in every direction',
+    description: 'When hurt, he fires a ring of bolts',
+    details: 'Whenever he takes damage he fires 8 plain firebolts in every direction, then it needs 4 seconds to recharge.',
     tags: ['offence', 'fire'],
     // Plain bolts, with a cooldown of their own (combat.backdraftCooldown).
     modifiers: [{ target: 'backdraft', op: 'add', value: 8 }],
@@ -262,7 +274,8 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     spellId: 'spell_bolt_01',
     kind: 'evolution',
     displayName: 'Fireball',
-    description: 'Firebolt becomes a slow, heavy fireball that explodes on every hit',
+    description: 'A slow, heavy fireball that explodes',
+    details: 'Firebolt becomes a big, slow fireball that hits far harder and explodes on every hit. It keeps Pierce, Fork and Returning Bolt; its forks are plain firebolts.',
     tags: ['offence', 'fire'],
     // Keeps Pierce, Fork and Returning Bolt; its forks are plain firebolts.
     modifiers: [
@@ -281,7 +294,8 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     spellId: 'spell_bolt_01',
     kind: 'evolution',
     displayName: 'Phoenix Bolt',
-    description: 'Firebolt pierces everything and leaves a trail of burning ground',
+    description: 'Pierces everything, leaving fire behind',
+    details: 'Firebolt passes through every enemy in its path and leaves a trail of burning ground. Each Pierce already taken makes the trail burn hotter.',
     tags: ['offence', 'fire'],
     // Pierce stops being offered; picks already taken heat the trail instead.
     modifiers: [
@@ -303,7 +317,8 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     spellId: 'spell_aura_01',
     kind: 'mutation',
     displayName: "Zealot's Pyre",
-    description: 'The aura burns far hotter, and burns him too. It goes out when he is badly hurt',
+    description: 'A hotter aura that burns him too',
+    details: "Each pick makes the aura burn far hotter, and burns him as well. The pyre goes out when he's badly hurt and lights again once he's back to full health.",
     tags: ['offence', 'fire'],
     // Each pick hotter both ways. Out below aura.pyreOffAt, relit at pyreOnAt.
     modifiers: [
@@ -318,7 +333,8 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     spellId: 'spell_aura_01',
     kind: 'mutation',
     displayName: 'Clinging Flames',
-    description: 'Enemies that leave the aura keep burning for longer',
+    description: 'Burns linger after leaving the aura',
+    details: 'Enemies that step out of the aura keep burning for 1.5 seconds longer per pick.',
     tags: ['offence', 'fire'],
     modifiers: [{ target: 'duration', op: 'add', value: 1.5 }],
     maxStacks: 3,
@@ -329,7 +345,8 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     spellId: 'spell_aura_01',
     kind: 'mutation',
     displayName: 'Feed the Flames',
-    description: 'Each kill inside the aura makes it grow for a while',
+    description: 'Kills in the aura make it grow',
+    details: 'Each kill inside the aura makes it a little bigger for a few seconds, up to a limit. Each pick grows it more.',
     tags: ['offence', 'fire'],
     // A share of radius per kill, for aura.feedSeconds each, up to its caps.
     modifiers: [{ target: 'feed', op: 'add', value: 0.05 }],
@@ -341,7 +358,8 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     spellId: 'spell_aura_01',
     kind: 'mutation',
     displayName: 'Beacon',
-    description: 'Enemies inside the aura take 15% more fire damage',
+    description: 'Enemies in the aura take more fire damage',
+    details: 'Enemies inside the aura take 15% more damage per pick from all his fire spells, the aura included.',
     tags: ['offence', 'fire'],
     // From every fire spell, the aura itself included.
     modifiers: [{ target: 'beacon', op: 'add', value: 0.15 }],
@@ -353,7 +371,8 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     spellId: 'spell_aura_01',
     kind: 'mutation',
     displayName: 'Consuming Flames',
-    description: 'Enemies that die inside the aura heal him a little, and he dares let them closer',
+    description: 'Kills in the aura heal him',
+    details: 'Enemies that die inside the aura heal him a little. The healing makes crowds safer, so he lets them closer: each pick makes him keep them in the aura more eagerly.',
     tags: ['defence', 'fire'],
     // The healing is what makes crowding safe, so he leans into it harder:
     // his pull towards keeping them in the aura grows with each pick.
@@ -369,7 +388,8 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     spellId: 'spell_aura_01',
     kind: 'mutation',
     displayName: "Martyr's Fervour",
-    description: 'The lower his health, the hotter the aura burns',
+    description: 'The lower his health, the hotter it burns',
+    details: "The aura burns hotter the more he's hurt: +70% at 30% health, up to double with none left.",
     tags: ['offence', 'fire'],
     // +100% at no health, so +70% at 30%.
     modifiers: [{ target: 'fervour', op: 'add', value: 1 }],
@@ -381,7 +401,8 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     spellId: 'spell_aura_01',
     kind: 'evolution',
     displayName: 'Crown of Flames',
-    description: 'The aura shrinks to a tight crown of fire that burns ferociously',
+    description: 'A tight crown of ferocious fire',
+    details: 'The aura shrinks to half its size and burns five times as hot. Area upgrades still grow it.',
     tags: ['offence', 'fire'],
     // Area upgrades still grow it. Half size: at 30% it was barely wider than
     // him, and a percentage of that tiny ring hardly showed.
@@ -397,7 +418,8 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     spellId: 'spell_aura_01',
     kind: 'evolution',
     displayName: 'Zealotry',
-    description: 'Enemies in the aura catch a little Righteous Fire of their own, burning themselves, their neighbours, and him',
+    description: 'Enemies catch Righteous Fire',
+    details: "Enemies in the aura catch a little Righteous Fire of their own. It burns them, the enemies around them, and him if he's close.",
     tags: ['offence', 'fire'],
     modifiers: [{ target: 'zealotry', op: 'add', value: 1 }],
     maxStacks: 1,
@@ -413,7 +435,8 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     spellId: 'spell_wall_01',
     kind: 'mutation',
     displayName: 'Hot Coals',
-    description: 'Enemies that walk through the wall keep burning afterwards',
+    description: 'Enemies keep burning after crossing',
+    details: 'Enemies that walk through the wall keep burning for a while after. Each pick burns hotter.',
     tags: ['offence', 'fire'],
     // Each pick a hotter burn: a share of the wall's own, for wall.coalsSeconds after.
     modifiers: [{ target: 'coals', op: 'add', value: 0.5 }],
@@ -426,7 +449,8 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     spellId: 'spell_wall_01',
     kind: 'mutation',
     displayName: 'Wall of Embers',
-    description: 'The wall spits embers at enemies near it',
+    description: 'The wall spits embers',
+    details: 'Each wall throws embers at enemies near it, 1.5 a second per pick.',
     tags: ['offence', 'fire'],
     // Embers a second, per wall.
     modifiers: [{ target: 'embers', op: 'add', value: 1.5 }],
@@ -438,7 +462,8 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     spellId: 'spell_wall_01',
     kind: 'mutation',
     displayName: 'Kiln',
-    description: 'Any bolt that flies through the wall comes out 50% stronger and sets what it hits burning',
+    description: 'Bolts come out of the wall stronger',
+    details: "Any bolt of his that flies through a wall comes out 50% stronger and sets what it hits burning: Firebolt, its forks and returns, Frostbolt too. Once per bolt, and the burn counts as Firewall's.",
     tags: ['offence', 'fire'],
     // Every bolt of his, whichever spell: forks, returns, Frostbolt too. Once per bolt.
     modifiers: [{ target: 'kiln', op: 'add', value: 0.5 }],
@@ -450,7 +475,8 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     spellId: 'spell_wall_01',
     kind: 'mutation',
     displayName: 'Hungry Flames',
-    description: 'Every enemy that dies in the wall keeps it burning a second longer',
+    description: 'Kills keep the wall burning',
+    details: 'Every enemy that dies in a wall keeps it burning a second longer, up to its full duration again. It lasts only while it keeps killing.',
     tags: ['offence', 'fire'],
     // Up to its full duration again, so it only lasts while it keeps killing.
     modifiers: [{ target: 'hungry', op: 'add', value: 1 }],
@@ -462,7 +488,8 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     spellId: 'spell_wall_01',
     kind: 'mutation',
     displayName: 'Kiting Lane',
-    description: 'He lays the wall behind him along his escape route, so whatever chases him runs the length of the fire',
+    description: 'Walls go down along his escape',
+    details: 'He lays the wall behind him, out through the crowd chasing him, so whatever follows him runs the length of the fire.',
     tags: ['offence', 'fire'],
     modifiers: [{ target: 'lane', op: 'add', value: 1 }],
     maxStacks: 1,
@@ -473,7 +500,8 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     spellId: 'spell_wall_01',
     kind: 'mutation',
     displayName: 'Wall Dancer',
-    description: 'He keeps his walls between himself and the crowd, so they have to come through the fire to reach him',
+    description: 'He keeps walls between him and the crowd',
+    details: 'He moves so his walls stay between him and the crowd, so they have to come through the fire to reach him. This one changes how he moves.',
     tags: ['offence', 'fire'],
     // How much his movement cares about the far side of his walls (sim/engagement.ts).
     modifiers: [{ target: 'engage', op: 'add', value: 1 }],
@@ -485,7 +513,8 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     spellId: 'spell_wall_01',
     kind: 'evolution',
     displayName: 'Burning Ring',
-    description: 'The wall closes into a great ring of fire around the crowd. Anything that crosses it burns',
+    description: 'The wall becomes a ring of fire',
+    details: 'The wall closes into a great ring of fire around the crowd. The ring burns, not the inside: anything that crosses it catches fire. A ring has no lane to lay, so Kiting Lane goes.',
     tags: ['offence', 'fire'],
     // The ring is the fire, not what's inside it. A ring has no lane to lay.
     modifiers: [{ target: 'ring', op: 'add', value: 1 }],
@@ -498,7 +527,8 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     spellId: 'spell_wall_01',
     kind: 'evolution',
     displayName: 'Creeping Blaze',
-    description: 'The wall creeps towards the enemies like a grass fire, growing longer as it goes',
+    description: 'The wall creeps towards enemies',
+    details: 'The wall creeps towards the enemies like a grass fire, growing longer as it goes.',
     tags: ['offence', 'fire'],
     modifiers: [{ target: 'creep', op: 'add', value: 1 }],
     maxStacks: 1,
@@ -572,6 +602,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     id: 'up_ward_01',
     displayName: 'Warding',
     description: 'Take 10% less damage',
+    details: 'Picks multiply rather than add up: four leave him taking 66% of the damage, and nothing makes him untouchable.',
     tags: ['defence'],
     // Multiply rather than increase, so picks compound: four leave him taking
     // 66%. Pooled as a percentage, ten would have made him invulnerable.

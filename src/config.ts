@@ -9,6 +9,15 @@
  * The in-game debug panel will eventually read and write these live, so keep
  * everything a plain number, string or boolean — no functions, no classes.
  */
+
+/** A level whose draft is about one thing. See `draft.breakpoints`. */
+export type DraftBreakpoint = {
+  level: number
+  spellTier?: number
+  kind?: string
+  extraCards?: number
+}
+
 export const config = {
   render: {
     backgroundColour: '#0f1418',
@@ -854,6 +863,22 @@ export const config = {
      * upgrade to offer, leaving this many cards free for anything else.
      */
     openSlots: 1,
+    /**
+     * Levels whose whole draft is about one thing. Every card is dealt from
+     * the focus first; only if it runs short are the rest dealt as usual. A
+     * breakpoint can name
+     *   spellTier   upgrades for his spell of that tier (1: the one he started with)
+     *   kind        'mutation' or 'evolution', for any of his spells
+     * and `extraCards` deals that many more cards than usual, that level only.
+     *
+     * The level is the one being spent, not the one he's at: saved-up levels
+     * are spent oldest first, so opening level 12 at level 14 still gets
+     * level 12's cards.
+     */
+    breakpoints: {
+      starter: { level: 12, spellTier: 1, extraCards: 0 },
+      evolutions: { level: 20, kind: 'evolution', extraCards: 0 },
+    } as Record<string, DraftBreakpoint>,
   },
 
   /** His thought bubble. The lines are in data/thoughts.ts. */

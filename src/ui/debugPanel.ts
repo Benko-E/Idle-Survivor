@@ -62,6 +62,9 @@ const INTEGER_PATHS = new Set([
 /** Spell stats that are counts. Matched by the end of the path. */
 const INTEGER_SPELL_STATS = /\.stats\.(count|pierce)$/
 
+/** The draft's breakpoints: levels, tiers and card counts are whole numbers, and zero is fine. */
+const BREAKPOINT_COUNTS = /^draft\.breakpoints\.[^.]+\.(level|spellTier|extraCards)$/
+
 /** A spell's switch and numbers, the part of its entry worth tuning live. */
 type SpellSnapshot = { enabled: boolean; stats: Record<string, number> }
 
@@ -153,6 +156,7 @@ function rangeFor(path: string, value: number): [number, number] {
   if (override) return override
   if (path.endsWith('.stats.pierce')) return [0, 6]
   if (path.endsWith('.stats.count')) return [1, 10]
+  if (/^draft\.breakpoints\..+\.(spellTier|extraCards)$/.test(path)) return [0, 3]
   if (value === 0) return [0, 1]
   if (value > 0) return [0, value * 4]
   return [value * 4, 0]
@@ -315,11 +319,11 @@ export class DebugPanel {
     }
 
     if (typeof value === 'number') {
-      const whole = INTEGER_PATHS.has(path) || INTEGER_SPELL_STATS.test(path)
+      const whole = INTEGER_PATHS.has(path) || INTEGER_SPELL_STATS.test(path) || BREAKPOINT_COUNTS.test(path)
       const [rawMin, rawMax] = rangeFor(path, value)
       // Counts can't go below one, and a range that starts at 0 would offer
       // it. Pierce is the exception: zero is the normal value.
-      const floor = path.endsWith('.stats.pierce') ? 0 : 1
+      const floor = path.endsWith('.stats.pierce') || BREAKPOINT_COUNTS.test(path) ? 0 : 1
       const min = whole ? Math.max(floor, Math.round(rawMin)) : rawMin
       const max = whole ? Math.max(min + 1, Math.round(rawMax)) : rawMax
       readout.textContent = formatNumber(value)

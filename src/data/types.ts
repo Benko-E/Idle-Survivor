@@ -335,9 +335,25 @@ export interface UpgradeDef {
    * selector — sees them like the spell's own tags.
    */
   grantsTags?: string[]
+  /**
+   * The other half of an either-or pair, by id: Heavy Bolt or Accelerating
+   * Bolt. The two are always dealt side by side, never one without room for
+   * the other, and taking one rules out the other for the run. Said on
+   * either entry, or both.
+   */
+  pairedWith?: string
   displayName: string
-  /** Shown on the card. Write it for a player, not for a spreadsheet. */
+  /**
+   * Shown on the card: one short line, so five cards fit on a screen. Write
+   * it for a player, not for a spreadsheet. The rest goes in `details`.
+   */
   description: string
+  /**
+   * The longer story, shown when the card is hovered or its ⓘ tapped: how it
+   * works, what it keeps and what it changes. What it builds on, what it rules
+   * out and the numbers it changes are added to the tooltip on their own.
+   */
+  details?: string
   tags: Tag[]
 
   /** What taking it actually does. */

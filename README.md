@@ -680,6 +680,36 @@ Each level-up reserves a card for each of his spells that still has an
 upgrade to offer, and leaves `draft.openSlots` (1) free for anything else.
 With more spells than reserved cards, which spells get one is shuffled.
 
+### The level-up cards
+
+- **Short cards, long tooltips.** A card says one short line
+  (`description`, 45 characters at most — a test holds it to that). Hover
+  it, or tap its ⓘ on a phone, and the tooltip has the rest: its
+  `details`, which pick it would be (2 of 3), what it builds on, what it
+  rules out, and the numbers it would change, before and after —
+  "enemies pierced 1 → 2", "area 130 → 65". The numbers are worked out
+  from the run by the same resolver every stat goes through
+  (`sim/upgradeInfo.ts`), and a test checks each one against what the game
+  reads once the upgrade is taken.
+- **More than three cards.** `draft.choices` (3) plus the run's
+  `extraCards` (0, for an account unlock or something bought with gold
+  later) plus a breakpoint's. The left card still leans to fighting and the
+  right one to comfort however many there are; the ones between lean
+  nowhere. Five cards wrap onto two rows on a narrow window.
+- **Breakpoints** (`draft.breakpoints`): levels whose whole draft is about
+  one thing. Level 12 is his starting spell's (`spellTier: 1`): every card
+  is one of its upgrades. Level 20 is the evolutions'. If the focus runs
+  short, the rest are dealt as usual; `extraCards` deals more that level
+  only. The panel says which it is: "Level 12 · Firebolt".
+- **Levels are spent oldest first.** At level 14 with three waiting, the
+  next card is level 12's, so saving levels up never skips a breakpoint.
+  Evolutions go by the same level, from 20.
+- **Either-or pairs** (`pairedWith`): two upgrades always dealt side by
+  side in one frame with "or" between, each saying on its face that it
+  locks out the other, and never dealt without room for both. Taking one
+  rules out the other for the run. Built for Heavy Bolt and Accelerating
+  Bolt; nothing uses it yet.
+
 ### Upgrades for one spell
 
 The redo of the upgrades is going spell by spell, starting with Firebolt; the
@@ -918,3 +948,7 @@ That completes the spec's definition of done for the prototype. Past it:
   conjured into the world with its own spells, a way of moving (leash, still,
   drift, seek, circle, slither), a lifetime and a body. Test summons behind
   debug switches: a fire on the grass, a wandering fire, a lightning serpent.
+- [x] **27 — level-up cards.** Short cards with tooltips (details, the
+  numbers each would change, what it needs and rules out, an ⓘ for
+  phones); any number of cards; breakpoint levels whose cards are all one
+  spell's or all evolutions; either-or pairs. See "The level-up cards".

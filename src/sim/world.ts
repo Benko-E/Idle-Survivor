@@ -171,6 +171,12 @@ export interface World {
   draftRng: Rng
   /** The offers for the level waiting to be spent, once rolled. */
   draftOffers: Offer[] | null
+  /**
+   * Cards dealt per level-up on top of `draft.choices`, for this run. Zero
+   * today: it's where an account unlock or something bought with gold will
+   * add its card.
+   */
+  extraCards: number
 
   character: Character
   enemies: Enemy[]
@@ -273,6 +279,7 @@ export function createWorld(seed: number = config.world.seed, starterId?: string
     // produces the same drafts every time.
     draftRng: makeRng(seed ^ 0x5bd1e995),
     draftOffers: null,
+    extraCards: 0,
     character: {
       x: 0,
       y: 0,
