@@ -59,6 +59,8 @@ const SPELL_STATS: Record<string, StatInfo> = {
   },
   pierce: { label: 'enemies pierced', format: 'count' },
   fork: { label: 'forks', format: 'count' },
+  split: { label: 'extra bolts', format: 'count' },
+  stoked: { label: 'heat per enemy passed', format: 'percent' },
   falloff: { label: 'power kept per jump', format: 'percent' },
   slow: { label: 'slow', format: 'percent' },
   duration: { label: 'duration', format: 'seconds' },

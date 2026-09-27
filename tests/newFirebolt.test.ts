@@ -289,5 +289,17 @@ const damageOf = (world: World) => weaponStat(world, world.weapons[0], 'damage')
   check('...never past +120%, even back through a crowd', near(hottest, damageOf(w) * (1 + config.combat.stokedMax), 0.01), `${(hottest / damageOf(w)).toFixed(2)}x`)
 }
 
+// --- Backdraft ---------------------------------------------------------------------
+
+{
+  const w = fireWorld()
+  take(w, 'up_firebolt_backdraft')
+  w.weapons[0].cooldownRemaining = 99
+  w.lastHurtAt = w.time
+  rebuildEnemyGrid(w)
+  updateCombat(w, DT)
+  check('Backdraft: hurt, and 8 plain bolts burst out', w.projectiles.length === 8 && w.projectiles.every((p) => !p.mutations), `${w.projectiles.length}`)
+}
+
 console.log(failures === 0 ? '\nALL PASS' : `\n${failures} FAILED`)
 if (failures > 0) process.exitCode = 1

@@ -380,7 +380,7 @@ function drawWall(renderer: Renderer, world: World, zone: Zone, loudness: number
 function drawHotStreakReady(renderer: Renderer, world: World, loudness: number): void {
   if (world.state !== 'running') return
   for (const weapon of world.weapons) {
-    const every = Math.round(weaponStat(world, weapon, 'hotStreak'))
+    const every = Math.round(weaponStat(world, weapon, 'hotStreak')) || Math.round(weaponStat(world, weapon, 'whiteHot'))
     if (every <= 0 || (weapon.streak ?? 0) < every - 1) continue
     const pulse = 0.7 + 0.3 * Math.sin(world.time * 10)
     renderer.fillWorldCircle(world.character.x, world.character.y, world.character.radius * 1.8, weapon.def.colour, 0.3 * pulse * loudness)
@@ -400,6 +400,10 @@ const ORB_ART: Record<string, string> = { fire: 'orb_fire', frost: 'orb_ice' }
 function drawProjectiles(renderer: Renderer, world: World, loudness: number): void {
   for (let i = 0; i < world.projectiles.length; i++) {
     const projectile = world.projectiles[i]
+    // Heat (spellbook): white-hot for a Hot Streak, deepening red as Stoked
+    // heats up. A glow round the bolt only; the bolt itself never grows.
+    if (projectile.whiteHot) renderer.drawWorldOrb(projectile.x, projectile.y, projectile.radius * 1.6, FLIGHT_HEIGHT, '#ffffff', 0.85 * loudness)
+    else if (projectile.heat) renderer.drawWorldOrb(projectile.x, projectile.y, projectile.radius * 1.5, FLIGHT_HEIGHT, '#ff2a14', Math.min(1, projectile.heat / 8) * loudness)
     const element = projectile.tags.find((tag) => tag in ORB_ART)
     const sheet = element ? getSheet(ORB_ART[element]) : undefined
     if (!sheet) {
