@@ -323,6 +323,35 @@ export const WEAPON_DEFS: WeaponDef[] = [
     colour: '#f4e76e',
   },
 
+  // --- New build: the spellbook redesign -------------------------------------------
+  //
+  // Each takes over its tier and element as it's built (see spellsOfTier).
+  // Upgrades and design: the spellbook. Numbers start as the old spell's and
+  // wait for balance day.
+
+  {
+    id: 'spell_firebolt_01',
+    classId: 'class_wizard',
+    displayName: 'Firebolt',
+    description: 'A bolt of fire at the nearest enemy',
+    enabled: true,
+    tier: 1,
+    build: 'new',
+    tags: ['spell', 'fire', 'projectile', 'bolt'],
+    behaviour: 'projectile',
+    stats: {
+      cooldown: 0.95,
+      damage: 9,
+      count: 1,
+      speed: 360,
+      pierce: 0,
+      range: 520,
+      spread: 0.14,
+    },
+    fx: { hit: 'hit_fire' },
+    colour: '#ff8a3d',
+  },
+
   // --- Summon spells ------------------------------------------------------------------
   //
   // Cast by a summon from where it stands (data/summons.ts), never by him. No

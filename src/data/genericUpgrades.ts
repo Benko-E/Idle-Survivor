@@ -1,0 +1,50 @@
+import type { UpgradeDef } from './types'
+
+/**
+ * Upgrade lists shared by every spell of one shape — bolts now, beams and
+ * chains later — from the spellbook's "Generic upgrade ideas".
+ *
+ * Each spell gets its own copies, with its own spellId and ids, so a pick for
+ * one spell never reaches another: two bolt spells each have their own
+ * Pierce. `prefix` makes the ids: boltUpgrades('spell_firebolt_01',
+ * 'up_firebolt') gives up_firebolt_pierce, up_firebolt_fork, and so on.
+ */
+export function boltUpgrades(spellId: string, prefix: string): UpgradeDef[] {
+  return [
+    {
+      id: `${prefix}_pierce`,
+      spellId,
+      displayName: 'Pierce',
+      description: 'Passes through 1 more enemy',
+      details: 'The bolt passes through an enemy instead of stopping, and can hit another one behind it.',
+      tags: ['offence'],
+      modifiers: [{ target: 'pierce', op: 'add', value: 1 }],
+      grantsTags: ['piercing'],
+      maxStacks: 3,
+      weight: 55,
+    },
+    {
+      id: `${prefix}_fork`,
+      spellId,
+      displayName: 'Fork',
+      description: 'Hits throw a small bolt at another enemy',
+      details: 'After its first hit, the bolt throws a smaller bolt at another enemy nearby.',
+      tags: ['offence'],
+      // Forks are plain bolts at half the hit's damage (combat.forkDamage).
+      modifiers: [{ target: 'fork', op: 'add', value: 1 }],
+      maxStacks: 3,
+      weight: 55,
+    },
+    {
+      id: `${prefix}_return`,
+      spellId,
+      displayName: 'Return',
+      description: 'The bolt comes back to him',
+      details: 'At the end of its flight, or when an enemy stops it, the bolt turns around and flies back to him, through everything on the way.',
+      tags: ['offence'],
+      modifiers: [{ target: 'returns', op: 'add', value: 1 }],
+      maxStacks: 1,
+      weight: 45,
+    },
+  ]
+}

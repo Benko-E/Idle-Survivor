@@ -1,4 +1,5 @@
 import type { UpgradeDef } from './types'
+import { boltUpgrades } from './genericUpgrades'
 
 /**
  * Everything the draft can offer that isn't a new spell. (spec 5.5)
@@ -176,6 +177,13 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     weight: 45,
     requiresOwnedTags: ['root'],
   },
+
+  // --- Firebolt (new build) -------------------------------------------------------
+  //
+  // spell_firebolt_01: the generic bolt list, then its own mutations. The old
+  // Firebolt's section below stays for the old build.
+
+  ...boltUpgrades('spell_firebolt_01', 'up_firebolt'),
 
   // --- Firebolt ------------------------------------------------------------------
   //
