@@ -100,6 +100,12 @@ export interface Projectile {
   flown?: number
   /** Enemies passed through, for Stoked. */
   heat?: number
+  /**
+   * New build: what the bolt would hit for plain — its share of the spell's
+   * damage, before Heavy, Accelerating, Hot Streak or Stoked. Its forks hit
+   * for a share of this, since spawns get none of the upgrades (spellbook).
+   */
+  plainDamage?: number
 }
 
 /**
@@ -150,7 +156,7 @@ function fork(world: World, projectile: Projectile, from: Enemy, count: number):
   for (let i = 0; i < Math.min(count, nearby.length); i++) {
     const target = nearby[i]
     const angle = Math.atan2(target.y - from.y, target.x - from.x)
-    spawnPlainBolt(world, projectile.source, from.x, from.y, angle, projectile.damage * config.combat.forkDamage, reach * 1.3, from.id)
+    spawnPlainBolt(world, projectile.source, from.x, from.y, angle, (projectile.plainDamage ?? projectile.damage) * config.combat.forkDamage, reach * 1.3, from.id)
   }
 }
 
@@ -244,7 +250,9 @@ function turnBack(projectile: Projectile): void {
   projectile.mutations.returns--
   projectile.returning = true
   projectile.hits.clear()
-  projectile.forked = false
+  // The new build forks on its first hit only (spellbook); the old build
+  // forked again on the way back.
+  if (projectile.source.def.build !== 'new') projectile.forked = false
   projectile.pierce = Infinity
   projectile.life = (projectile.outLife ?? 1) * 1.5
   projectile.vx = -projectile.vx

@@ -49,6 +49,7 @@ Most of it exists. The `projectile` behaviour already has fork, return, pierce, 
 | Hot Streak | **New semantics**: the old one pierces everything and grows. The new one is every 5th cast at 2× damage, white-hot, same size. A new stat (`whiteHot`), so the old one stays as it is |
 | Stoked | **New**: +15% per enemy passed through, up to +120%, deep red, no size change |
 | Backdraft | Exists exactly as designed. Data only |
+| **Phase 2 must first decide: banked levels that can't be spent** | Found in Phase 1's review: once a run runs dry, each new level adds to both `level` and `pendingLevelUps`, so `draftLevel` stays frozen (about 17) and `evolutionLevel` 20 is never reached. Evolutions would never be offered to a run that ran dry. Options: evolution eligibility reads `world.level`; drop unspendable banked levels; or spend the backlog up to the newest level when offers reappear. Put it in Phase 2's Review Focus |
 | Pinwheel (Phase 2) | **New flight mode**: straight to the first hit, which is free, then an outward spiral from that point. Same flight time; Pierce rules after that |
 | Salvo (Phase 2) | **New cast mode**: bolts gather over his head, 5 at once. The stack counts bolts; a caught returning bolt adds half a charge |
 

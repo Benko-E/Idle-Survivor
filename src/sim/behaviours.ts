@@ -185,6 +185,8 @@ const projectile: Behaviour = ({ world, weapon, caster, def, stat }) => {
       empowered: hot,
       whiteHot: white || undefined,
       targetId: foe ? undefined : target.id,
+      // New build: its forks hit for a share of this, never its upgrades.
+      plainDamage: def.build === 'new' ? stat('damage') / (1 + split) : undefined,
       outLife: life,
     })
   }

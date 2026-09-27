@@ -301,5 +301,53 @@ const damageOf = (world: World) => weaponStat(world, world.weapons[0], 'damage')
   check('Backdraft: hurt, and 8 plain bolts burst out', w.projectiles.length === 8 && w.projectiles.every((p) => !p.mutations), `${w.projectiles.length}`)
 }
 
+// --- Forks stay plain (spellbook: spawns get none of the mutations or bolt upgrades) ---
+
+/** The damage of the first plain bolt a fork throws, with these upgrades and `casts` casts. */
+function forkDamage(ids: string[], casts = 1): number {
+  const w = fireWorld()
+  for (const id of ids) take(w, id)
+  enemy(w, 90, 0)
+  enemy(w, 130, 60)
+  for (let n = 0; n < casts; n++) {
+    w.projectiles.length = 0
+    cast(w)
+  }
+  for (let i = 0; i < 60; i++) {
+    fly(w, DT)
+    const fork = w.projectiles.find((p) => !p.mutations)
+    if (fork) return fork.damage
+  }
+  return NaN
+}
+{
+  const base = damageOf(fireWorld()) * config.combat.forkDamage
+  const white = forkDamage(['up_firebolt_fork', 'up_firebolt_hotstreak'], 5)
+  const heavy = forkDamage(['up_firebolt_fork', 'up_firebolt_heavy'])
+  check('A fork off a white-hot bolt: still half the plain hit', near(white, base), `${white} vs ${base}`)
+  check('...and off a Heavy bolt too', near(heavy, base), `${heavy} vs ${base}`)
+}
+{
+  const w = fireWorld()
+  take(w, 'up_firebolt_fork')
+  take(w, 'up_firebolt_return')
+  enemy(w, 150, 0)
+  // Near the way out and the way back, so a second fork would find a target.
+  enemy(w, 110, 50)
+  enemy(w, 60, 40)
+  cast(w)
+  let forks = 0
+  const seen = new Set<object>()
+  for (let i = 0; i < 150; i++) {
+    fly(w, DT)
+    for (const p of w.projectiles) {
+      if (p.mutations || seen.has(p)) continue
+      seen.add(p)
+      forks++
+    }
+  }
+  check('Only the first hit forks, not again on the way back', forks === 1, `${forks} fork(s)`)
+}
+
 console.log(failures === 0 ? '\nALL PASS' : `\n${failures} FAILED`)
 if (failures > 0) process.exitCode = 1
