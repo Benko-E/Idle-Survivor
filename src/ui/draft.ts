@@ -1,4 +1,4 @@
-import { currentOffers, draftBreakpoint, draftLevel, partnerOf, spellOfTier, takeOffer, type Offer } from '../sim/draft'
+import { currentOffers, draftBreakpoint, draftLevel, hasOffers, partnerOf, spellOfTier, takeOffer, type Offer } from '../sim/draft'
 import { formatStat, upgradeBuildsOn, upgradeChanges, upgradeLocksOut, upgradePick } from '../sim/upgradeInfo'
 import type { World } from '../sim/world'
 import { hudActions } from './skin'
@@ -306,9 +306,10 @@ export class DraftUi {
 
   /** Called every frame. Keeps the button's label and visibility honest. */
   update(): void {
-    // Nothing to spend once he's dead: the levels die with the run.
     const world = this.getWorld()
-    const pending = world.state === 'running' ? world.pendingLevelUps : 0
+    // Nothing to spend once he's dead (the levels die with the run), or while
+    // there's nothing to pick.
+    const pending = world.state === 'running' && world.pendingLevelUps > 0 && hasOffers(world) ? world.pendingLevelUps : 0
 
     this.button.hidden = pending <= 0 || this.open
     if (pending > 0) {

@@ -17,6 +17,9 @@ import { crossesWall, touchesWall } from '@game/sim/walls'
 import { createWorld, type Enemy, type World } from '@game/sim/world'
 import type { Zone } from '@game/sim/zones'
 
+// The old roster: retired, but still what this test is about.
+config.spells.oldBuild = true
+
 const DT = 1 / 60
 let failures = 0
 function check(name: string, ok: boolean, detail = ''): void {

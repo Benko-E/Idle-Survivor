@@ -18,9 +18,19 @@ import type { World } from './world'
  * And a class only ever sees its own: each spell names the class it belongs to.
  */
 
-/** Every enabled spell of a tier for a class, in data order. */
+/** Which build the menu and the tier choices offer: see `config.spells.oldBuild`. */
+export function activeBuild(): 'old' | 'new' {
+  return config.spells.oldBuild ? 'old' : 'new'
+}
+
+/**
+ * Every enabled spell of a tier for a class, in data order, for the build
+ * being played. The other build's spells are left out; unmarked ones belong
+ * to both.
+ */
 export function spellsOfTier(classDef: ClassDef, tier: number): WeaponDef[] {
-  return WEAPON_DEFS.filter((def) => def.enabled && def.tier === tier && def.classId === classDef.id)
+  const other = activeBuild() === 'old' ? 'new' : 'old'
+  return WEAPON_DEFS.filter((def) => def.enabled && def.tier === tier && def.classId === classDef.id && def.build !== other)
 }
 
 /** The level a tier opens at. Tier 1 is always open — it's the starting pick. */

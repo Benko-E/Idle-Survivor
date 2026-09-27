@@ -28,6 +28,11 @@ import type { WeaponDef } from './types'
  * To take a spell out of the game, set `enabled: false`. Every number is live
  * in the debug panel under "spells", and "log changes" prints what you moved.
  *
+ * Every spell above the new-build section is the old build (`build: 'old'`),
+ * retired: made before the spellbook redesign and no longer offered unless
+ * config.spells.oldBuild is on. Kept so the old build can still be played
+ * and its tests keep proving the systems underneath.
+ *
  * Tags do two jobs: flavour, and letting upgrades select on them. A spell
  * tagged 'fire' gets Kindled Fury; one tagged 'dot' makes Deepening Rot
  * appear in the draft. Tag honestly and the right upgrades follow.
@@ -46,6 +51,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     description: 'A fast bolt of fire at the nearest enemy',
     enabled: true,
     tier: 1,
+    build: 'old',
     tags: ['spell', 'fire', 'projectile', 'bolt'],
     behaviour: 'projectile',
     stats: {
@@ -68,6 +74,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     description: 'A slower bolt of ice that chills whatever it hits',
     enabled: true,
     tier: 1,
+    build: 'old',
     tags: ['spell', 'frost', 'projectile'],
     behaviour: 'projectile',
     stats: {
@@ -92,6 +99,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     description: 'Lightning that leaps from enemy to enemy',
     enabled: true,
     tier: 1,
+    build: 'old',
     tags: ['spell', 'lightning', 'chain'],
     behaviour: 'chain',
     // Buffed in the balance pass: the weakest spell alone, and as a starter
@@ -119,6 +127,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     description: 'A ring of holy fire around him, burning everything close',
     enabled: true,
     tier: 2,
+    build: 'old',
     tags: ['spell', 'fire', 'aura', 'area', 'dot'],
     behaviour: 'aura',
     stats: {
@@ -152,6 +161,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     description: 'A slow ball of ice that ploughs through everything in its path, chilling as it goes',
     enabled: true,
     tier: 2,
+    build: 'old',
     tags: ['spell', 'frost', 'projectile', 'area'],
     behaviour: 'projectile',
     stats: {
@@ -179,6 +189,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     description: 'Orbs of lightning circle him, striking anything they touch',
     enabled: true,
     tier: 2,
+    build: 'old',
     tags: ['spell', 'lightning', 'orbit', 'area'],
     behaviour: 'orbit',
     stats: {
@@ -210,6 +221,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     // Off while Firewall takes its place at tier 3; both are staying.
     enabled: false,
     tier: 3,
+    build: 'old',
     tags: ['spell', 'fire', 'zone', 'area'],
     behaviour: 'zone',
     targeting: 'densest',
@@ -234,6 +246,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     description: 'Raises a wall of fire just in front of the biggest crowd, burning everything that walks through it',
     enabled: true,
     tier: 3,
+    build: 'old',
     tags: ['spell', 'fire', 'wall', 'area', 'dot'],
     behaviour: 'wall',
     targeting: 'densest',
@@ -263,6 +276,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     description: 'A howling storm of ice over the biggest crowd, chilling and grinding down all inside',
     enabled: true,
     tier: 3,
+    build: 'old',
     tags: ['spell', 'frost', 'zone', 'area', 'dot'],
     behaviour: 'zone',
     targeting: 'densest',
@@ -286,6 +300,7 @@ export const WEAPON_DEFS: WeaponDef[] = [
     description: 'A storm settles over the biggest crowd, lightning striking at random beneath it',
     enabled: true,
     tier: 3,
+    build: 'old',
     tags: ['spell', 'lightning', 'zone', 'area', 'strike'],
     behaviour: 'zone',
     targeting: 'densest',

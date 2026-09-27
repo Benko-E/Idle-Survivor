@@ -101,6 +101,8 @@ function evolved(world: World, spellId: string): boolean {
 export function upgradeIsEligible(world: World, def: UpgradeDef): boolean {
   if ((world.upgradesTaken[def.id] ?? 0) >= def.maxStacks) return false
   if (def.spellId && !world.weapons.some((weapon) => weapon.def.id === def.spellId)) return false
+  // Retired: an upgrade of one build only for a run that owns a spell of it.
+  if (def.build && !world.weapons.some((weapon) => weapon.def.build === def.build)) return false
   if (def.requires && !def.requires.every((id) => (world.upgradesTaken[id] ?? 0) > 0)) return false
   if (retired(world, def)) return false
   if (def.kind === 'evolution') {
@@ -110,6 +112,15 @@ export function upgradeIsEligible(world: World, def: UpgradeDef): boolean {
   if (def.classIds && !def.classIds.includes(world.classDef.id)) return false
   if (!def.requiresOwnedTags) return true
   return def.requiresOwnedTags.every((tag) => ownsTag(world, tag))
+}
+
+/**
+ * Whether there's anything to offer right now. With nothing, a level can't be
+ * spent, so the level-up button stays hidden rather than doing nothing.
+ */
+export function hasOffers(world: World): boolean {
+  if (world.draftOffers && world.draftOffers.length > 0) return true
+  return UPGRADE_DEFS.some((def) => upgradeIsEligible(world, def))
 }
 
 function candidates(world: World): { offer: Offer; weight: number }[] {

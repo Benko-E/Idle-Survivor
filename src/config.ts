@@ -179,6 +179,11 @@ export const config = {
      * Empty for real play; add ids here to test a spell in isolation.
      */
     startingWeaponIds: [] as string[],
+    /**
+     * The spell a run starts with when nothing was picked: tests, benches, the
+     * run behind the menu. Real runs always pass the player's pick.
+     */
+    defaultStarter: 'spell_bolt_01',
   },
 
   /**
@@ -940,6 +945,13 @@ export const config = {
      * some spells `tier: 4` and it's offered.
      */
     tierLevels: [6, 15],
+    /**
+     * Which roster the menu and the tier choices offer. false: the new build,
+     * the spellbook redesign, and nothing else (a tier with no new spells yet
+     * is skipped). true: the old build as it was. Spells he already has keep
+     * working either way.
+     */
+    oldBuild: false,
   },
 
   /** Constants behind the formulas in sim/difficulty.ts. (spec 5.3) */

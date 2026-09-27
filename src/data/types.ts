@@ -319,6 +319,12 @@ export interface UpgradeDef {
    */
   spellId?: string
   /**
+   * Which build it's for, like WeaponDef.build. Set, it's only offered to a
+   * run that owns a spell of that build: every upgrade made before the
+   * redesign is 'old', so a new-build run never sees one.
+   */
+  build?: 'old' | 'new'
+  /**
    * mutation   changes how its spell works
    * evolution  transforms it: offered from draft.evolutionLevel, and taking
    *            one of a spell's evolutions rules out the rest for the run
@@ -446,6 +452,13 @@ export interface WeaponDef {
    * offered at all — that's how a spell is kept in the data for later.
    */
   tier?: number
+  /**
+   * Which build it belongs to: 'old' is everything made before the spellbook
+   * redesign, retired; 'new' is the redesign. Left out, it belongs to both
+   * (summon spells, shelved ones). `config.spells.oldBuild` picks which one
+   * is offered; see spellsOfTier in sim/spellTiers.ts.
+   */
+  build?: 'old' | 'new'
   /**
    * Both flavour and mechanics. Upgrade modifiers select on these, so
    * "+20% fire damage" or "+1 chain jump to lightning spells" need no code.

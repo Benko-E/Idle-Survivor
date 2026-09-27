@@ -14,12 +14,17 @@ import type { UpgradeDef } from './types'
  * Each modifier's target must be a stat something actually reads — the spell
  * stats are listed on WeaponDef in types.ts, the character's in sim/stats.ts.
  * A target nothing reads is an upgrade that silently does nothing.
+ *
+ * Every entry below is the old build (`build: 'old'`), retired: offered only
+ * to a run that owns an old spell. The new build's upgrades are marked by
+ * their spellId instead (and its general ones will get `build: 'new'`).
  */
 export const UPGRADE_DEFS: UpgradeDef[] = [
   // --- Offence: every spell --------------------------------------------------
 
   {
     id: 'up_damage_01',
+    build: 'old',
     displayName: 'Focused Will',
     description: '+15% spell damage',
     tags: ['offence'],
@@ -39,6 +44,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     // a recharge. It also used to shorten cooldowns by a flat percentage,
     // which adds up towards zero; see combat.ts for why it's a rate now.
     id: 'up_haste_01',
+    build: 'old',
     displayName: 'Quickened Mind',
     description: 'Spells recharge 15% faster',
     details: 'A rate, not a percentage off: each pick helps, and none can make a spell free.',
@@ -49,6 +55,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_range_01',
+    build: 'old',
     displayName: 'Farsight',
     description: 'Spells find targets 20% further away',
     tags: ['offence'],
@@ -64,6 +71,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
 
   {
     id: 'up_area_01',
+    build: 'old',
     displayName: 'Widened Sigils',
     // Radius, which is what the number actually is. "+25% area of effect"
     // undersold it: a quarter more radius is over half as much again of area.
@@ -77,6 +85,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_pierce_01',
+    build: 'old',
     displayName: 'Lancing Bolt',
     // Frost only, until frost gets its own upgrades: Firebolt has its own
     // Pierce now, and a generic one would have stacked on top of it.
@@ -90,6 +99,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_chain_01',
+    build: 'old',
     displayName: 'Forked Arc',
     description: '+1 chain jump',
     tags: ['offence', 'chain'],
@@ -100,6 +110,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_conduct_01',
+    build: 'old',
     displayName: 'Conduction',
     description: 'Chains lose less power with each jump',
     details: 'Each jump keeps more of the damage the last one did.',
@@ -113,6 +124,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_chill_01',
+    build: 'old',
     displayName: 'Permafrost',
     description: 'Chills slow 10% more and last 30% longer',
     details: 'Slowed enemies are never frozen solid by this alone: slows stop at 90%.',
@@ -129,6 +141,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_wither_01',
+    build: 'old',
     displayName: 'Deepening Rot',
     description: '+40% damage over time',
     tags: ['offence', 'curse'],
@@ -141,6 +154,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_strike_01',
+    build: 'old',
     displayName: 'Gathering Storm',
     description: 'Storms strike 25% more often',
     tags: ['offence', 'lightning'],
@@ -153,6 +167,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_root_01',
+    build: 'old',
     displayName: 'Deep Roots',
     description: 'Roots hold enemies 30% longer',
     tags: ['offence', 'root'],
@@ -171,6 +186,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
 
   {
     id: 'up_fb_ignite',
+    build: 'old',
     spellId: 'spell_bolt_01',
     kind: 'mutation',
     displayName: 'Ignite',
@@ -185,6 +201,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_fb_fork',
+    build: 'old',
     spellId: 'spell_bolt_01',
     kind: 'mutation',
     displayName: 'Fork',
@@ -198,6 +215,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_fb_pierce',
+    build: 'old',
     spellId: 'spell_bolt_01',
     kind: 'mutation',
     displayName: 'Pierce',
@@ -216,6 +234,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_fb_return',
+    build: 'old',
     spellId: 'spell_bolt_01',
     kind: 'mutation',
     displayName: 'Returning Bolt',
@@ -229,6 +248,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_fb_combust',
+    build: 'old',
     spellId: 'spell_bolt_01',
     kind: 'mutation',
     displayName: 'Combustion',
@@ -245,6 +265,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_fb_hotstreak',
+    build: 'old',
     spellId: 'spell_bolt_01',
     kind: 'mutation',
     displayName: 'Hot Streak',
@@ -258,6 +279,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_fb_backdraft',
+    build: 'old',
     spellId: 'spell_bolt_01',
     kind: 'mutation',
     displayName: 'Backdraft',
@@ -271,6 +293,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_fb_fireball',
+    build: 'old',
     spellId: 'spell_bolt_01',
     kind: 'evolution',
     displayName: 'Fireball',
@@ -291,6 +314,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_fb_phoenix',
+    build: 'old',
     spellId: 'spell_bolt_01',
     kind: 'evolution',
     displayName: 'Phoenix Bolt',
@@ -314,6 +338,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
 
   {
     id: 'up_rf_pyre',
+    build: 'old',
     spellId: 'spell_aura_01',
     kind: 'mutation',
     displayName: "Zealot's Pyre",
@@ -330,6 +355,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_rf_cling',
+    build: 'old',
     spellId: 'spell_aura_01',
     kind: 'mutation',
     displayName: 'Clinging Flames',
@@ -342,6 +368,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_rf_feed',
+    build: 'old',
     spellId: 'spell_aura_01',
     kind: 'mutation',
     displayName: 'Feed the Flames',
@@ -355,6 +382,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_rf_beacon',
+    build: 'old',
     spellId: 'spell_aura_01',
     kind: 'mutation',
     displayName: 'Beacon',
@@ -368,6 +396,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_rf_consume',
+    build: 'old',
     spellId: 'spell_aura_01',
     kind: 'mutation',
     displayName: 'Consuming Flames',
@@ -385,6 +414,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_rf_fervour',
+    build: 'old',
     spellId: 'spell_aura_01',
     kind: 'mutation',
     displayName: "Martyr's Fervour",
@@ -398,6 +428,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_rf_crown',
+    build: 'old',
     spellId: 'spell_aura_01',
     kind: 'evolution',
     displayName: 'Crown of Flames',
@@ -415,6 +446,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_rf_zealotry',
+    build: 'old',
     spellId: 'spell_aura_01',
     kind: 'evolution',
     displayName: 'Zealotry',
@@ -432,6 +464,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
 
   {
     id: 'up_fw_coals',
+    build: 'old',
     spellId: 'spell_wall_01',
     kind: 'mutation',
     displayName: 'Hot Coals',
@@ -446,6 +479,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_fw_embers',
+    build: 'old',
     spellId: 'spell_wall_01',
     kind: 'mutation',
     displayName: 'Wall of Embers',
@@ -459,6 +493,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_fw_kiln',
+    build: 'old',
     spellId: 'spell_wall_01',
     kind: 'mutation',
     displayName: 'Kiln',
@@ -472,6 +507,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_fw_hungry',
+    build: 'old',
     spellId: 'spell_wall_01',
     kind: 'mutation',
     displayName: 'Hungry Flames',
@@ -485,6 +521,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_fw_lane',
+    build: 'old',
     spellId: 'spell_wall_01',
     kind: 'mutation',
     displayName: 'Kiting Lane',
@@ -497,6 +534,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_fw_dancer',
+    build: 'old',
     spellId: 'spell_wall_01',
     kind: 'mutation',
     displayName: 'Wall Dancer',
@@ -510,6 +548,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_fw_ring',
+    build: 'old',
     spellId: 'spell_wall_01',
     kind: 'evolution',
     displayName: 'Burning Ring',
@@ -524,6 +563,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_fw_creep',
+    build: 'old',
     spellId: 'spell_wall_01',
     kind: 'evolution',
     displayName: 'Creeping Blaze',
@@ -539,6 +579,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
 
   {
     id: 'up_fire_01',
+    build: 'old',
     displayName: 'Kindled Fury',
     description: '+30% damage with fire spells',
     tags: ['offence', 'fire'],
@@ -553,6 +594,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_frost_01',
+    build: 'old',
     displayName: "Winter's Bite",
     description: '+30% damage with frost spells',
     tags: ['offence', 'frost'],
@@ -566,6 +608,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_storm_01',
+    build: 'old',
     displayName: 'Static Charge',
     description: '+30% damage with lightning spells',
     tags: ['offence', 'lightning'],
@@ -582,6 +625,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
 
   {
     id: 'up_vigour_01',
+    build: 'old',
     displayName: 'Hardy',
     description: '+20 maximum health',
     tags: ['defence'],
@@ -591,6 +635,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_regen_01',
+    build: 'old',
     displayName: 'Second Wind',
     description: 'Regenerate 1 health per second',
     tags: ['defence'],
@@ -600,6 +645,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_ward_01',
+    build: 'old',
     displayName: 'Warding',
     description: 'Take 10% less damage',
     details: 'Picks multiply rather than add up: four leave him taking 66% of the damage, and nothing makes him untouchable.',
@@ -615,6 +661,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
 
   {
     id: 'up_reach_01',
+    build: 'old',
     displayName: "Miser's Instinct",
     description: '+45% pickup radius',
     tags: ['utility'],
@@ -624,6 +671,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_swift_01',
+    build: 'old',
     displayName: 'Fleet Step',
     description: '+8% movement speed',
     tags: ['utility'],
@@ -633,6 +681,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_scholar_01',
+    build: 'old',
     displayName: 'Keen Study',
     description: '+20% experience gained',
     tags: ['utility'],
@@ -642,6 +691,7 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   },
   {
     id: 'up_greed_01',
+    build: 'old',
     displayName: 'Gilded Touch',
     description: '+25% gold found',
     tags: ['utility'],

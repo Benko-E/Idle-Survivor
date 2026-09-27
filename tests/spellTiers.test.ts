@@ -3,6 +3,10 @@ import { DEFAULT_CLASS } from '@game/data/classes'
 import { currentOffers, takeOffer } from '@game/sim/draft'
 import { pendingSpellTier, spellsOfTier, takeSpell } from '@game/sim/spellTiers'
 import { createWorld } from '@game/sim/world'
+import { config } from '@game/config'
+
+// The old roster: retired, but still what this test is about.
+config.spells.oldBuild = true
 
 let failures = 0
 function check(name: string, ok: boolean, detail = ''): void {

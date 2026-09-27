@@ -7,7 +7,6 @@ import type { ClassDef, EnemyDef, PickupDef, WeaponDef } from '../data/types'
 import type { BuildBonus } from './buildBonus'
 import type { Summon } from './summons'
 import type { Offer } from './draft'
-import { spellsOfTier } from './spellTiers'
 import type { Projectile } from './projectiles'
 import type { StatusEffect } from './statusEffects'
 import type { VisitMark } from './trail'
@@ -303,7 +302,7 @@ export function createWorld(seed: number = config.world.seed, starterId?: string
     trail: [],
     lastMarkX: 0,
     lastMarkY: 0,
-    weapons: startingSpells(classDef, starterId).map((id) => ({
+    weapons: startingSpells(starterId).map((id) => ({
       def: findWeaponDef(id),
       // Ready almost at once. There's only one starting spell, and since a
       // miss no longer spends the cooldown, spells drift out of lockstep on
@@ -346,8 +345,8 @@ export function createWorld(seed: number = config.world.seed, starterId?: string
 }
 
 /** The chosen starter, plus any extra spells the config hands out for testing. */
-function startingSpells(classDef: ClassDef, starterId: string | undefined): string[] {
-  const starter = starterId ?? spellsOfTier(classDef, 1)[0]?.id ?? 'spell_bolt_01'
+function startingSpells(starterId: string | undefined): string[] {
+  const starter = starterId ?? config.character.defaultStarter
   const ids = [starter, ...config.character.startingWeaponIds]
   return ids.filter((id, index) => ids.indexOf(id) === index)
 }

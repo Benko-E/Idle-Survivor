@@ -6,6 +6,10 @@ import { damageEnemy } from '@game/sim/damageEnemy'
 import { takeSpell } from '@game/sim/spellTiers'
 import { weaponStat } from '@game/sim/stats'
 import { createWorld, type Enemy } from '@game/sim/world'
+import { config } from '@game/config'
+
+// The old roster: retired, but still what this test is about.
+config.spells.oldBuild = true
 
 let failures = 0
 function check(name: string, ok: boolean, detail = ''): void {
