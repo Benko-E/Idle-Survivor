@@ -35,7 +35,7 @@ for (const arg of rest) {
 }
 
 // The tier 1 spells, one process each.
-const STARTERS = (options.starters ?? 'spell_bolt_01,spell_frostbolt_01,spell_chain_01').split(',')
+const STARTERS = (options.starters ?? 'spell_firebolt_01,spell_ray_of_frost_01,spell_chain_lightning_01').split(',')
 
 async function bundle(entries) {
   await build({

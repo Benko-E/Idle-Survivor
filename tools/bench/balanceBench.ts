@@ -1,6 +1,6 @@
 // Balance benchmark: full runs with a bot that drafts like a sensible player.
 //
-//   STARTERS=spell_bolt_01,...   which starting spell(s)
+//   STARTERS=spell_firebolt_01,...   which starting spell(s)
 //   SEEDS=1,2,3                  run seeds
 //   MAX=1800                     cap in seconds
 //   SOLO=1                       never take new spells, only upgrades

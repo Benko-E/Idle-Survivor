@@ -26,13 +26,17 @@ const CHARACTER_STATS: Record<string, number> = {
 }
 
 const reads: Record<string, Set<string>> = {}
+// The base each stat is read with when a spell has no number for it (stat(key, fallback)).
+const fallbacks: Record<string, Record<string, number>> = {}
 for (const def of WEAPON_DEFS) {
   const world = createWorld(1)
   world.enemies.push({ id: 1, def: ENEMY_DEFS[0], x: 60, y: 0, hp: 1e9, maxHp: 1e9, speed: 0, effects: [], stride: 0 })
   world.enemies.push({ id: 2, def: ENEMY_DEFS[0], x: 120, y: 0, hp: 1e9, maxHp: 1e9, speed: 0, effects: [], stride: 0 })
   rebuildEnemyGrid(world)
-  const keys = new Set<string>(JSON.parse(process.env.COMBAT_KEYS ?? '["cooldown", "cooldownRecovery", "backdraft"]'))
-  const landed = BEHAVIOURS[def.behaviour]({ world, weapon: { def, cooldownRemaining: 0, timesCast: 0, idleSeconds: 0, damageDealt: 0 }, caster: world.character, def, stat: (k) => { keys.add(k); return def.stats[k] ?? 0 } })
+  const seen: Record<string, number> = {}
+  fallbacks[def.id] = seen
+  const keys = new Set<string>(JSON.parse(process.env.COMBAT_KEYS ?? '["cooldown", "cooldownRecovery", "backdraft", "coldShoulder", "staticDischarge"]'))
+  const landed = BEHAVIOURS[def.behaviour]({ world, weapon: { def, cooldownRemaining: 0, timesCast: 0, idleSeconds: 0, damageDealt: 0 }, caster: world.character, def, stat: (k, fallback) => { keys.add(k); if (fallback !== undefined) seen[k] = fallback; return def.stats[k] ?? fallback ?? 0 } })
   reads[def.id] = keys
   console.log(`${def.displayName.padEnd(20)} reads: ${[...keys].join(', ')}${landed ? '' : '  (DID NOT CAST)'}`)
 }
@@ -43,7 +47,7 @@ for (const up of UPGRADE_DEFS) {
   const targets = new Set(up.modifiers.map((m) => m.target))
   for (const def of WEAPON_DEFS) {
     for (const key of reads[def.id]) {
-      const fallback = JSON.parse(process.env.FALLBACKS ?? '{"cooldownRecovery": 1}')[key] ?? 0
+      const fallback = JSON.parse(process.env.FALLBACKS ?? '{"cooldownRecovery": 1}')[key] ?? fallbacks[def.id][key] ?? 0
       const base = def.stats[key] ?? fallback
       const after = resolveStat(base, key, upgradeModifiers(up), [...def.tags, def.id, ...(up.spellId === def.id ? up.grantsTags ?? [] : [])])
       if (Math.abs(after - base) > 1e-9) { changes.push(`${def.displayName}.${key} ${+base.toFixed(3)}→${+after.toFixed(3)}`); targets.delete(key) }
