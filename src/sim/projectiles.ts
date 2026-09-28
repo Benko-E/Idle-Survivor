@@ -121,7 +121,7 @@ export interface Projectile {
    */
   plainDamage?: number
   /** Pinwheel's spiral once it has started: its centre, where round it the bolt is, how wide, how fast. */
-  spiral?: { x: number; y: number; angle: number; radius: number; speed: number }
+  spiral?: { x: number; y: number; angle: number; radius: number; speed: number; driftX: number; driftY: number }
 }
 
 /**
@@ -297,14 +297,29 @@ function boltDamageNow(projectile: Projectile): number {
   return damage
 }
 
-/** Pinwheel: start spiralling outward round (x, y), from wherever the bolt is now. */
-function startSpiral(projectile: Projectile, x: number, y: number): void {
+/**
+ * Pinwheel: start spiralling outward round (x, y), from wherever the bolt is
+ * now. The centre rolls away from whoever threw it (along the bolt's heading
+ * if it starts right on top of them), so the spiral never wraps round them.
+ */
+function startSpiral(world: World, projectile: Projectile, x: number, y: number): void {
+  const thrower = casterOf(world, projectile.source)
+  let awayX = x - thrower.x
+  let awayY = y - thrower.y
+  let away = Math.hypot(awayX, awayY)
+  if (away < 1e-6) {
+    awayX = projectile.vx
+    awayY = projectile.vy
+    away = Math.hypot(awayX, awayY) || 1
+  }
   projectile.spiral = {
     x,
     y,
     angle: Math.atan2(projectile.y - y, projectile.x - x),
     radius: config.combat.pinwheelStart,
     speed: Math.hypot(projectile.vx, projectile.vy),
+    driftX: awayX / away,
+    driftY: awayY / away,
   }
 }
 
@@ -350,7 +365,7 @@ function hit(world: World, projectile: Projectile, enemy: Enemy): boolean {
     projectile.damage = boltDamageNow(projectile)
   }
 
-  if (startsSpiral) startSpiral(projectile, enemy.x, enemy.y)
+  if (startsSpiral) startSpiral(world, projectile, enemy.x, enemy.y)
   return startsSpiral
 }
 
@@ -392,7 +407,7 @@ export function updateProjectiles(world: World, dt: number): void {
 
     // Pinwheel with nothing hit yet: the straight part is over, so it spirals from here.
     if (mutations?.pinwheel && !projectile.spiral && !projectile.returning && projectile.life <= (projectile.outLife ?? 0) * (1 - config.combat.pinwheelStraight)) {
-      startSpiral(projectile, projectile.x, projectile.y)
+      startSpiral(world, projectile, projectile.x, projectile.y)
     }
 
     const fromX = projectile.x
@@ -401,6 +416,8 @@ export function updateProjectiles(world: World, dt: number): void {
     if (spiral) {
       // Round and outward at the bolt's own speed (Accelerating's, if it has it).
       const speed = mutations?.accelerate ? Math.hypot(projectile.vx, projectile.vy) : spiral.speed
+      spiral.x += spiral.driftX * config.combat.pinwheelDrift * dt
+      spiral.y += spiral.driftY * config.combat.pinwheelDrift * dt
       spiral.radius += config.combat.pinwheelOpen * dt
       spiral.angle += (speed * dt) / spiral.radius
       projectile.x = spiral.x + Math.cos(spiral.angle) * spiral.radius

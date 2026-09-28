@@ -365,6 +365,19 @@ function forkDamage(ids: string[], casts = 1): number {
   check('...so level 20 still deals the evolutions', offered.includes('up_firebolt_pinwheel') && offered.includes('up_firebolt_salvo'), offered.join(', '))
 }
 
+{
+  const w = fireWorld()
+  // Save four levels, then take every upgrade: the saved ones have nothing left to spend on.
+  while (w.level < 5) grantXp(w, xpForLevel(w.level))
+  for (const def of UPGRADE_DEFS) {
+    if (def.spellId !== FIREBOLT || def.kind === 'evolution' || def.id === 'up_firebolt_accelerating') continue
+    for (let i = 0; i < def.maxStacks; i++) applyUpgrade(w, def)
+  }
+  while (w.level < 20) grantXp(w, xpForLevel(w.level))
+  const offered = currentOffers(w).map((offer) => offer.id)
+  check("...and saved-up levels left with nothing don't hold it back", offered.includes('up_firebolt_pinwheel') && offered.includes('up_firebolt_salvo'), `${w.pendingLevelUps} waiting: ${offered.join(', ')}`)
+}
+
 // --- Pinwheel ---------------------------------------------------------------------
 
 {
@@ -430,6 +443,33 @@ function forkDamage(ids: string[], casts = 1): number {
     }
   }
   check('Pinwheel + Return: flies straight home after the spiral', home && !spiralWhileReturning)
+}
+
+{
+  // Spellbook: it happens out in the crowd, never circling him. A first hit
+  // right next to him is the hard case.
+  const w = fireWorld()
+  w.level = 20
+  take(w, 'up_firebolt_pinwheel')
+  enemy(w, 40, 0)
+  cast(w)
+  const bolt = w.projectiles[0]
+  let turned = 0
+  let low = 0
+  let high = 0
+  let last = Math.atan2(bolt.y, bolt.x)
+  for (let i = 0; i < 200 && w.projectiles.includes(bolt); i++) {
+    fly(w, DT)
+    const now = Math.atan2(bolt.y, bolt.x)
+    let step = now - last
+    if (step > Math.PI) step -= Math.PI * 2
+    if (step < -Math.PI) step += Math.PI * 2
+    turned += step
+    low = Math.min(low, turned)
+    high = Math.max(high, turned)
+    last = now
+  }
+  check('Pinwheel next to him: rolls away, never circles him', high - low < Math.PI, `swept ${(high - low).toFixed(2)} rad round him`)
 }
 
 // --- Salvo --------------------------------------------------------------------------

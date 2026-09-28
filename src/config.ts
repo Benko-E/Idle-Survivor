@@ -315,6 +315,12 @@ export const config = {
     pinwheelStraight: 0.6,
     pinwheelStart: 10,
     pinwheelOpen: 90,
+    /**
+     * How fast the spiral's centre rolls away from him, faster than it opens,
+     * so a spiral started right beside him never wraps round him (spellbook:
+     * out in the crowd, never circling him).
+     */
+    pinwheelDrift: 110,
     /** Salvo: how many bolts gather over his head before they all fly, and the charge a caught returning bolt adds. */
     salvoStack: 5,
     salvoCatch: 0.5,

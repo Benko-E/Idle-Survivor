@@ -39,10 +39,10 @@ export function grantXp(world: World, amount: number): void {
     world.xpIntoLevel -= xpForLevel(world.level)
     world.level++
     world.pendingLevelUps++
-    // A level with nothing to pick passes rather than waiting forever: saved-up
-    // levels would hold draftLevel below the levels that do have something,
-    // like level 20's evolutions.
-    if (!hasOffers(world)) world.pendingLevelUps--
+    // Levels with nothing to pick pass rather than waiting forever, this one
+    // and any saved-up ones the picks ran out on: they'd hold draftLevel below
+    // the levels that do have something, like level 20's evolutions.
+    while (world.pendingLevelUps > 0 && !hasOffers(world)) world.pendingLevelUps--
   }
 }
 
