@@ -2,6 +2,11 @@
 // generic chain upgrades and its mutations, through the real simulation.
 import { DEFAULT_CLASS } from '@game/data/classes'
 import { ENEMY_DEFS } from '@game/data/enemies'
+import { UPGRADE_DEFS } from '@game/data/upgrades'
+import { config } from '@game/config'
+import { damageEnemy } from '@game/sim/damageEnemy'
+import { applyUpgrade, upgradeIsEligible } from '@game/sim/draft'
+import { applyCondition } from '@game/sim/statusEffects'
 import { updateCombat } from '@game/sim/combat'
 import { rebuildEnemyGrid } from '@game/sim/enemyGrid'
 import { spellsOfTier } from '@game/sim/spellTiers'
@@ -16,6 +21,15 @@ function check(name: string, ok: boolean, detail = ''): void {
   if (!ok) failures++
 }
 const near = (a: number, b: number, slack = 1e-6) => Math.abs(a - b) <= slack
+const up = (id: string) => {
+  const def = UPGRADE_DEFS.find((entry) => entry.id === id)
+  if (!def) throw new Error(`No upgrade "${id}"`)
+  return def
+}
+const take = (world: World, id: string, times = 1) => {
+  for (let i = 0; i < times; i++) applyUpgrade(world, up(id))
+}
+const eligible = (world: World, id: string) => upgradeIsEligible(world, up(id))
 let nextId = 1
 function enemy(world: World, x: number, y: number, hp = 1e9): Enemy {
   const e: Enemy = { id: nextId++, def: ENEMY_DEFS[0], x, y, hp, maxHp: hp, speed: 0, effects: [], stride: 0 }
@@ -60,6 +74,84 @@ const line = (world: World, n: number) => Array.from({ length: n }, (_, k) => en
   const out = enemy(w, 700, 0)
   cast(w)
   check('...nothing in range: nothing happens', lost(out) === 0)
+}
+
+// --- +1 Jump and Branching -----------------------------------------------------------
+
+{
+  const w = chainWorld()
+  check('+1 Jump and Branching offered with Chain Lightning', eligible(w, 'up_cl_jump') && eligible(w, 'up_cl_branch'))
+  check('...never with the old one', !eligible(createWorld(1, 'spell_chain_01'), 'up_cl_jump'))
+  take(w, 'up_cl_jump')
+  const six = line(w, 6)
+  cast(w)
+  check('+1 Jump: five enemies struck', six.filter((e) => lost(e) > 0).length === 5)
+}
+{
+  const w = chainWorld()
+  take(w, 'up_cl_branch')
+  const first = enemy(w, 100, 0)
+  enemy(w, 170, 0)
+  const side = enemy(w, 100, 90)
+  cast(w)
+  check('Branching: the first jump splits off to another enemy', near(lost(side), lost(first) * config.chain.branchShare), `${lost(side).toFixed(2)} vs ${lost(first).toFixed(2)}`)
+  check('...plain: nothing but the damage', side.effects.length === 0)
+}
+
+// --- Shock ------------------------------------------------------------------------
+
+{
+  const w = chainWorld()
+  take(w, 'up_cl_shock')
+  const [a] = line(w, 4)
+  cast(w)
+  const shock = a.effects.find((effect) => effect.condition === 'shocked')
+  check('Shock: its hits leave enemies shocked', !!shock && near(shock.magnitude, 0.2) && near(shock.remaining, config.chain.shockSeconds, 0.05))
+  const before = lost(a)
+  damageEnemy(w, a, 10, null)
+  check('...shocked enemies take more from everything', near(lost(a) - before, 12, 1e-6), `${(lost(a) - before).toFixed(2)} from a 10 hit`)
+  cast(w)
+  check("...and it doesn't stack", a.effects.filter((effect) => effect.condition === 'shocked').length === 1)
+}
+
+// --- Conduction ---------------------------------------------------------------------
+
+{
+  const w = chainWorld()
+  check('Conduction needs Shock first', !eligible(w, 'up_cl_conduction'))
+  take(w, 'up_cl_shock')
+  check('...offered once it is in', eligible(w, 'up_cl_conduction'))
+  take(w, 'up_cl_conduction')
+  const eight = line(w, 8)
+  cast(w)
+  check('...without shocked enemies: jumps as usual', eight.filter((e) => lost(e) > 0).length === 4)
+}
+{
+  const w = chainWorld()
+  take(w, 'up_cl_shock')
+  take(w, 'up_cl_conduction')
+  const eight = line(w, 8)
+  for (const e of eight) applyCondition(w, e, 'shocked', 0.2, 10, null)
+  cast(w)
+  check("...jumps onto shocked enemies don't use a jump", eight.every((e) => lost(e) > 0), `${eight.filter((e) => lost(e) > 0).length} of 8`)
+}
+
+// --- Crescendo ----------------------------------------------------------------------
+
+{
+  const w = chainWorld()
+  take(w, 'up_cl_crescendo')
+  const four = line(w, 4)
+  cast(w)
+  const k = [0.5, 0.75, 1, 2.5].map((m) => m * base(w))
+  check('Crescendo: weak first, each jump harder, the last doubled', four.every((e, i) => near(lost(e), k[i], 1e-6)), four.map((e) => lost(e).toFixed(2)).join(' / '))
+}
+{
+  const w = chainWorld()
+  take(w, 'up_cl_crescendo')
+  const [a, b] = line(w, 2)
+  cast(w)
+  check('...ending early, its real last hit gets the double', near(lost(a), 0.5 * base(w)) && near(lost(b), 1.5 * base(w)))
 }
 
 console.log(failures === 0 ? '\nALL PASS' : `\n${failures} FAILED`)

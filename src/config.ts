@@ -273,6 +273,20 @@ export const config = {
     dancerReach: 300,
   },
 
+  /** The new build's chains (sim/chains.ts): Chain Lightning. */
+  chain: {
+    /** Overload's creep: seconds each jump takes. */
+    creepSeconds: 0.08,
+    /** Branching: the branch's share of the first hit, and how far it reaches for its enemy. */
+    branchShare: 0.5,
+    branchRange: 165,
+    /** Static Discharge: how close to him an enemy must be for an arc, and the wait before it can go again. */
+    staticRange: 160,
+    staticCooldown: 5,
+    /** Shock: how long it lasts. */
+    shockSeconds: 3,
+  },
+
   /** Beams (sim/beams.ts): Ray of Frost, and whatever channels a beam later. */
   beam: {
     /** How close to the beam's line an enemy must be to count as touched, on top of its own size. */

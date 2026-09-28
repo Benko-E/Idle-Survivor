@@ -123,3 +123,36 @@ export function beamUpgrades(spellId: string, prefix: string): UpgradeDef[] {
     },
   ]
 }
+
+/**
+ * The generic chain list (spellbook): for any spell that chains — Chain
+ * Lightning now, a ranger's chaining shot or a berserker's thrown sword one
+ * day. A branch is a spawn, so it's plain.
+ */
+export function chainUpgrades(spellId: string, prefix: string): UpgradeDef[] {
+  return [
+    {
+      id: `${prefix}_jump`,
+      spellId,
+      displayName: '+1 Jump',
+      description: 'The chain jumps to 1 more enemy',
+      details: 'The chain leaps on to one more enemy before it ends.',
+      tags: ['offence'],
+      modifiers: [{ target: 'count', op: 'add', value: 1 }],
+      maxStacks: 3,
+      weight: 55,
+    },
+    {
+      id: `${prefix}_branch`,
+      spellId,
+      displayName: 'Branching',
+      description: 'The first jump splits in two',
+      details: 'Its first jump also sends a smaller branch to another enemy nearby, at half the damage and none of its other effects.',
+      tags: ['offence'],
+      // A plain instant arc at chain.branchShare of the first hit.
+      modifiers: [{ target: 'branch', op: 'add', value: 1 }],
+      maxStacks: 1,
+      weight: 50,
+    },
+  ]
+}

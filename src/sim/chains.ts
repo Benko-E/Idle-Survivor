@@ -1,6 +1,7 @@
 import { config } from '../config'
 import type { CastContext } from './behaviours'
 import { damageEnemy } from './damageEnemy'
+import { applyCondition, hasCondition } from './statusEffects'
 import { enemiesInRadius } from './targeting'
 import { HIT_SPARK_SECONDS, HIT_SPARK_SIZE, spawnArtLine, spawnSprite } from './vfx'
 import type { Enemy, WeaponInstance, World } from './world'
@@ -15,6 +16,13 @@ import type { Enemy, WeaponInstance, World } from './world'
  * creeping one waits `delay` between hops and lives in world.chains until
  * it's done. Before each hop strikes, the chain finds where it goes next, so
  * it always knows whether this hit is its last.
+ *
+ * Its upgrades are stats, so any chain spell could have them:
+ *   count       jumps after the first hit (+1 Jump)
+ *   branch      its first jump also sends a plain branch (Branching)
+ *   shock       its hits leave enemies shocked: +this damage taken from everything
+ *   conduction  a jump onto a shocked enemy doesn't use up a jump
+ *   crescendo   hits grow instead of weakening, the last one doubled
  */
 
 export interface Chain {
@@ -37,6 +45,11 @@ export interface Chain {
   /** Seconds between hops (0: all at once), and until the next. */
   delay: number
   timer: number
+  /** Its upgrades, fixed when it was cast. */
+  shock: number
+  conduction: boolean
+  crescendo: boolean
+  branch: boolean
 }
 
 const scratch: Enemy[] = []
@@ -73,6 +86,10 @@ export function castArc({ world, weapon, caster, stat }: CastContext): boolean {
     jumpRange: stat('jumpRange'),
     delay: 0,
     timer: 0,
+    shock: Math.max(0, stat('shock')),
+    conduction: stat('conduction') > 0,
+    crescendo: stat('crescendo') > 0,
+    branch: stat('branch') > 0,
   }
   if (chain.delay <= 0) runChain(world, chain)
   else world.chains.push(chain)
@@ -93,18 +110,46 @@ function hopOnce(world: World, chain: Chain): void {
   const enemy = chain.current
   if (!enemy) return
   chain.struck.add(enemy.id)
-  const next = chain.jumpsLeft > 0 ? nearestUnstruck(world, enemy.x, enemy.y, chain.jumpRange, chain.struck) : undefined
+  // Where it goes next: the nearest enemy it hasn't struck — if it has a jump
+  // left, or (Conduction) that enemy is shocked, which costs no jump.
+  const candidate = nearestUnstruck(world, enemy.x, enemy.y, chain.jumpRange, chain.struck)
+  const free = candidate !== undefined && chain.conduction && hasCondition(candidate, 'shocked')
+  const next = candidate && (chain.jumpsLeft > 0 || free) ? candidate : undefined
 
+  // Branching: its first jump also throws a plain branch at another enemy.
+  const first = chain.hop === 0
+  if (first && chain.branch) branchFrom(world, chain, enemy, next)
+
+  // Crescendo grows instead of weakening, its last hit doubled; otherwise
+  // each jump keeps `falloff` of the last.
+  const scale = chain.crescendo ? (0.5 + 0.25 * chain.hop) * (next ? 1 : 2) : chain.falloff ** chain.hop
   const def = chain.weapon.def
-  damageEnemy(world, enemy, chain.damage * chain.falloff ** chain.hop, chain.weapon)
+  damageEnemy(world, enemy, chain.damage * scale, chain.weapon)
+  if (chain.shock > 0 && enemy.hp > 0) applyCondition(world, enemy, 'shocked', chain.shock, config.chain.shockSeconds, chain.weapon)
   spawnArtLine(world, chain.x, chain.y, enemy.x, enemy.y, def.colour, config.combat.lineVfxSeconds, def.fx?.arc)
   if (def.fx?.hit) spawnSprite(world, def.fx.hit, enemy.x, enemy.y, HIT_SPARK_SIZE, HIT_SPARK_SECONDS, false)
 
   chain.x = enemy.x
   chain.y = enemy.y
   chain.hop++
-  if (next) chain.jumpsLeft--
+  if (next && !free) chain.jumpsLeft--
   chain.current = next
+}
+
+/**
+ * Branching: a plain arc from the first enemy to the nearest other one within
+ * chain.branchRange — not the one the chain jumps to next. It's a spawn:
+ * chain.branchShare of the first hit, and nothing else (no Shock).
+ */
+function branchFrom(world: World, chain: Chain, from: Enemy, next: Enemy | undefined): void {
+  const skip = new Set(chain.struck)
+  if (next) skip.add(next.id)
+  const target = nearestUnstruck(world, from.x, from.y, config.chain.branchRange, skip)
+  if (!target) return
+  chain.struck.add(target.id)
+  damageEnemy(world, target, chain.damage * config.chain.branchShare, chain.weapon)
+  const def = chain.weapon.def
+  spawnArtLine(world, from.x, from.y, target.x, target.y, def.colour, config.combat.lineVfxSeconds, def.fx?.arc)
 }
 
 /** Creeping chains: each waits its delay between hops. */

@@ -1,5 +1,5 @@
 import type { UpgradeDef } from './types'
-import { beamUpgrades, boltUpgrades } from './genericUpgrades'
+import { beamUpgrades, boltUpgrades, chainUpgrades } from './genericUpgrades'
 
 /**
  * Everything the draft can offer that isn't a new spell. (spec 5.5)
@@ -373,6 +373,52 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     modifiers: [{ target: 'winding', op: 'add', value: 1 }],
     maxStacks: 1,
     weight: 400,
+  },
+
+  // --- Chain Lightning (new build) --------------------------------------------------
+  //
+  // spell_chain_lightning_01: the generic chain list, then its own mutations.
+
+  ...chainUpgrades('spell_chain_lightning_01', 'up_cl'),
+  {
+    id: 'up_cl_shock',
+    spellId: 'spell_chain_lightning_01',
+    kind: 'mutation',
+    displayName: 'Shock',
+    description: 'Hits make enemies take more damage',
+    details: 'Enemies hit by Chain Lightning are shocked for a few seconds. Shocked enemies take more damage from everything, his other spells included.',
+    tags: ['offence', 'lightning'],
+    // +20% damage taken from everything, chain.shockSeconds; never stacks.
+    modifiers: [{ target: 'shock', op: 'add', value: 0.2 }],
+    grantsTags: ['shocking'],
+    maxStacks: 1,
+    weight: 60,
+  },
+  {
+    id: 'up_cl_conduction',
+    spellId: 'spell_chain_lightning_01',
+    kind: 'mutation',
+    displayName: 'Conduction',
+    description: "Shocked enemies don't use up a jump",
+    details: 'When the chain jumps to a shocked enemy, it hits it and carries on without using up one of its jumps.',
+    tags: ['offence', 'lightning'],
+    modifiers: [{ target: 'conduction', op: 'add', value: 1 }],
+    requires: ['up_cl_shock'],
+    maxStacks: 1,
+    weight: 55,
+  },
+  {
+    id: 'up_cl_crescendo',
+    spellId: 'spell_chain_lightning_01',
+    kind: 'mutation',
+    displayName: 'Crescendo',
+    description: 'Each jump hits harder; the last one hardest',
+    details: 'The chain starts weak and hits harder with every jump. The last enemy it reaches takes a huge hit.',
+    tags: ['offence', 'lightning'],
+    // 0.5x first, +25% a jump, the last doubled — instead of weakening.
+    modifiers: [{ target: 'crescendo', op: 'add', value: 1 }],
+    maxStacks: 1,
+    weight: 55,
   },
 
   // --- Firebolt ------------------------------------------------------------------
