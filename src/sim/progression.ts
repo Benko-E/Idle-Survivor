@@ -1,4 +1,5 @@
 import { config } from '../config'
+import { hasOffers } from './draft'
 import type { World } from './world'
 
 /**
@@ -38,6 +39,10 @@ export function grantXp(world: World, amount: number): void {
     world.xpIntoLevel -= xpForLevel(world.level)
     world.level++
     world.pendingLevelUps++
+    // A level with nothing to pick passes rather than waiting forever: saved-up
+    // levels would hold draftLevel below the levels that do have something,
+    // like level 20's evolutions.
+    if (!hasOffers(world)) world.pendingLevelUps--
   }
 }
 
