@@ -243,6 +243,7 @@ $coins.Dispose()
 $spellIcons = [ordered]@{
   'spell_bolt_01'      = 'red\red_20'      # streaking fireballs
   'spell_firebolt_01'  = 'red\red_20'      # the new build's Firebolt: same streaking fireballs
+  'spell_ray_of_frost_01' = 'blue\blue_21' # the new build's Ray of Frost: an icy shard of light
   'spell_frostbolt_01' = 'blue\blue_21'    # ice shard in flight
   'spell_chain_01'     = 'violet\violet_01' # forked purple lightning
   'spell_aura_01'      = 'red\red_05'      # a ring of fire

@@ -42,6 +42,7 @@ export function drawEffects(renderer: Renderer, world: World): void {
   drawZones(renderer, world, loudness, false)
   drawProjectiles(renderer, world, loudness)
   drawSalvoStacks(renderer, world, loudness)
+  drawBeams(renderer, world, loudness)
   drawOrbits(renderer, world, loudness)
   drawSummons(renderer, world, loudness, false)
 
@@ -436,6 +437,34 @@ function drawSalvoStacks(renderer: Renderer, world: World, loudness: number): vo
       const [dx, dy] = SALVO_SLOTS[i % SALVO_SLOTS.length]
       const bob = Math.sin(world.time * 6 + i) * 1.2
       renderer.drawWorldOrb(x + dx, y + dy, 4.5, FLIGHT_HEIGHT + 24 + bob, bolts[i].white ? '#ffffff' : weapon.def.colour, loudness)
+    }
+  }
+}
+
+/**
+ * Beams (Ray of Frost): from the caster through everything the beam touches,
+ * a soft wide glow under a bright core, drawn every frame from the enemies'
+ * current places so it follows them between ticks. Its forks are thinner.
+ * White for a moment when Cold Snap goes off.
+ */
+function drawBeams(renderer: Renderer, world: World, loudness: number): void {
+  if (world.state !== 'running') return
+  for (const weapon of allWeapons(world)) {
+    const beam = weapon.beam
+    if (!beam || beam.path.length === 0 || !weapon.def.enabled) continue
+    const flash = world.time < beam.flashUntil
+    const glow = flash ? '#ffffff' : weapon.def.colour
+    const core = flash ? '#ffffff' : '#eef9ff'
+    let from: { x: number; y: number } = casterOf(world, weapon)
+    for (const enemy of beam.path) {
+      renderer.strokeWorldLine(from.x, from.y, enemy.x, enemy.y, glow, flash ? 10 : 7, 0.3 * loudness)
+      renderer.strokeWorldLine(from.x, from.y, enemy.x, enemy.y, core, flash ? 3.5 : 2.5, 0.95 * loudness)
+      from = enemy
+    }
+    const target = beam.path[0]
+    for (const enemy of beam.forks) {
+      renderer.strokeWorldLine(target.x, target.y, enemy.x, enemy.y, glow, 4, 0.25 * loudness)
+      renderer.strokeWorldLine(target.x, target.y, enemy.x, enemy.y, core, 1.5, 0.8 * loudness)
     }
   }
 }

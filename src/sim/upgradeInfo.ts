@@ -61,6 +61,8 @@ const SPELL_STATS: Record<string, StatInfo> = {
   fork: { label: 'forks', format: 'count' },
   split: { label: 'extra bolts', format: 'count' },
   stoked: { label: 'heat per enemy passed', format: 'percent' },
+  wintersBreath: { label: 'push per second', format: 'plain' },
+  coldShoulder: { label: 'freeze when hit', format: 'seconds' },
   falloff: { label: 'power kept per jump', format: 'percent' },
   slow: { label: 'slow', format: 'percent' },
   duration: { label: 'duration', format: 'seconds' },
