@@ -300,7 +300,7 @@ export const config = {
      */
     sweepArc: 75,
     sweepPassSeconds: 1,
-    sweepTurn: 2,
+    sweepTurn: 8,
     sweepChill: 1,
     sweepFade: 0.2,
     /**

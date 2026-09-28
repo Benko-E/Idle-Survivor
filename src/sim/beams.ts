@@ -133,7 +133,7 @@ export function castBeam({ world, weapon, caster, stat }: CastContext): boolean 
   }
 
   // Frostbite's cold grows on what it touches and fades on the rest, idle or not.
-  if (stat('frostbite') > 0 || state.cold.size > 0) frostbite(world, weapon, state, stat('frostbite') > 0, sinceUpdate, sweep)
+  if (stat('frostbite') > 0 || state.cold.size > 0) frostbite(world, weapon, state, stat('frostbite') > 0, sinceUpdate, sweep, (enemy) => inArc(caster, state, range, enemy))
   return active
 }
 
@@ -166,9 +166,38 @@ function sweepTouch(world: World, from: { x: number; y: number }, state: BeamSta
     state.sweepPhase = (state.sweepPhase ?? 0) + (Math.PI * elapsed) / sweepPassSeconds
   }
   const angle = state.sweepCentre + ((sweepArc * Math.PI) / 180 / 2) * Math.sin(state.sweepPhase ?? 0)
+  const previous = state.sweepAngle ?? angle
   state.sweepAngle = angle
-  state.sweepLength = lineTouch(world, from, Math.cos(angle), Math.sin(angle), range, 1 + pierce, flashFreeze, state.path) ?? range
+
+  // Everything the line passed over since the last tick, not only where it
+  // points now: swinging fast, a single line would skip thin enemies far out.
+  // Sub-steps small enough that the line never moves more than its own width
+  // at the end of its reach.
+  const candidates = enemiesInRadius(world, from.x, from.y, range + config.beam.width, scratch).filter((enemy) => enemy.hp > 0)
+  let turned = angle - previous
+  while (turned > Math.PI) turned -= Math.PI * 2
+  while (turned < -Math.PI) turned += Math.PI * 2
+  const steps = Math.max(1, Math.ceil(Math.abs(turned) / (config.beam.width / Math.max(1, range))))
+  for (let step = 1; step <= steps; step++) {
+    const at = previous + (turned * step) / steps
+    const line: Enemy[] = []
+    const last = lineTouch(candidates, from, Math.cos(at), Math.sin(at), range, 1 + pierce, flashFreeze, line)
+    for (const enemy of line) if (!state.path.includes(enemy)) state.path.push(enemy)
+    if (step === steps) state.sweepLength = last ?? range
+  }
   return true
+}
+
+/** Glacial Sweep: whether an enemy is inside the arc the beam is sweeping (within its reach). */
+function inArc(from: { x: number; y: number }, state: BeamState, range: number, enemy: Enemy): boolean {
+  if (state.sweepCentre === undefined || enemy.hp <= 0) return false
+  const dx = enemy.x - from.x
+  const dy = enemy.y - from.y
+  if (dx * dx + dy * dy > range * range) return false
+  let off = Math.atan2(dy, dx) - state.sweepCentre
+  while (off > Math.PI) off -= Math.PI * 2
+  while (off < -Math.PI) off += Math.PI * 2
+  return Math.abs(off) <= (config.beam.sweepArc * Math.PI) / 180 / 2 + 0.2
 }
 
 /**
@@ -186,9 +215,12 @@ function windingTouch(world: World, from: { x: number; y: number }, state: BeamS
   const before = state.path.filter((enemy) => enemy !== state.target)
   state.path.length = 0
 
-  // Keep its target and the pack it's winding towards while it can.
+  // Keep its target and the pack it's winding towards while it can. With
+  // Flash Freeze a frozen target is let go only if there's an unfrozen enemy
+  // to go to: otherwise it stays put rather than jumping between frozen ones.
   let target = state.target
-  if (!target || !inReach(target) || (flashFreeze && isHeld(target))) {
+  const frozenOut = target !== undefined && flashFreeze && isHeld(target) && enemiesInRadius(world, from.x, from.y, range, scratch).some((enemy) => enemy.hp > 0 && !isHeld(enemy))
+  if (!target || !inReach(target) || frozenOut) {
     target = undefined
     state.windingAim = undefined
     const pack = pickTargets(world, from.x, from.y, range, 1, windingPack, 'densest', packScratch)[0]
@@ -200,6 +232,12 @@ function windingTouch(world: World, from: { x: number; y: number }, state: BeamS
       return state.target !== undefined
     }
     state.windingAim = pack
+  }
+  // Holding a target it found in a thin crowd: a straight beam on it, like
+  // the plain Ray, until it lets go and looks for a pack again.
+  if (target && !state.windingAim) {
+    state.path.push(target)
+    return true
   }
   const aim = state.windingAim && state.windingAim.hp > 0 ? state.windingAim : (target ?? undefined)
   if (!aim) return false
@@ -222,10 +260,13 @@ function windingTouch(world: World, from: { x: number; y: number }, state: BeamS
 
   const passes = windingPasses + pierce
   const counts = (enemy: Enemy) => !(flashFreeze && isHeld(enemy))
-  const through: Enemy[] = before.filter((enemy) => enemy !== target && inCorridor(enemy, 1.5))
+  // Its pass-throughs lie on its way: never past the target it holds.
+  const limit = target ? place(target).along : Infinity
+  const onTheWay = (enemy: Enemy) => place(enemy).along < limit
+  const through: Enemy[] = before.filter((enemy) => enemy !== target && inCorridor(enemy, 1.5) && onTheWay(enemy))
   let used = through.filter(counts).length
   const fresh = enemiesInRadius(world, from.x, from.y, range, scratch)
-    .filter((enemy) => enemy !== target && !through.includes(enemy) && inCorridor(enemy, 1))
+    .filter((enemy) => enemy !== target && !through.includes(enemy) && inCorridor(enemy, 1) && onTheWay(enemy))
     .sort((a, b) => place(a).along - place(b).along)
   for (const enemy of fresh) {
     if (used >= passes) break
@@ -240,9 +281,10 @@ function windingTouch(world: World, from: { x: number; y: number }, state: BeamS
     target = fresh.find((enemy) => !through.includes(enemy) && counts(enemy)) ?? (through.includes(aim) ? through.pop() : aim)
   }
   if (!target) return false
+  const targetAlong = place(target).along
   state.target = target
   state.winding = true
-  state.path.push(...through.filter((enemy) => enemy !== target), target)
+  state.path.push(...through.filter((enemy) => enemy !== target && place(enemy).along < targetAlong), target)
   return true
 }
 
@@ -253,11 +295,10 @@ const packScratch: Enemy[] = []
  * until `count` of them have been counted (with Flash Freeze, frozen ones
  * don't count). Returns how far along the last one is, or undefined if none.
  */
-function lineTouch(world: World, from: { x: number; y: number }, ux: number, uy: number, range: number, count: number, flashFreeze: boolean, out: Enemy[]): number | undefined {
+function lineTouch(candidates: readonly Enemy[], from: { x: number; y: number }, ux: number, uy: number, range: number, count: number, flashFreeze: boolean, out: Enemy[]): number | undefined {
   const width = config.beam.width
   const found: { enemy: Enemy; along: number }[] = []
-  for (const enemy of enemiesInRadius(world, from.x, from.y, range + width, scratch)) {
-    if (enemy.hp <= 0) continue
+  for (const enemy of candidates) {
     const dx = enemy.x - from.x
     const dy = enemy.y - from.y
     const along = dx * ux + dy * uy
@@ -375,14 +416,16 @@ function forkFrom(world: World, target: Enemy, count: number, state: BeamState):
  * chill follows the cold; at beam.freezeSeconds a touched enemy freezes, and
  * stays frozen while touched and beam.frozenLinger after.
  */
-function frostbite(world: World, weapon: WeaponInstance, state: BeamState, active: boolean, dt: number, sweep: boolean): void {
+function frostbite(world: World, weapon: WeaponInstance, state: BeamState, active: boolean, dt: number, sweep: boolean, inSweep: (enemy: Enemy) => boolean): void {
   const { freezeSeconds, chillFadeSeconds, maxChill, frozenLinger, sweepChill, sweepFade } = config.beam
   if (active) {
     for (const enemy of state.path) {
       const entry = state.cold.get(enemy.id) ?? { enemy, seconds: 0 }
       // Glacial Sweep only brushes each enemy: a step of cold each time it
       // starts crossing one, rather than a second's worth a second.
-      const gain = sweep ? (entry.was ? 0 : sweepChill) : dt
+      // One it stays on (right beside him) keeps getting colder, like the
+      // plain beam, rather than stopping at one step.
+      const gain = sweep ? (entry.was ? dt : sweepChill) : dt
       entry.seconds = Math.min(freezeSeconds, entry.seconds + gain)
       entry.fade = undefined
       state.cold.set(enemy.id, entry)
@@ -392,9 +435,15 @@ function frostbite(world: World, weapon: WeaponInstance, state: BeamState, activ
     const touched = active && state.path.includes(entry.enemy)
     entry.was = touched
     if (!touched) {
-      // Between sweeps it drains slowly; otherwise over chillFadeSeconds.
-      entry.fade ??= sweep ? sweepFade : entry.seconds / chillFadeSeconds
-      entry.seconds -= dt * entry.fade
+      if (sweep && inSweep(entry.enemy)) {
+        // Between passes, while it's still in the arc, it drains slowly.
+        entry.fade = undefined
+        entry.seconds -= dt * sweepFade
+      } else {
+        // Once the beam has left it for good: gone over chillFadeSeconds.
+        entry.fade ??= entry.seconds / chillFadeSeconds
+        entry.seconds -= dt * entry.fade
+      }
     }
     if (entry.enemy.hp <= 0 || entry.seconds <= 0) {
       setCondition(world, entry.enemy, 'chilled', 0, 0, weapon)

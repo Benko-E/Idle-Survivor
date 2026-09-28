@@ -380,6 +380,121 @@ const windingWorld = (...ids: string[]) => {
   check('...its pass-throughs hold steady while the crowd jostles', changes === 0, `${changes} changes in 1s`)
 }
 
+// --- Found in Phase 4's review -----------------------------------------------------------
+
+/** An enemy with its own radius, for thin enemies far out. */
+function thin(world: World, x: number, y: number, radius: number): Enemy {
+  const e = enemy(world, x, y)
+  e.def = { ...ENEMY_DEFS[0], radius }
+  return e
+}
+/** How many separate times the beam touches `e` over `seconds`. */
+function crossings(world: World, e: Enemy, seconds: number): number {
+  let count = 0
+  let was = false
+  for (let i = 0; i < Math.round(seconds / 0.05); i++) {
+    fly(world, 0.05)
+    const now = (world.weapons[0].beam?.path ?? []).includes(e)
+    if (now && !was) count++
+    was = now
+  }
+  return count
+}
+{
+  const near = frostWorld()
+  near.level = 20
+  take(near, 'up_ray_sweep')
+  const close = thin(near, 120, 0, 7)
+  const far = frostWorld()
+  far.level = 20
+  take(far, 'up_ray_sweep')
+  const distant = thin(far, 300, 0, 7)
+  const a = crossings(near, close, 10)
+  const b = crossings(far, distant, 10)
+  check('Glacial Sweep touches a thin enemy far out as often as one close', b >= a - 1 && b >= 8, `${a} crossings at 120, ${b} at 300`)
+}
+{
+  const w = frostWorld()
+  w.level = 20
+  take(w, 'up_ray_frostbite')
+  take(w, 'up_ray_sweep')
+  const hugging = enemy(w, 26, 0)
+  fly(w, 6)
+  check('...and with Frostbite freezes an enemy it never stops touching', isHeld(hugging))
+}
+{
+  const w = frostWorld()
+  w.level = 20
+  take(w, 'up_ray_sweep')
+  // Facing a crowd in front first; then the nearest enemy is behind him.
+  const front = enemy(w, 150, 0)
+  fly(w, 1)
+  front.hp = 0
+  const behind = enemy(w, -150, 0)
+  let touched = -1
+  for (let i = 0; i < 40 && touched < 0; i++) {
+    fly(w, 0.05)
+    if ((w.weapons[0].beam?.path ?? []).includes(behind)) touched = (i + 1) * 0.05
+  }
+  check('...turns to an enemy behind him within about a second', touched > 0 && touched <= 1.2, `after ${touched.toFixed(2)}s`)
+}
+{
+  const w = frostWorld()
+  w.level = 20
+  take(w, 'up_ray_frostbite')
+  take(w, 'up_ray_sweep')
+  const e = enemy(w, 120, 0)
+  fly(w, 2.5)
+  const cold = chillOf(e)
+  e.x = 900
+  fly(w, 2.3)
+  check('...its chill fades over 2s once the beam has gone for good', cold > 0 && chillOf(e) === 0, `${cold.toFixed(2)} then ${chillOf(e).toFixed(2)}`)
+}
+{
+  const w = windingWorld()
+  const a = enemy(w, 100, 0)
+  enemy(w, 200, 10)
+  let longest = 0
+  for (let i = 0; i < 10; i++) {
+    fly(w, 0.1)
+    longest = Math.max(longest, w.weapons[0].beam?.path.length ?? 0)
+  }
+  check('Winding Ray, thin crowd: stays a straight beam', longest === 1 && w.weapons[0].beam?.target === a, `longest path ${longest}`)
+}
+{
+  const w = windingWorld()
+  const { front } = crowd(w)
+  fly(w, 0.3)
+  front[0].hp = 0
+  fly(w, 0.3)
+  const path = w.weapons[0].beam?.path ?? []
+  const along = path.map((e) => Math.hypot(e.x, e.y))
+  check('...its pass-throughs always lie before its target', along.every((d, i) => i === 0 || d >= along[i - 1] - 1) && path[path.length - 1] === w.weapons[0].beam?.target, along.map((d) => d.toFixed(0)).join(' > '))
+}
+{
+  const w = windingWorld('up_ray_frostbite', 'up_ray_flashfreeze')
+  const { front, pack } = crowd(w)
+  // A big frozen crowd, so a fresh pick would likely land somewhere new.
+  const more = Array.from({ length: 24 }, (_, k) => enemy(w, 200 + (k % 6) * 22, -60 + Math.floor(k / 6) * 40))
+  for (const e of [...front, ...pack, ...more]) applyCondition(w, e, 'frozen', 1, 30, null)
+  fly(w, 0.2)
+  const held = w.weapons[0].beam?.target
+  let steady = held !== undefined
+  // Re-picking a pack every tick draws on the game's random numbers each time.
+  const random = w.rng
+  let draws = 0
+  w.rng = () => {
+    draws++
+    return random()
+  }
+  for (let i = 0; i < 10; i++) {
+    fly(w, 0.1)
+    if (w.weapons[0].beam?.target !== held) steady = false
+  }
+  w.rng = random
+  check('...everything frozen: it stays put, no jumping', steady && draws < 20, `${draws} random draws in 1s`)
+}
+
 // --- Found in review -----------------------------------------------------------------
 
 {
