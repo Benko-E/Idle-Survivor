@@ -44,6 +44,7 @@ export function drawEffects(renderer: Renderer, world: World): void {
   drawProjectiles(renderer, world, loudness)
   drawSalvoStacks(renderer, world, loudness)
   drawBeams(renderer, world, loudness)
+  drawWebs(renderer, world, loudness)
   drawOrbits(renderer, world, loudness)
   drawSummons(renderer, world, loudness, false)
 
@@ -509,6 +510,26 @@ function smoothBeam(points: { x: number; y: number; lift: number }[]): void {
     }
     cut.push(points[points.length - 1])
     points.splice(0, points.length, ...cut)
+  }
+}
+
+/**
+ * Storm Web: crackling links between the living enemies of each web, lifted
+ * to their bodies, jittering a little and fading as the web runs out.
+ */
+function drawWebs(renderer: Renderer, world: World, loudness: number): void {
+  if (world.state !== 'running') return
+  for (const web of world.webs) {
+    const fade = Math.max(0, 1 - web.age / Math.max(0.01, web.life))
+    const colour = web.weapon.def.colour
+    for (let i = 1; i < web.nodes.length; i++) {
+      const a = web.nodes[i - 1].enemy
+      const b = web.nodes[i].enemy
+      if (a.hp <= 0 || b.hp <= 0) continue
+      const flicker = 0.75 + 0.25 * Math.sin(world.time * 40 + i * 2.1)
+      renderer.strokeLiftedLine(a.x, a.y, beamLift(a, world.time), b.x, b.y, beamLift(b, world.time), colour, 4, 0.35 * fade * loudness)
+      renderer.strokeLiftedLine(a.x, a.y, beamLift(a, world.time), b.x, b.y, beamLift(b, world.time), '#f4ecff', 1.5, 0.9 * fade * flicker * loudness)
+    }
   }
 }
 

@@ -24,6 +24,7 @@ import type { Enemy, WeaponInstance, World } from './world'
  *   conduction  a jump onto a shocked enemy doesn't use up a jump
  *   crescendo   hits grow instead of weakening, the last one doubled
  *   overload    every Nth cast: twice the jumps, creeping (chain.creepSeconds a jump), white
+ *   web         Storm Web: when it ends, its links linger and zap its enemies (chain.web*)
  */
 
 export interface Chain {
@@ -53,6 +54,30 @@ export interface Chain {
   branch: boolean
   /** Overload's cast: drawn white. */
   overloaded: boolean
+  /** Every enemy it struck, and what it hit each for (Storm Web zaps a share of it). */
+  nodes: { enemy: Enemy; hit: number }[]
+  /** Storm Web: leave a web when it ends. */
+  web: boolean
+}
+
+/**
+ * Storm Web: a chain's links left strung between the enemies it struck,
+ * following them as they move. It zaps only its own enemies — a web on them,
+ * not a fence on the ground — chain.webZaps times over chain.webSeconds, each
+ * zap chain.webShare of what the chain hit that enemy for, and refreshes
+ * Shock each time. A link breaks when either of its enemies dies.
+ */
+export interface Web {
+  weapon: WeaponInstance
+  nodes: { enemy: Enemy; hit: number }[]
+  zapsLeft: number
+  /** Seconds between zaps, and until the next. */
+  interval: number
+  timer: number
+  /** Seconds it has lived, and will live: for fading it out. */
+  age: number
+  life: number
+  shock: number
 }
 
 const scratch: Enemy[] = []
@@ -106,6 +131,8 @@ export function castArc({ world, weapon, caster, stat }: CastContext): boolean {
     crescendo: stat('crescendo') > 0,
     branch: stat('branch') > 0,
     overloaded,
+    nodes: [],
+    web: stat('web') > 0,
   }
   if (chain.delay <= 0) {
     runChain(world, chain)
@@ -133,7 +160,10 @@ function hopOnce(world: World, chain: Chain): void {
   // the nearest one it hasn't struck from where it is, or ends.
   if (chain.current && chain.current.hp <= 0) chain.current = nearestUnstruck(world, chain.x, chain.y, chain.jumpRange, chain.struck)
   const enemy = chain.current
-  if (!enemy) return
+  if (!enemy) {
+    finish(world, chain)
+    return
+  }
   chain.struck.add(enemy.id)
   // Where it goes next: the nearest enemy it hasn't struck — if it has a jump
   // left, or (Conduction) that enemy is shocked, which costs no jump.
@@ -149,7 +179,9 @@ function hopOnce(world: World, chain: Chain): void {
   // each jump keeps `falloff` of the last.
   const scale = chain.crescendo ? (0.5 + 0.25 * chain.hop) * (next ? 1 : 2) : chain.falloff ** chain.hop
   const def = chain.weapon.def
-  damageEnemy(world, enemy, chain.damage * scale, chain.weapon)
+  const hit = chain.damage * scale
+  chain.nodes.push({ enemy, hit })
+  damageEnemy(world, enemy, hit, chain.weapon)
   if (chain.shock > 0 && enemy.hp > 0) applyCondition(world, enemy, 'shocked', chain.shock, config.chain.shockSeconds, chain.weapon)
   spawnArtLine(world, chain.x, chain.y, enemy.x, enemy.y, chain.overloaded ? '#ffffff' : def.colour, config.combat.lineVfxSeconds, def.fx?.arc)
   if (def.fx?.hit) spawnSprite(world, def.fx.hit, enemy.x, enemy.y, HIT_SPARK_SIZE, HIT_SPARK_SECONDS, false)
@@ -159,6 +191,51 @@ function hopOnce(world: World, chain: Chain): void {
   chain.hop++
   if (next && !free) chain.jumpsLeft--
   chain.current = next
+  if (!next) finish(world, chain)
+}
+
+/** A chain has made its last hop: Storm Web leaves its web behind. */
+function finish(world: World, chain: Chain): void {
+  if (!chain.web || chain.nodes.length === 0) return
+  const { webSeconds, webZaps } = config.chain
+  const zaps = Math.max(1, Math.round(webZaps))
+  world.webs.push({
+    weapon: chain.weapon,
+    nodes: chain.nodes,
+    zapsLeft: zaps,
+    interval: webSeconds / zaps,
+    timer: webSeconds / zaps,
+    age: 0,
+    life: webSeconds,
+    shock: chain.shock,
+  })
+  chain.web = false
+}
+
+/**
+ * Storm Web's zaps: continuous damage like a burn (a hit would flash each
+ * enemy white every zap), with a spark on each, and Shock topped up.
+ */
+function updateWebs(world: World, dt: number): void {
+  for (let i = world.webs.length - 1; i >= 0; i--) {
+    const web = world.webs[i]
+    web.age += dt
+    web.timer -= dt
+    while (web.zapsLeft > 0 && web.timer <= 0) {
+      web.zapsLeft--
+      web.timer += web.interval
+      const def = web.weapon.def
+      for (const { enemy, hit } of web.nodes) {
+        if (enemy.hp <= 0) continue
+        damageEnemy(world, enemy, hit * config.chain.webShare, web.weapon, true)
+        if (web.shock > 0 && enemy.hp > 0) applyCondition(world, enemy, 'shocked', web.shock, config.chain.shockSeconds, web.weapon)
+        if (def.fx?.hit) spawnSprite(world, def.fx.hit, enemy.x, enemy.y, HIT_SPARK_SIZE * 0.7, HIT_SPARK_SECONDS, false)
+      }
+    }
+    if (web.zapsLeft > 0) continue
+    world.webs[i] = world.webs[world.webs.length - 1]
+    world.webs.pop()
+  }
 }
 
 /**
@@ -179,8 +256,9 @@ function branchFrom(world: World, chain: Chain, from: Enemy, next: Enemy | undef
   spawnArtLine(world, from.x, from.y, target.x, target.y, def.colour, config.combat.lineVfxSeconds, def.fx?.arc)
 }
 
-/** Creeping chains: each waits its delay between hops. */
+/** Creeping chains: each waits its delay between hops. And Storm Web's webs. */
 export function updateChains(world: World, dt: number): void {
+  updateWebs(world, dt)
   for (let i = world.chains.length - 1; i >= 0; i--) {
     const chain = world.chains[i]
     chain.timer -= dt

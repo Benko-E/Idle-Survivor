@@ -8,7 +8,7 @@ import type { BuildBonus } from './buildBonus'
 import type { Summon } from './summons'
 import type { Offer } from './draft'
 import type { BeamState } from './beams'
-import type { Chain } from './chains'
+import type { Chain, Web } from './chains'
 import type { BoltSpec, Projectile } from './projectiles'
 import type { StatusEffect } from './statusEffects'
 import type { VisitMark } from './trail'
@@ -200,6 +200,8 @@ export interface World {
   zones: Zone[]
   /** Chains still creeping from enemy to enemy (sim/chains.ts). */
   chains: Chain[]
+  /** Storm Web: chains' links still lingering, zapping their enemies (sim/chains.ts). */
+  webs: Web[]
   /** Ground that hurts him: gas left by a Stinkcap. */
   hazards: Hazard[]
   /** Killed this step and with something to do about it. See resolveDeaths. */
@@ -312,6 +314,7 @@ export function createWorld(seed: number = config.world.seed, starterId?: string
     summons: [],
     zones: [],
     chains: [],
+    webs: [],
     hazards: [],
     dying: [],
     vfx: [],

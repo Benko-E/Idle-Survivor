@@ -285,6 +285,12 @@ export const config = {
     staticCooldown: 5,
     /** Shock: how long it lasts. */
     shockSeconds: 3,
+    /** Storm Web: how long a web lingers, how many zaps it makes in that time, and each zap's share of the enemy's hit. */
+    webSeconds: 1,
+    webZaps: 3,
+    webShare: 0.4,
+    /** Wandering Spark: seconds per hop. */
+    sparkHopSeconds: 0.12,
   },
 
   /** Beams (sim/beams.ts): Ray of Frost, and whatever channels a beam later. */

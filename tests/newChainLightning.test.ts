@@ -214,6 +214,65 @@ function fly(world: World, seconds: number): void {
   check('...until its wait is over', ring.reduce((sum, e) => sum + lost(e), 0) > total)
 }
 
+// --- Storm Web ----------------------------------------------------------------------
+
+const webWorld = (...ids: string[]) => {
+  const w = chainWorld()
+  w.level = 20
+  for (const id of ['up_cl_web', ...ids]) take(w, id)
+  return w
+}
+{
+  const w = chainWorld()
+  w.level = 20
+  check('Storm Web is an evolution, offered at 20', up('up_cl_web').kind === 'evolution' && eligible(w, 'up_cl_web'))
+  take(w, 'up_cl_web')
+  check('...and rules out Wandering Spark', !eligible(w, 'up_cl_spark'))
+  const four = line(w, 4)
+  cast(w)
+  const hits = four.map(lost)
+  fly(w, 1.2)
+  const { webZaps, webShare } = config.chain
+  check('...its links linger, zapping each enemy 3 more times', four.every((e, i) => near(lost(e), hits[i] * (1 + webZaps * webShare), 1e-6)), four.map((e) => lost(e).toFixed(2)).join(' / '))
+  check('...then it fades', w.webs.length === 0)
+}
+{
+  const w = webWorld()
+  const [a, b, c] = line(w, 3)
+  cast(w)
+  const before = [lost(a), lost(c)]
+  b.hp = 0
+  fly(w, 1.2)
+  check('...an enemy dying breaks its links, the rest keep zapping', lost(a) > before[0] && lost(c) > before[1])
+}
+{
+  const w = webWorld('up_cl_shock')
+  const [a] = line(w, 3)
+  cast(w)
+  fly(w, 0.9)
+  const shock = a.effects.find((effect) => effect.condition === 'shocked')
+  check('...every zap refreshes Shock', !!shock && shock.remaining > config.chain.shockSeconds - 0.5, `${shock?.remaining.toFixed(2)}s left`)
+}
+{
+  const w = webWorld('up_cl_crescendo')
+  const four = line(w, 4)
+  cast(w)
+  const last = lost(four[3])
+  fly(w, 1.2)
+  const zaps = (lost(four[3]) - last) / config.chain.webZaps
+  check('...with Crescendo the last enemy takes the big hit every zap', near(zaps, config.chain.webShare * 2.5 * base(w), 1e-6), `${zaps.toFixed(2)} a zap`)
+}
+{
+  const w = webWorld('up_cl_overload')
+  line(w, 8)
+  for (let n = 0; n < 4; n++) cast(w)
+  fly(w, 1.3)
+  cast(w)
+  check('...Overload creeps first', w.webs.length === 0 && w.chains.length === 1)
+  fly(w, 0.6)
+  check('...and leaves a giant web behind', w.webs.length === 1 && w.webs[0].nodes.length === 7, `${w.webs[0]?.nodes.length} enemies in it`)
+}
+
 // --- Found in Phase 5's review -----------------------------------------------------------
 
 {

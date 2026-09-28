@@ -446,6 +446,32 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     maxStacks: 1,
     weight: 45,
   },
+  {
+    id: 'up_cl_web',
+    spellId: 'spell_chain_lightning_01',
+    kind: 'evolution',
+    displayName: 'Storm Web',
+    description: 'The chain lingers as a crackling web',
+    details: "The chain doesn't vanish: it stays strung between the enemies it hit for a moment, zapping all of them a few more times before it fades.",
+    tags: ['offence', 'lightning'],
+    // chain.webZaps zaps over chain.webSeconds, each chain.webShare of that enemy's hit.
+    modifiers: [{ target: 'web', op: 'add', value: 1 }],
+    maxStacks: 1,
+    weight: 400,
+  },
+  {
+    id: 'up_cl_spark',
+    spellId: 'spell_chain_lightning_01',
+    kind: 'evolution',
+    displayName: 'Wandering Spark',
+    description: 'The chain becomes a bouncing spark',
+    details: 'Each cast becomes a visible spark that hops from enemy to enemy through the pack. Every enemy it kills gives it one more hop.',
+    tags: ['offence', 'lightning'],
+    // chain.sparkHopSeconds a hop; each kill gives it another.
+    modifiers: [{ target: 'spark', op: 'add', value: 1 }],
+    maxStacks: 1,
+    weight: 400,
+  },
 
   // --- Firebolt ------------------------------------------------------------------
   //
