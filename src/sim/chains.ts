@@ -46,6 +46,8 @@ export interface Chain {
   damage: number
   falloff: number
   jumpRange: number
+  /** His reach: how far its first hop may look for another if its first enemy dies. */
+  range: number
   /** Seconds between hops (0: all at once), and until the next. */
   delay: number
   timer: number
@@ -128,6 +130,7 @@ export function castArc({ world, weapon, caster, stat }: CastContext): boolean {
     damage: stat('damage'),
     falloff: stat('falloff', 1),
     jumpRange: stat('jumpRange'),
+    range: stat('range'),
     delay: overloaded ? config.chain.creepSeconds : 0,
     timer: 0,
     shock: Math.max(0, stat('shock')),
@@ -167,9 +170,7 @@ function runChain(world: World, chain: Chain): void {
  * strike the current enemy, draw the link, move on.
  */
 function hopOnce(world: World, chain: Chain): void {
-  // The enemy it was heading for died while it crept there: it jumps on to
-  // the nearest one it hasn't struck from where it is, or ends.
-  if (chain.current && chain.current.hp <= 0) chain.current = nearestUnstruck(world, chain.x, chain.y, chain.jumpRange, chain.struck)
+  if (chain.current && chain.current.hp <= 0) retarget(world, chain)
   const enemy = chain.current
   if (!enemy) {
     finish(world, chain)
@@ -212,6 +213,28 @@ function hopOnce(world: World, chain: Chain): void {
   if (next && !free) chain.jumpsLeft--
   chain.current = next
   if (!next) finish(world, chain)
+}
+
+/** How far through its current hop a creeping chain is, 0 to 1 (a spark's orb). */
+export function hopProgress(chain: Chain): number {
+  return Math.max(0, Math.min(1, 1 - chain.timer / Math.max(0.001, chain.delay)))
+}
+
+/**
+ * The enemy it was heading for died on the way: it turns to the nearest one
+ * it hasn't struck, or ends. A spark turns from where its orb has got to and
+ * travels a whole hop from there, never on to the corpse. Its first hop keeps
+ * his whole reach; later ones a jump's.
+ */
+function retarget(world: World, chain: Chain): void {
+  const dead = chain.current
+  if (chain.spark && dead) {
+    const t = hopProgress(chain)
+    chain.x += (dead.x - chain.x) * t
+    chain.y += (dead.y - chain.y) * t
+    chain.timer = chain.delay
+  }
+  chain.current = nearestUnstruck(world, chain.x, chain.y, chain.hop === 0 ? chain.range : chain.jumpRange, chain.struck)
 }
 
 /** A chain has made its last hop: Storm Web leaves its web behind. */
@@ -281,6 +304,10 @@ export function updateChains(world: World, dt: number): void {
   updateWebs(world, dt)
   for (let i = world.chains.length - 1; i >= 0; i--) {
     const chain = world.chains[i]
+    if (chain.current && chain.current.hp <= 0) {
+      retarget(world, chain)
+      if (!chain.current) finish(world, chain)
+    }
     chain.timer -= dt
     while (chain.current && chain.timer <= 0) {
       hopOnce(world, chain)

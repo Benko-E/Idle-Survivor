@@ -329,6 +329,47 @@ const struckCount = (enemies: Enemy[]) => enemies.filter((e) => lost(e) > 0).len
   check('...its next enemy dying mid-flight: it finds another', lost(a) > 0 && lost(alt) > 0 && w.chains.length === 0)
 }
 
+// --- Found in Phase 6's review -----------------------------------------------------------
+
+{
+  // Its first enemy dies on the way there: it still has his whole reach to
+  // find another, not just a jump's.
+  const w = sparkWorld()
+  const first = enemy(w, 150, 0)
+  const far = enemy(w, 300, 0)
+  cast(w)
+  fly(w, DT)
+  first.hp = 0
+  fly(w, 0.5)
+  check('Wandering Spark: first enemy dies mid-flight, it goes on', lost(far) > 0)
+}
+{
+  // Its next enemy dies mid-flight: it turns to another right away, from
+  // where it is, and travels there — it never flies on to the corpse.
+  const w = sparkWorld()
+  const [, b, c] = line(w, 3)
+  cast(w)
+  fly(w, 0.15)
+  b.hp = 0
+  fly(w, DT)
+  const chain = w.chains[0]
+  check('...it turns to a living enemy at once', chain?.current === c, chain?.current ? `heading for ${chain.current.id}` : 'no target')
+  check('...and flies on from where it was', chain !== undefined && chain.x > 100 && chain.x < 200, `${chain?.x.toFixed(0)}`)
+  fly(w, 0.08)
+  const before = lost(c)
+  fly(w, 0.1)
+  check('...travelling there, not striking it instantly', before === 0 && lost(c) > 0)
+}
+{
+  // A kill on its very last hop still earns one more.
+  const w = sparkWorld()
+  const six = line(w, 6)
+  six[3].hp = 1
+  cast(w)
+  fly(w, 1.2)
+  check('...a kill on its last hop earns one more, and no more', lost(six[4]) > 0 && lost(six[5]) === 0)
+}
+
 // --- Found in Phase 5's review -----------------------------------------------------------
 
 {

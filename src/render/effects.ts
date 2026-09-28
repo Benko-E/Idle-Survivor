@@ -1,5 +1,6 @@
 import { config } from '../config'
 import { auraRadius, isAura, pyreLit } from '../sim/auras'
+import { hopProgress } from '../sim/chains'
 import { allWeapons, type Summon } from '../sim/summons'
 import { orbitPositions } from '../sim/orbit'
 import { weaponStat } from '../sim/stats'
@@ -543,7 +544,7 @@ function drawSparks(renderer: Renderer, world: World, loudness: number): void {
   for (const chain of world.chains) {
     const to = chain.current
     if (!chain.spark || !to) continue
-    const t = Math.max(0, Math.min(1, 1 - chain.timer / Math.max(0.001, chain.delay)))
+    const t = hopProgress(chain)
     const fromLift = chain.hop === 0 ? FLIGHT_HEIGHT : BEAM_BODY_LIFT
     const x = chain.x + (to.x - chain.x) * t
     const y = chain.y + (to.y - chain.y) * t
