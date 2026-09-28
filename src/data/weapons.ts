@@ -352,6 +352,28 @@ export const WEAPON_DEFS: WeaponDef[] = [
     colour: '#ff8a3d',
   },
 
+  {
+    id: 'spell_ray_of_frost_01',
+    classId: 'class_wizard',
+    displayName: 'Ray of Frost',
+    description: 'A beam of cold that holds the nearest enemy',
+    enabled: true,
+    tier: 1,
+    build: 'new',
+    tags: ['spell', 'frost', 'beam'],
+    behaviour: 'beam',
+    // A beam "casts" on a short tick, like the orbit and body spells; damage
+    // is per second, dealt a tick's worth at a time. See sim/beams.ts.
+    stats: {
+      cooldown: 0.1,
+      damage: 10,
+      range: 340,
+      pierce: 0,
+    },
+    fx: { hit: 'hit_frost' },
+    colour: '#8fd8ff',
+  },
+
   // --- Summon spells ------------------------------------------------------------------
   //
   // Cast by a summon from where it stands (data/summons.ts), never by him. No

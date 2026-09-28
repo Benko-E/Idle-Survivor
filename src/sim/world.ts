@@ -7,6 +7,7 @@ import type { ClassDef, EnemyDef, PickupDef, WeaponDef } from '../data/types'
 import type { BuildBonus } from './buildBonus'
 import type { Summon } from './summons'
 import type { Offer } from './draft'
+import type { BeamState } from './beams'
 import type { BoltSpec, Projectile } from './projectiles'
 import type { StatusEffect } from './statusEffects'
 import type { VisitMark } from './trail'
@@ -141,6 +142,11 @@ export interface WeaponInstance {
   streak?: number
   /** World time Backdraft can next go off. */
   backdraftReady?: number
+  /**
+   * A beam's state between ticks (sim/beams.ts): the enemy it holds, what it's
+   * touching, its forks, each enemy's cold, and Cold Snap's timer.
+   */
+  beam?: BeamState
   /** Salvo: the bolts gathered over his head, and the half charges caught bolts have added. */
   salvo?: { bolts: BoltSpec[]; partial: number }
   /** An aura's pyre, put out by low health until he's healed. See sim/auras.ts. */

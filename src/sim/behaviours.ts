@@ -7,6 +7,7 @@ import { applyCondition } from './statusEffects'
 import { orbitPositions } from './orbit'
 import { enemiesInRadius, nearestEnemies, nearestEnemy, pickTargets, unburntEnemies } from './targeting'
 import { HIT_SPARK_SECONDS, HIT_SPARK_SIZE, spawnArtLine, spawnRing, spawnSprite } from './vfx'
+import { castBeam } from './beams'
 import { castWall } from './walls'
 import type { Caster, Enemy, WeaponInstance, World } from './world'
 
@@ -490,4 +491,6 @@ export const BEHAVIOURS: Record<string, Behaviour> = {
   // A strip of fire in front of the crowd, or a ring round it: sim/walls.ts.
   wall: castWall,
   body,
+  // A line held on an enemy, ticking: sim/beams.ts.
+  beam: castBeam,
 }

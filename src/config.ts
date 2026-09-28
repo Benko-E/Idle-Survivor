@@ -273,6 +273,27 @@ export const config = {
     dancerReach: 300,
   },
 
+  /** Beams (sim/beams.ts): Ray of Frost, and whatever channels a beam later. */
+  beam: {
+    /** How close to the beam's line an enemy must be to count as touched, on top of its own size. */
+    width: 10,
+    /** Pierce: how far past its target the beam reaches for the enemies behind. */
+    pierceReach: 140,
+    /** Fork: how far from the target a fork looks, and its share of the beam's damage. */
+    forkRange: 160,
+    forkShare: 0.5,
+    /** Frostbite: seconds touched to freeze, seconds for full chill to fade, and the slow just before freezing. */
+    freezeSeconds: 3,
+    chillFadeSeconds: 2,
+    maxChill: 0.7,
+    /** How long a frozen enemy stays frozen after the beam leaves it. */
+    frozenLinger: 2,
+    /** Cold Snap's white flash, in seconds. */
+    snapFlash: 0.25,
+    /** Cold Shoulder: seconds before it can freeze the enemies round him again. */
+    coldShoulderCooldown: 10,
+  },
+
   combat: {
     projectileRadius: 5,
     /** Plain bolts — forks, Backdraft — are this much of a normal bolt's size. */
