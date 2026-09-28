@@ -41,6 +41,7 @@ export function drawEffects(renderer: Renderer, world: World): void {
   drawAuras(renderer, world, loudness, false)
   drawZones(renderer, world, loudness, false)
   drawProjectiles(renderer, world, loudness)
+  drawSalvoStacks(renderer, world, loudness)
   drawOrbits(renderer, world, loudness)
   drawSummons(renderer, world, loudness, false)
 
@@ -419,6 +420,35 @@ function drawProjectiles(renderer: Renderer, world: World, loudness: number): vo
     renderer.drawWorldSprite(sheet, frame, projectile.x, projectile.y, FLIGHT_HEIGHT, h * sheet.aspect, h, loudness)
   }
 }
+
+/**
+ * Salvo: the bolts gathered over his head, in a tight cluster that fills up
+ * as they charge. A cluster, never a ring round him: circling him is how the
+ * tier 2 spells look. A white-hot one (Hot Streak) is drawn white.
+ */
+function drawSalvoStacks(renderer: Renderer, world: World, loudness: number): void {
+  if (world.state !== 'running') return
+  for (const weapon of world.weapons) {
+    const bolts = weapon.salvo?.bolts
+    if (!bolts || bolts.length === 0) continue
+    const { x, y } = world.character
+    for (let i = 0; i < bolts.length; i++) {
+      const [dx, dy] = SALVO_SLOTS[i % SALVO_SLOTS.length]
+      const bob = Math.sin(world.time * 6 + i) * 1.2
+      renderer.drawWorldOrb(x + dx, y + dy, 4.5, FLIGHT_HEIGHT + 24 + bob, bolts[i].white ? '#ffffff' : weapon.def.colour, loudness)
+    }
+  }
+}
+
+/** Where each gathered Salvo bolt sits over his head, first to last. */
+const SALVO_SLOTS: [number, number][] = [
+  [0, 0],
+  [-7, 2],
+  [7, 2],
+  [-4, -5],
+  [4, -5],
+  [0, -9],
+]
 
 /** Ball Lightning's orbs, from the same clock the damage uses. */
 function drawOrbits(renderer: Renderer, world: World, loudness: number): void {
