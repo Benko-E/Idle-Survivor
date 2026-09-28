@@ -1,5 +1,5 @@
 import type { UpgradeDef } from './types'
-import { boltUpgrades } from './genericUpgrades'
+import { beamUpgrades, boltUpgrades } from './genericUpgrades'
 
 /**
  * Everything the draft can offer that isn't a new spell. (spec 5.5)
@@ -276,6 +276,12 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     maxStacks: 1,
     weight: 400,
   },
+
+  // --- Ray of Frost (new build) ----------------------------------------------------
+  //
+  // spell_ray_of_frost_01: the generic beam list, then its own mutations.
+
+  ...beamUpgrades('spell_ray_of_frost_01', 'up_ray'),
 
   // --- Firebolt ------------------------------------------------------------------
   //

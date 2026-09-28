@@ -2,6 +2,8 @@
 // beam upgrades and its mutations, through the real simulation.
 import { DEFAULT_CLASS } from '@game/data/classes'
 import { ENEMY_DEFS } from '@game/data/enemies'
+import { UPGRADE_DEFS } from '@game/data/upgrades'
+import { applyUpgrade, upgradeIsEligible } from '@game/sim/draft'
 import { updateCombat } from '@game/sim/combat'
 import { rebuildEnemyGrid } from '@game/sim/enemyGrid'
 import { spellsOfTier } from '@game/sim/spellTiers'
@@ -16,6 +18,15 @@ function check(name: string, ok: boolean, detail = ''): void {
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${name.padEnd(52)} ${detail}`)
   if (!ok) failures++
 }
+const up = (id: string) => {
+  const def = UPGRADE_DEFS.find((entry) => entry.id === id)
+  if (!def) throw new Error(`No upgrade "${id}"`)
+  return def
+}
+const take = (world: World, id: string, times = 1) => {
+  for (let i = 0; i < times; i++) applyUpgrade(world, up(id))
+}
+const eligible = (world: World, id: string) => upgradeIsEligible(world, up(id))
 let nextId = 1
 function enemy(world: World, x: number, y: number, hp = 1e9): Enemy {
   const e: Enemy = { id: nextId++, def: ENEMY_DEFS[0], x, y, hp, maxHp: hp, speed: 0, effects: [], stride: 0 }
@@ -68,6 +79,29 @@ check('The new build offers the Ray at the start', spellsOfTier(DEFAULT_CLASS, 1
   const before = lost(walker)
   fly(w, 0.3)
   check('Its enemy leaves its range: it lets go', lost(walker) === before && (w.weapons[0].beam?.path.length ?? 0) === 0)
+}
+
+// --- Beam Pierce and Beam Fork -------------------------------------------------------
+
+{
+  const w = frostWorld()
+  check('Beam Pierce and Fork offered with the Ray', eligible(w, 'up_ray_pierce') && eligible(w, 'up_ray_fork'))
+  check("...never the bolt list's", !['up_firebolt_return', 'up_firebolt_heavy', 'up_firebolt_split'].some((id) => eligible(w, id)))
+  take(w, 'up_ray_pierce')
+  const target = enemy(w, 80, 0)
+  const behind = enemy(w, 130, 0)
+  const aside = enemy(w, 130, 60)
+  fly(w, 1)
+  check('Pierce: the enemy behind its target is touched too', lost(target) > 0 && lost(behind) > 0 && lost(aside) === 0, `${lost(behind).toFixed(1)} behind, ${lost(aside).toFixed(1)} aside`)
+}
+{
+  const w = frostWorld()
+  take(w, 'up_ray_fork')
+  const target = enemy(w, 80, 0)
+  const side = enemy(w, 100, 70)
+  fly(w, 1)
+  const share = lost(side) / lost(target)
+  check('Fork: a second beam off its target, at half the damage', Math.abs(share - 0.5) < 0.08, `${lost(side).toFixed(1)} vs ${lost(target).toFixed(1)}`)
 }
 
 console.log(failures === 0 ? '\nALL PASS' : `\n${failures} FAILED`)
