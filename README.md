@@ -62,7 +62,8 @@ long he lasted and who did the damage (`--seeds`, `--max`, `--name`, and
 `--env=KEY=value` for anything `balanceBench.ts` reads). `report` shows saved
 results side by side. `movement` measures wobble, stutter and skipped coins;
 `audit` lists what every upgrade actually changes. The bot drafts sensibly
-but never takes a tier 2 or 3 spell, so real runs go better than its.
+but never takes a tier 2 or 3 spell, so real runs go better than its. By
+default it plays the three new-build starters (`--starters=id,id` for others).
 
 ## Publishing, and making a copy you can send someone
 
@@ -282,7 +283,40 @@ as debug rings.
 
 ## Spells
 
-Nine in play, all in `src/data/weapons.ts`, laid out as a grid:
+The spells are being rebuilt one at a time from the spellbook, their design
+document. What's built so far is **the new build**; everything made before
+it is **the old build**, retired but kept.
+
+**The new build** — three tier 1 starters, picked on the menu:
+
+| Spell | Behaviour | Mutations | Evolutions (level 20, one of two) |
+| --- | --- | --- | --- |
+| Firebolt | projectile | Ignite, Kindling, Hot Streak, Stoked, Backdraft | Pinwheel, Salvo |
+| Ray of Frost | beam | Frostbite, Flash Freeze, Winter's Breath, Cold Snap, Cold Shoulder | Glacial Sweep, Winding Ray |
+| Chain Lightning | arc | Shock, Conduction, Crescendo, Overload, Static Discharge | Storm Web, Wandering Spark |
+
+- Each spell also gets its behaviour's generic list (`src/data/genericUpgrades.ts`):
+  - bolts: Pierce, Fork, Return, Heavy Bolt, Accelerating Bolt, Split Shot
+  - beams: Beam Pierce, Beam Fork
+  - chains: +1 Jump, Branching
+- Mutations add to a spell. Evolutions change how it works without undoing
+  earlier picks, and taking one rules out the other.
+- Their ids end in `_01` (`spell_firebolt_01`, `spell_ray_of_frost_01`,
+  `spell_chain_lightning_01`); their upgrades are `up_firebolt_*`,
+  `up_ray_*` and `up_cl_*`.
+- Tiers 2 and 3 have nothing yet, and there are no general upgrades. So a run
+  runs out of cards after a few levels. Levels with nothing to offer are
+  skipped, so the evolutions still arrive at 20.
+- **Where the code lives:**
+  - `sim/beams.ts`: the beam (sweeping, winding)
+  - `sim/chains.ts`: hopping chains, Storm Web's webs, Wandering Spark
+  - `sim/reactions.ts`: what fires when he's hurt (Backdraft, Cold Shoulder, Static Discharge)
+  - `sim/projectiles.ts`: the bolt's mutations
+
+**The old build** stays in the data files, every entry marked
+`build: 'old'`. Set `config.spells.oldBuild = true` to play it again (the new
+build is hidden then); the old tests run that way. It had nine spells, laid
+out as a grid:
 
 | | Fire | Frost | Lightning |
 | --- | --- | --- | --- |
@@ -304,7 +338,9 @@ They're built from a handful of generic behaviours:
 | Behaviour | Spells | What it does |
 | --- | --- | --- |
 | projectile | Firebolt, Frostbolt, Frozen Orb | Bolts at the nearest enemies; can pierce, chill or burn |
-| chain | Chain Lightning | Leaps from enemy to enemy |
+| beam | Ray of Frost *(new)* | A steady ray at the nearest enemy, damaging by the second |
+| arc | Chain Lightning *(new)* | Hops enemy to enemy, never the same one twice; can creep, linger or wander |
+| chain | Chain Lightning *(old)* | Leaps from enemy to enemy |
 | aura | Righteous Fire | A steady burn on everything close |
 | orbit | Ball Lightning | Orbs circling him, hitting what they touch |
 | zone | Meteor, Blizzard, Thunderstorm | Claims a patch of ground: warns, lands, then burns, chills, strikes, pulls or roots |
@@ -313,7 +349,8 @@ They're built from a handful of generic behaviours:
 
 Spells come in **tiers**, one per tier, and each choice is final:
 
-- **Tier 1** is picked on the menu: Firebolt, Frostbolt or Chain Lightning.
+- **Tier 1** is picked on the menu: Firebolt, Ray of Frost or Chain Lightning
+  (the old build: Firebolt, Frostbolt or Chain Lightning).
 - **Tier 2** opens at level 6 and **tier 3** at level 15
   (`spells.tierLevels`). A glowing *New spell!* button appears; picking one
   locks out the rest of that tier for the run. It doesn't pause, and he fights
