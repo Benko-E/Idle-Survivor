@@ -471,6 +471,8 @@ function drawBeams(renderer: Renderer, world: World, loudness: number): void {
       points.push({ x: caster.x + Math.cos(angle) * length, y: caster.y + Math.sin(angle) * length, lift: last ? beamLift(last, world.time) : FLIGHT_HEIGHT })
     } else {
       for (const enemy of alive) points.push({ x: enemy.x, y: enemy.y, lift: beamLift(enemy, world.time) })
+      // Winding Ray: a smooth, flowing curve through them, never jagged.
+      if (beam.winding) smoothBeam(points)
     }
     for (let i = 1; i < points.length; i++) {
       const from = points[i - 1]
@@ -478,7 +480,7 @@ function drawBeams(renderer: Renderer, world: World, loudness: number): void {
       renderer.strokeLiftedLine(from.x, from.y, from.lift, to.x, to.y, to.lift, glow, flash ? 10 : 7, 0.3 * loudness)
       renderer.strokeLiftedLine(from.x, from.y, from.lift, to.x, to.y, to.lift, core, flash ? 3.5 : 2.5, 0.95 * loudness)
     }
-    const target = beam.path[0]
+    const target = beam.target ?? beam.path[0]
     if (!target) continue
     const targetLift = beamLift(target, world.time)
     for (const enemy of beam.forks) {
@@ -487,6 +489,26 @@ function drawBeams(renderer: Renderer, world: World, loudness: number): void {
       renderer.strokeLiftedLine(target.x, target.y, targetLift, enemy.x, enemy.y, lift, glow, 4, 0.25 * loudness)
       renderer.strokeLiftedLine(target.x, target.y, targetLift, enemy.x, enemy.y, lift, core, 1.5, 0.8 * loudness)
     }
+  }
+}
+
+/**
+ * Round a beam's corners, in place: two rounds of Chaikin's corner cutting,
+ * keeping its ends, so Winding Ray flows like a river rather than zigzagging
+ * like lightning.
+ */
+function smoothBeam(points: { x: number; y: number; lift: number }[]): void {
+  for (let round = 0; round < 2 && points.length > 2; round++) {
+    const cut: { x: number; y: number; lift: number }[] = [points[0]]
+    for (let i = 0; i < points.length - 1; i++) {
+      const a = points[i]
+      const b = points[i + 1]
+      const mix = (t: number) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, lift: a.lift + (b.lift - a.lift) * t })
+      if (i > 0) cut.push(mix(0.25))
+      if (i < points.length - 2) cut.push(mix(0.75))
+    }
+    cut.push(points[points.length - 1])
+    points.splice(0, points.length, ...cut)
   }
 }
 

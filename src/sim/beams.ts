@@ -2,7 +2,7 @@ import { config } from '../config'
 import type { CastContext } from './behaviours'
 import { damageEnemy } from './damageEnemy'
 import { applyCondition, isHeld, setCondition } from './statusEffects'
-import { enemiesInRadius, nearestEnemy } from './targeting'
+import { enemiesInRadius, nearestEnemy, pickTargets } from './targeting'
 import type { Enemy, WeaponInstance, World } from './world'
 
 /**
@@ -29,6 +29,8 @@ import type { Enemy, WeaponInstance, World } from './world'
  *   coldSnap       seconds between freezing everything it touches outright
  *   sweep          Glacial Sweep: it stops holding and swings back and forth
  *                  through an arc (beam.sweep*), touching what's on its line
+ *   winding        Winding Ray: it aims into the densest pack and winds through
+ *                  the enemies in front of it (beam.winding*)
  */
 
 export interface BeamState {
@@ -56,6 +58,9 @@ export interface BeamState {
   sweepPhase?: number
   sweepAngle?: number
   sweepLength?: number
+  /** Winding Ray: the pack it's winding towards, while it holds a target there; true while it's winding (for drawing). */
+  windingAim?: Enemy
+  winding?: boolean
 }
 
 const scratch: Enemy[] = []
@@ -74,10 +79,16 @@ export function castBeam({ world, weapon, caster, stat }: CastContext): boolean 
   const flashFreeze = stat('flashFreeze') > 0
   const pierce = Math.max(0, Math.round(stat('pierce')))
   const sweep = stat('sweep') > 0
+  const winding = !sweep && stat('winding') > 0
   state.forks.length = 0
+  state.winding = false
 
   let active: boolean
-  if (sweep) {
+  if (winding) {
+    state.sweepAngle = undefined
+    state.sweepCentre = undefined
+    active = windingTouch(world, caster, state, range, pierce, flashFreeze)
+  } else if (sweep) {
     // Glacial Sweep: no holding, a swinging line.
     state.target = undefined
     active = sweepTouch(world, caster, state, range, pierce, flashFreeze, elapsed)
@@ -97,7 +108,8 @@ export function castBeam({ world, weapon, caster, stat }: CastContext): boolean 
 
   if (active) {
     state.lastTick = world.time
-    if (state.path.length > 0) forkFrom(world, state.path[0], Math.max(0, Math.round(stat('fork'))), state)
+    const forkOrigin = state.target ?? state.path[0]
+    if (forkOrigin) forkFrom(world, forkOrigin, Math.max(0, Math.round(stat('fork'))), state)
 
     // Continuous damage, like a burn, not a string of hits: a hit makes an
     // enemy flash white, and ten a second would be a strobe.
@@ -158,6 +170,83 @@ function sweepTouch(world: World, from: { x: number; y: number }, state: BeamSta
   state.sweepLength = lineTouch(world, from, Math.cos(angle), Math.sin(angle), range, 1 + pierce, flashFreeze, state.path) ?? range
   return true
 }
+
+/**
+ * Winding Ray: it heads for the middle of the densest pack in range, but only
+ * as deep as its pass-throughs reach: it passes through up to
+ * beam.windingPasses enemies in the corridor in front of the pack (+1 per
+ * Pierce; with Flash Freeze frozen ones are free), and the next is its
+ * target, held until it dies (or freezes, with Flash Freeze). Its
+ * pass-throughs are sticky like Pierce's, so a jostling crowd doesn't make it
+ * flicker. No real pack: a straight beam at the nearest enemy.
+ */
+function windingTouch(world: World, from: { x: number; y: number }, state: BeamState, range: number, pierce: number, flashFreeze: boolean): boolean {
+  const { windingPasses, windingPack, windingMinPack, windingCorridor } = config.beam
+  const inReach = (enemy: Enemy) => enemy.hp > 0 && (enemy.x - from.x) ** 2 + (enemy.y - from.y) ** 2 <= range * range
+  const before = state.path.filter((enemy) => enemy !== state.target)
+  state.path.length = 0
+
+  // Keep its target and the pack it's winding towards while it can.
+  let target = state.target
+  if (!target || !inReach(target) || (flashFreeze && isHeld(target))) {
+    target = undefined
+    state.windingAim = undefined
+    const pack = pickTargets(world, from.x, from.y, range, 1, windingPack, 'densest', packScratch)[0]
+    const around = pack ? enemiesInRadius(world, pack.x, pack.y, windingPack, scratch).length : 0
+    if (!pack || around < windingMinPack) {
+      // A thin crowd: a straight beam at the nearest, like the plain Ray.
+      state.target = chooseTarget(world, from, range, undefined, flashFreeze)
+      if (state.target) state.path.push(state.target)
+      return state.target !== undefined
+    }
+    state.windingAim = pack
+  }
+  const aim = state.windingAim && state.windingAim.hp > 0 ? state.windingAim : (target ?? undefined)
+  if (!aim) return false
+
+  // The corridor from him towards the pack, and how each enemy sits in it.
+  const length = Math.hypot(aim.x - from.x, aim.y - from.y) || 1
+  const ux = (aim.x - from.x) / length
+  const uy = (aim.y - from.y) / length
+  const half = windingCorridor / 2
+  const place = (enemy: Enemy) => {
+    const dx = enemy.x - from.x
+    const dy = enemy.y - from.y
+    return { along: dx * ux + dy * uy, off: Math.abs(dx * uy - dy * ux) }
+  }
+  const inCorridor = (enemy: Enemy, widen: number) => {
+    if (!inReach(enemy)) return false
+    const { along, off } = place(enemy)
+    return along > 0 && off <= half * widen
+  }
+
+  const passes = windingPasses + pierce
+  const counts = (enemy: Enemy) => !(flashFreeze && isHeld(enemy))
+  const through: Enemy[] = before.filter((enemy) => enemy !== target && inCorridor(enemy, 1.5))
+  let used = through.filter(counts).length
+  const fresh = enemiesInRadius(world, from.x, from.y, range, scratch)
+    .filter((enemy) => enemy !== target && !through.includes(enemy) && inCorridor(enemy, 1))
+    .sort((a, b) => place(a).along - place(b).along)
+  for (const enemy of fresh) {
+    if (used >= passes) break
+    through.push(enemy)
+    if (counts(enemy)) used++
+  }
+  through.sort((a, b) => place(a).along - place(b).along)
+
+  // Its target: the one it held, else the next enemy in the corridor past
+  // the pass-throughs, else the pack itself.
+  if (!target) {
+    target = fresh.find((enemy) => !through.includes(enemy) && counts(enemy)) ?? (through.includes(aim) ? through.pop() : aim)
+  }
+  if (!target) return false
+  state.target = target
+  state.winding = true
+  state.path.push(...through.filter((enemy) => enemy !== target), target)
+  return true
+}
+
+const packScratch: Enemy[] = []
 
 /**
  * Enemies on a line from `from` along (ux, uy) out to `range`, nearest first,

@@ -308,6 +308,78 @@ const at = (world: World, degrees: number, distance: number) => enemy(world, Mat
   check('...nothing in range: it rests', lost(out) === 0 && (w.weapons[0].beam?.path.length ?? 0) === 0 && w.weapons[0].beam?.sweepAngle === undefined)
 }
 
+// --- Winding Ray --------------------------------------------------------------------
+
+/** Three enemies in front, near the line, and a pack of six further out. */
+function crowd(world: World): { front: Enemy[]; pack: Enemy[] } {
+  const front = [enemy(world, 60, 12), enemy(world, 110, -12), enemy(world, 160, 12)]
+  const pack = [0, 1, 2, 3, 4, 5].map((k) => enemy(world, 260 + Math.cos(k) * 25, Math.sin(k) * 25))
+  return { front, pack }
+}
+const windingWorld = (...ids: string[]) => {
+  const w = frostWorld()
+  w.level = 20
+  for (const id of ['up_ray_winding', ...ids]) take(w, id)
+  return w
+}
+{
+  const w = frostWorld()
+  w.level = 20
+  check('Winding Ray is an evolution, offered at 20', up('up_ray_winding').kind === 'evolution' && eligible(w, 'up_ray_winding'))
+  take(w, 'up_ray_winding')
+  check('...and rules out Glacial Sweep', !eligible(w, 'up_ray_sweep'))
+  const { front, pack } = crowd(w)
+  fly(w, 1)
+  const deep = pack.filter((e) => lost(e) > 0).length
+  check('...it winds through the front three into the pack', front.every((e) => lost(e) > 0) && deep === 1, `${front.filter((e) => lost(e) > 0).length} front, ${deep} of the pack`)
+}
+{
+  const w = windingWorld('up_ray_pierce')
+  const { pack } = crowd(w)
+  fly(w, 1)
+  check('...each Pierce reaches one deeper', pack.filter((e) => lost(e) > 0).length === 2)
+}
+{
+  const w = windingWorld('up_ray_frostbite', 'up_ray_flashfreeze')
+  const { front, pack } = crowd(w)
+  applyCondition(w, front[1], 'frozen', 1, 30, null)
+  fly(w, 1)
+  check("...frozen enemies don't use up a pass-through", pack.filter((e) => lost(e) > 0).length === 2)
+}
+{
+  const w = windingWorld()
+  const lone = enemy(w, 120, 30)
+  fly(w, 1)
+  check('...a thin crowd: a straight beam at the nearest', lost(lone) > 0 && w.weapons[0].beam?.path.length === 1)
+}
+{
+  const w = windingWorld()
+  const { front } = crowd(w)
+  fly(w, 0.2)
+  // Bob one front enemy just in and out of the corridor it winds through
+  // (towards the pack it chose), as a jostling crowd does.
+  const aim = w.weapons[0].beam!.windingAim!
+  const length = Math.hypot(aim.x, aim.y)
+  const [ux, uy] = [aim.x / length, aim.y / length]
+  const edge = config.beam.windingCorridor / 2
+  const bob = (off: number) => {
+    front[1].x = ux * 110 - uy * off
+    front[1].y = uy * 110 + ux * off
+  }
+  bob(edge - 5)
+  fly(w, 0.2)
+  let changes = 0
+  let last = (w.weapons[0].beam?.path ?? []).map((e) => e.id).sort().join(',')
+  for (let i = 0; i < 10; i++) {
+    bob(i % 2 === 0 ? edge + 5 : edge - 5)
+    fly(w, 0.1)
+    const now = (w.weapons[0].beam?.path ?? []).map((e) => e.id).sort().join(',')
+    if (last && now !== last) changes++
+    last = now
+  }
+  check('...its pass-throughs hold steady while the crowd jostles', changes === 0, `${changes} changes in 1s`)
+}
+
 // --- Found in review -----------------------------------------------------------------
 
 {

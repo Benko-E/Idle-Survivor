@@ -303,6 +303,16 @@ export const config = {
     sweepTurn: 2,
     sweepChill: 1,
     sweepFade: 0.2,
+    /**
+     * Winding Ray: the pass-throughs it gets free (Pierce adds more), how near
+     * other enemies must be for an enemy to count as a pack, how many make a
+     * pack (fewer: a straight beam at the nearest), and how wide the corridor
+     * in front of the pack it winds through is.
+     */
+    windingPasses: 3,
+    windingPack: 90,
+    windingMinPack: 3,
+    windingCorridor: 70,
   },
 
   combat: {
