@@ -352,7 +352,8 @@ Spells come in **tiers**, one per tier, and each choice is final:
 - **Tier 1** is picked on the menu: Firebolt, Ray of Frost or Chain Lightning
   (the old build: Firebolt, Frostbolt or Chain Lightning).
 - **Tier 2** opens at level 6 and **tier 3** at level 15
-  (`spells.tierLevels`). A glowing *New spell!* button appears; picking one
+  (`spells.tierLevels`). *Old build only until the new build has tier 2 and
+  3 spells: a tier with no spells is skipped, so no button appears.* A glowing *New spell!* button appears; picking one
   locks out the rest of that tier for the run. It doesn't pause, and he fights
   on with what he has until you choose.
 - Level-ups only ever offer **upgrades**, never spells.
@@ -361,7 +362,9 @@ Spells come in **tiers**, one per tier, and each choice is final:
   glowing *NEW* when a choice is waiting.
 
 **Build bonuses**, settled when the last spell is chosen
-(`buildBonus` in the config, `sim/buildBonus.ts`):
+(`buildBonus` in the config, `sim/buildBonus.ts`). *Old build only for now:
+the new build's run never chooses a last spell, so neither can be earned
+yet.*
 
 - **Pure** — all three spells one element: +25% damage and burn for it.
 - **Prismatic** — one of each: *Elemental Equilibrium*. An enemy hit by one
@@ -687,10 +690,14 @@ by default), and anything that wants to know asks `hasCondition(enemy, id)`.
 
 ## Upgrades
 
-They all live in `src/data/upgrades.ts`, as data. Each one is a list of
+They live in `src/data/upgrades.ts` (plus the generic bolt, beam and chain
+lists in `src/data/genericUpgrades.ts`), as data. Each one is a list of
 modifiers on a named stat: the spell stats are listed on `WeaponDef` in
 `data/types.ts`, the character's in `sim/stats.ts`. Gear and character stats
 will be more modifiers into the same list, so they need no new code either.
+
+The table below is **the old build's** (`build: 'old'`). The new build's
+upgrades are listed per spell under Spells above.
 
 | Group | Upgrades |
 | --- | --- |
