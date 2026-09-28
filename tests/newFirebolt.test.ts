@@ -421,7 +421,10 @@ function forkDamage(ids: string[], casts = 1): number {
     if (bolt.spiral && spiralAt < 0) spiralAt = steps * DT
   }
   check('Pinwheel missing everything: spirals where the straight part ends', near(spiralAt, life * config.combat.pinwheelStraight, 0.05), `${spiralAt.toFixed(2)}s of ${life.toFixed(2)}s`)
-  check('...and still ends on time', near(steps * DT, life, 0.05), `${(steps * DT).toFixed(2)}s`)
+  // The spiral stretches the rest of the flight (playtest: "at least doubled").
+  const { pinwheelStraight, pinwheelSpiralLife } = config.combat
+  const expected = life * (pinwheelStraight + (1 - pinwheelStraight) * pinwheelSpiralLife)
+  check('...and its spiral lasts twice the rest of the flight', near(steps * DT, expected, 0.06), `${(steps * DT).toFixed(2)}s, expected ${expected.toFixed(2)}s`)
 }
 {
   const w = fireWorld()

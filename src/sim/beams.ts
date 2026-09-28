@@ -66,14 +66,15 @@ export function castBeam({ world, weapon, caster, stat }: CastContext): boolean 
 
   const flashFreeze = stat('flashFreeze') > 0
   state.target = chooseTarget(world, caster, range, state.target, flashFreeze)
-  state.path.length = 0
   state.forks.length = 0
 
   if (state.target) {
     state.lastTick = world.time
     const target = state.target
+    const before = state.path.slice(1)
+    state.path.length = 0
     state.path.push(target)
-    pierceBehind(world, caster, target, Math.max(0, Math.round(stat('pierce'))), flashFreeze, state.path)
+    pierceBehind(world, caster, target, Math.max(0, Math.round(stat('pierce'))), flashFreeze, state.path, before)
     forkFrom(world, target, Math.max(0, Math.round(stat('fork'))), state)
 
     // Continuous damage, like a burn, not a string of hits: a hit makes an
@@ -93,6 +94,7 @@ export function castBeam({ world, weapon, caster, stat }: CastContext): boolean 
       }
     }
   } else {
+    state.path.length = 0
     state.lastTick = undefined
   }
 
@@ -138,31 +140,49 @@ function chooseTarget(world: World, from: { x: number; y: number }, range: numbe
  * Beam Pierce: up to `count` enemies behind its target, on the line from him
  * through it and up to `beam.pierceReach` past it, nearest first. With Flash
  * Freeze, frozen ones are passed through free: touched, but not counted.
+ *
+ * Sticky, so a jostling crowd doesn't make it flicker (playtest): enemies it
+ * pierced last tick are kept while they're still roughly behind the target —
+ * a strip twice as wide and a little longer than the one it picks from — and
+ * only the places left over are filled with new ones.
  */
-function pierceBehind(world: World, from: { x: number; y: number }, target: Enemy, count: number, flashFreeze: boolean, path: Enemy[]): void {
+function pierceBehind(world: World, from: { x: number; y: number }, target: Enemy, count: number, flashFreeze: boolean, path: Enemy[], before: readonly Enemy[]): void {
   if (count <= 0) return
   const { pierceReach, width } = config.beam
   const length = Math.hypot(target.x - from.x, target.y - from.y) || 1
   const ux = (target.x - from.x) / length
   const uy = (target.y - from.y) / length
-  const behind: { enemy: Enemy; along: number }[] = []
-  for (const enemy of enemiesInRadius(world, target.x, target.y, pierceReach + width, scratch)) {
-    if (enemy === target || enemy.hp <= 0) continue
+  const place = (enemy: Enemy) => {
     const dx = enemy.x - target.x
     const dy = enemy.y - target.y
-    const along = dx * ux + dy * uy
-    if (along <= 0 || along > pierceReach) continue
-    const off = Math.abs(dx * uy - dy * ux)
-    if (off > width + enemy.def.radius) continue
-    behind.push({ enemy, along })
+    return { along: dx * ux + dy * uy, off: Math.abs(dx * uy - dy * ux) }
   }
-  behind.sort((a, b) => a.along - b.along)
-  let used = 0
-  for (const { enemy } of behind) {
+  const inStrip = (enemy: Enemy, stretch: number, widen: number) => {
+    if (enemy === target || enemy.hp <= 0) return false
+    const { along, off } = place(enemy)
+    return along > 0 && along <= pierceReach * stretch && off <= width * widen + enemy.def.radius
+  }
+
+  const chosen: Enemy[] = before.filter((enemy) => inStrip(enemy, 1.2, 2))
+  const counts = (enemy: Enemy) => !(flashFreeze && isHeld(enemy))
+  let used = chosen.filter(counts).length
+  // More kept than it may have now (it lost a Pierce pick? never — but stay safe): drop the farthest.
+  while (used > count) {
+    chosen.sort((p, q) => place(p).along - place(q).along)
+    const dropped = chosen.pop()!
+    if (counts(dropped)) used--
+  }
+
+  const fresh = enemiesInRadius(world, target.x, target.y, pierceReach + width, scratch)
+    .filter((enemy) => !chosen.includes(enemy) && inStrip(enemy, 1, 1))
+    .sort((p, q) => place(p).along - place(q).along)
+  for (const enemy of fresh) {
     if (used >= count) break
-    path.push(enemy)
-    if (!(flashFreeze && isHeld(enemy))) used++
+    chosen.push(enemy)
+    if (counts(enemy)) used++
   }
+  chosen.sort((p, q) => place(p).along - place(q).along)
+  path.push(...chosen)
 }
 
 /** Beam Fork: plain beams off its target to the `count` nearest other enemies within `beam.forkRange`. */

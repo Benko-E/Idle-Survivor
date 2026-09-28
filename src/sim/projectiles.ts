@@ -321,6 +321,7 @@ function startSpiral(world: World, projectile: Projectile, x: number, y: number)
     driftX: awayX / away,
     driftY: awayY / away,
   }
+  projectile.life *= config.combat.pinwheelSpiralLife
 }
 
 /**

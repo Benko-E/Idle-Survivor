@@ -465,6 +465,19 @@ export class Renderer {
     ctx.globalAlpha = 1
   }
 
+  /** A line between two points each lifted off the ground by its own height, in world units: a beam from his hands to an enemy's body. */
+  strokeLiftedLine(x1: number, y1: number, lift1: number, x2: number, y2: number, lift2: number, colour: string, width = 1, alpha = 1): void {
+    const { ctx } = this
+    ctx.globalAlpha = alpha
+    ctx.strokeStyle = colour
+    ctx.lineWidth = width
+    ctx.beginPath()
+    ctx.moveTo(this.worldToScreenX(x1), this.worldToScreenY(y1) - lift1 * this.scale)
+    ctx.lineTo(this.worldToScreenX(x2), this.worldToScreenY(y2) - lift2 * this.scale)
+    ctx.stroke()
+    ctx.globalAlpha = 1
+  }
+
   strokeWorldLine(x1: number, y1: number, x2: number, y2: number, colour: string, width = 1, alpha = 1): void {
     const { ctx } = this
     ctx.globalAlpha = alpha

@@ -241,7 +241,7 @@ export class EnemyLooks {
 }
 
 /** How far off the ground a flier is right now: a steady height with a slow bob. Zero for walkers. */
-function flightLift(def: EnemyDef, id: number, time: number): number {
+export function flightLift(def: EnemyDef, id: number, time: number): number {
   if (!def.flying) return 0
   const { flightHeight, flightBob } = config.render
   return flightHeight + flightBob * Math.sin(time * 4 + id * 1.3)

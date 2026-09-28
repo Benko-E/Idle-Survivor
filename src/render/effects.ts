@@ -3,7 +3,8 @@ import { auraRadius, isAura, pyreLit } from '../sim/auras'
 import { allWeapons, type Summon } from '../sim/summons'
 import { orbitPositions } from '../sim/orbit'
 import { weaponStat } from '../sim/stats'
-import { casterOf, type WeaponInstance, type World } from '../sim/world'
+import { casterOf, type Enemy, type WeaponInstance, type World } from '../sim/world'
+import { flightLift } from './enemyLooks'
 import type { Zone } from '../sim/zones'
 import type { Renderer } from './renderer'
 import { getSheet, type SpriteSheet } from './sprites'
@@ -455,19 +456,35 @@ function drawBeams(renderer: Renderer, world: World, loudness: number): void {
     const flash = world.time < beam.flashUntil
     const glow = flash ? '#ffffff' : weapon.def.colour
     const core = flash ? '#ffffff' : '#eef9ff'
-    let from: { x: number; y: number } = casterOf(world, weapon)
+    // From his hands (bolt height) to each enemy's body: a little off the
+    // ground for walkers, at their drawn height for fliers (playtest).
+    const caster = casterOf(world, weapon)
+    let from = { x: caster.x, y: caster.y, lift: FLIGHT_HEIGHT }
     for (const enemy of beam.path) {
-      renderer.strokeWorldLine(from.x, from.y, enemy.x, enemy.y, glow, flash ? 10 : 7, 0.3 * loudness)
-      renderer.strokeWorldLine(from.x, from.y, enemy.x, enemy.y, core, flash ? 3.5 : 2.5, 0.95 * loudness)
-      from = enemy
+      if (enemy.hp <= 0) continue
+      const to = { x: enemy.x, y: enemy.y, lift: beamLift(enemy, world.time) }
+      renderer.strokeLiftedLine(from.x, from.y, from.lift, to.x, to.y, to.lift, glow, flash ? 10 : 7, 0.3 * loudness)
+      renderer.strokeLiftedLine(from.x, from.y, from.lift, to.x, to.y, to.lift, core, flash ? 3.5 : 2.5, 0.95 * loudness)
+      from = to
     }
     const target = beam.path[0]
+    const targetLift = beamLift(target, world.time)
     for (const enemy of beam.forks) {
-      renderer.strokeWorldLine(target.x, target.y, enemy.x, enemy.y, glow, 4, 0.25 * loudness)
-      renderer.strokeWorldLine(target.x, target.y, enemy.x, enemy.y, core, 1.5, 0.8 * loudness)
+      if (enemy.hp <= 0) continue
+      const lift = beamLift(enemy, world.time)
+      renderer.strokeLiftedLine(target.x, target.y, targetLift, enemy.x, enemy.y, lift, glow, 4, 0.25 * loudness)
+      renderer.strokeLiftedLine(target.x, target.y, targetLift, enemy.x, enemy.y, lift, core, 1.5, 0.8 * loudness)
     }
   }
 }
+
+/** Where a beam meets an enemy: its body, just off the ground, or up where a flier is drawn. */
+function beamLift(enemy: Enemy, time: number): number {
+  return flightLift(enemy.def, enemy.id, time) + BEAM_BODY_LIFT
+}
+
+/** How far above an enemy's feet a beam meets it. */
+const BEAM_BODY_LIFT = 6
 
 /** Where each gathered Salvo bolt sits over his head, first to last. */
 const SALVO_SLOTS: [number, number][] = [

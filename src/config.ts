@@ -342,6 +342,8 @@ export const config = {
      * out in the crowd, never circling him).
      */
     pinwheelDrift: 110,
+    /** When the spiral starts, the rest of the bolt's flight is stretched this many times (playtest: at least doubled). */
+    pinwheelSpiralLife: 2,
     /** Salvo: how many bolts gather over his head before they all fly, and the charge a caught returning bolt adds. */
     salvoStack: 5,
     salvoCatch: 0.5,

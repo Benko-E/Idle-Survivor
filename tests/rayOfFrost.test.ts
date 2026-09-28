@@ -1,5 +1,6 @@
 // The new build's Ray of Frost (spellbook, Version 12): the beam, its generic
 // beam upgrades and its mutations, through the real simulation.
+import { config } from '@game/config'
 import { DEFAULT_CLASS } from '@game/data/classes'
 import { ENEMY_DEFS } from '@game/data/enemies'
 import { UPGRADE_DEFS } from '@game/data/upgrades'
@@ -221,6 +222,29 @@ const chillOf = (e: Enemy) => 1 - slowMultiplier(e)
   w.lastHurtAt = w.time
   fly(w, DT)
   check('...until its wait is over', isHeld(fresh))
+}
+
+// --- Playtest: Pierce kept flickering between enemies ----------------------------------
+
+{
+  const w = frostWorld()
+  take(w, 'up_ray_pierce', 3)
+  enemy(w, 80, 0)
+  for (const x of [110, 140, 170]) enemy(w, x, 0)
+  // Two more that bob just in and out of the strip Pierce picks from, as a
+  // jostling crowd does, but never far from the line.
+  const pickEdge = config.beam.width + ENEMY_DEFS[0].radius
+  const bobbers = [enemy(w, 125, 0), enemy(w, 155, 0)]
+  let changes = 0
+  let last = ''
+  for (let i = 0; i < 10; i++) {
+    for (const b of bobbers) b.y = i % 2 === 0 ? 0 : pickEdge + 3
+    fly(w, 0.1)
+    const now = (w.weapons[0].beam?.path ?? []).map((e) => e.id).sort().join(',')
+    if (last && now !== last) changes++
+    last = now
+  }
+  check('Pierce keeps its enemies while the crowd jostles', changes <= 1, `${changes} changes in 1s`)
 }
 
 // --- Found in review -----------------------------------------------------------------
