@@ -452,22 +452,34 @@ function drawBeams(renderer: Renderer, world: World, loudness: number): void {
   if (world.state !== 'running') return
   for (const weapon of allWeapons(world)) {
     const beam = weapon.beam
-    if (!beam || beam.path.length === 0 || !weapon.def.enabled) continue
+    const sweeping = beam?.sweepAngle !== undefined
+    if (!beam || (beam.path.length === 0 && !sweeping) || !weapon.def.enabled) continue
     const flash = world.time < beam.flashUntil
     const glow = flash ? '#ffffff' : weapon.def.colour
     const core = flash ? '#ffffff' : '#eef9ff'
     // From his hands (bolt height) to each enemy's body: a little off the
     // ground for walkers, at their drawn height for fliers (playtest).
     const caster = casterOf(world, weapon)
-    let from = { x: caster.x, y: caster.y, lift: FLIGHT_HEIGHT }
-    for (const enemy of beam.path) {
-      if (enemy.hp <= 0) continue
-      const to = { x: enemy.x, y: enemy.y, lift: beamLift(enemy, world.time) }
+    const points: { x: number; y: number; lift: number }[] = [{ x: caster.x, y: caster.y, lift: FLIGHT_HEIGHT }]
+    const alive = beam.path.filter((enemy) => enemy.hp > 0)
+    if (sweeping) {
+      // Glacial Sweep: one straight line along where it points, out to the
+      // last enemy it touches, or to the end of its reach.
+      const angle = beam.sweepAngle!
+      const length = beam.sweepLength ?? 0
+      const last = alive[alive.length - 1]
+      points.push({ x: caster.x + Math.cos(angle) * length, y: caster.y + Math.sin(angle) * length, lift: last ? beamLift(last, world.time) : FLIGHT_HEIGHT })
+    } else {
+      for (const enemy of alive) points.push({ x: enemy.x, y: enemy.y, lift: beamLift(enemy, world.time) })
+    }
+    for (let i = 1; i < points.length; i++) {
+      const from = points[i - 1]
+      const to = points[i]
       renderer.strokeLiftedLine(from.x, from.y, from.lift, to.x, to.y, to.lift, glow, flash ? 10 : 7, 0.3 * loudness)
       renderer.strokeLiftedLine(from.x, from.y, from.lift, to.x, to.y, to.lift, core, flash ? 3.5 : 2.5, 0.95 * loudness)
-      from = to
     }
     const target = beam.path[0]
+    if (!target) continue
     const targetLift = beamLift(target, world.time)
     for (const enemy of beam.forks) {
       if (enemy.hp <= 0) continue

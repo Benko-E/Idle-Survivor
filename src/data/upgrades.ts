@@ -348,6 +348,32 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     maxStacks: 1,
     weight: 45,
   },
+  {
+    id: 'up_ray_sweep',
+    spellId: 'spell_ray_of_frost_01',
+    kind: 'evolution',
+    displayName: 'Glacial Sweep',
+    description: 'The beam sweeps back and forth',
+    details: 'The beam stops locking on and sweeps back and forth across the crowd in front of him, touching everything it passes.',
+    tags: ['offence', 'frost'],
+    // An arc (beam.sweepArc), never a circle; Frostbite counts passes (beam.sweepChill).
+    modifiers: [{ target: 'sweep', op: 'add', value: 1 }],
+    maxStacks: 1,
+    weight: 400,
+  },
+  {
+    id: 'up_ray_winding',
+    spellId: 'spell_ray_of_frost_01',
+    kind: 'evolution',
+    displayName: 'Winding Ray',
+    description: 'The beam winds through the crowd',
+    details: 'The beam aims into the pack and winds through the front lines on its way, touching every enemy it passes. Pierce lets it reach deeper.',
+    tags: ['offence', 'frost'],
+    // 3 free pass-throughs + Pierce, towards the densest pack (beam.winding*).
+    modifiers: [{ target: 'winding', op: 'add', value: 1 }],
+    maxStacks: 1,
+    weight: 400,
+  },
 
   // --- Firebolt ------------------------------------------------------------------
   //

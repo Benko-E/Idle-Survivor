@@ -247,6 +247,67 @@ const chillOf = (e: Enemy) => 1 - slowMultiplier(e)
   check('Pierce keeps its enemies while the crowd jostles', changes <= 1, `${changes} changes in 1s`)
 }
 
+// --- Glacial Sweep ------------------------------------------------------------------
+
+/** An enemy at `degrees` round him, `distance` away. */
+const at = (world: World, degrees: number, distance: number) => enemy(world, Math.cos((degrees * Math.PI) / 180) * distance, Math.sin((degrees * Math.PI) / 180) * distance)
+{
+  const w = frostWorld()
+  w.level = 20
+  check('Glacial Sweep is an evolution, offered at 20', up('up_ray_sweep').kind === 'evolution' && eligible(w, 'up_ray_sweep'))
+  take(w, 'up_ray_sweep')
+  check('...and rules out Winding Ray', !eligible(w, 'up_ray_winding'))
+  const left = at(w, -30, 150)
+  const middle = at(w, 0, 140)
+  const right = at(w, 30, 150)
+  const outside = at(w, 90, 150)
+  fly(w, 2.5)
+  check('...it sweeps across the crowd in front of him', lost(left) > 0 && lost(middle) > 0 && lost(right) > 0, [left, middle, right].map((e) => lost(e).toFixed(1)).join(' / '))
+  check('...an arc, not a circle', lost(outside) === 0)
+}
+{
+  const w = frostWorld()
+  w.level = 20
+  take(w, 'up_ray_sweep')
+  const front = at(w, 0, 100)
+  const back = at(w, 0, 170)
+  fly(w, 2.5)
+  check('...no Pierce: it grazes the front row only', lost(front) > 0 && lost(back) === 0)
+}
+{
+  const w = frostWorld()
+  w.level = 20
+  take(w, 'up_ray_frostbite')
+  take(w, 'up_ray_flashfreeze')
+  take(w, 'up_ray_sweep')
+  const front = at(w, 0, 100)
+  applyCondition(w, front, 'frozen', 1, 30, null)
+  const back = at(w, 0, 170)
+  fly(w, 2.5)
+  check('...with Flash Freeze, frozen enemies don\'t block it', lost(back) > 0)
+}
+{
+  const w = frostWorld()
+  w.level = 20
+  take(w, 'up_ray_frostbite')
+  take(w, 'up_ray_sweep')
+  const e = at(w, 0, 120)
+  let frozenAt = -1
+  for (let i = 0; i < 60 && frozenAt < 0; i++) {
+    fly(w, 0.1)
+    if (isHeld(e)) frozenAt = (i + 1) * 0.1
+  }
+  check('...Frostbite builds a step each pass, freezing in a few passes', frozenAt > 1.5 && frozenAt < 6, `frozen at ${frozenAt.toFixed(1)}s`)
+}
+{
+  const w = frostWorld()
+  w.level = 20
+  take(w, 'up_ray_sweep')
+  const out = at(w, 0, 600)
+  fly(w, 1)
+  check('...nothing in range: it rests', lost(out) === 0 && (w.weapons[0].beam?.path.length ?? 0) === 0 && w.weapons[0].beam?.sweepAngle === undefined)
+}
+
 // --- Found in review -----------------------------------------------------------------
 
 {

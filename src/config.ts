@@ -292,6 +292,17 @@ export const config = {
     snapFlash: 0.25,
     /** Cold Shoulder: seconds before it can freeze the enemies round him again. */
     coldShoulderCooldown: 10,
+    /**
+     * Glacial Sweep: the arc in degrees, seconds per swing across it, how fast
+     * its centre turns towards the nearest enemy (radians a second), and
+     * Frostbite's step of cold each time it starts crossing an enemy, draining
+     * this much a second between sweeps (about 3 passes to freeze).
+     */
+    sweepArc: 75,
+    sweepPassSeconds: 1,
+    sweepTurn: 2,
+    sweepChill: 1,
+    sweepFade: 0.2,
   },
 
   combat: {
