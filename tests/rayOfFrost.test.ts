@@ -6,6 +6,7 @@ import { UPGRADE_DEFS } from '@game/data/upgrades'
 import { applyUpgrade, upgradeIsEligible } from '@game/sim/draft'
 import { updateCombat } from '@game/sim/combat'
 import { rebuildEnemyGrid } from '@game/sim/enemyGrid'
+import { gameEvents } from '@game/sim/events'
 import { spellsOfTier } from '@game/sim/spellTiers'
 import { weaponStat } from '@game/sim/stats'
 import { applyCondition, isHeld, slowMultiplier } from '@game/sim/statusEffects'
@@ -220,6 +221,48 @@ const chillOf = (e: Enemy) => 1 - slowMultiplier(e)
   w.lastHurtAt = w.time
   fly(w, DT)
   check('...until its wait is over', isHeld(fresh))
+}
+
+// --- Found in review -----------------------------------------------------------------
+
+{
+  // Spellbook: frozen means frozen while touched, then 2 seconds.
+  const w = frostWorld()
+  take(w, 'up_ray_coldsnap')
+  const e = enemy(w, 100, 0)
+  fly(w, 6.2)
+  check('Cold Snap: frozen...', isHeld(e))
+  fly(w, 3)
+  check('...and still frozen while the beam holds it', isHeld(e))
+}
+{
+  const w = frostWorld()
+  take(w, 'up_ray_frostbite')
+  const e = enemy(w, 100, 0)
+  fly(w, 3.2)
+  e.x = 900
+  fly(w, 1)
+  e.x = 100
+  fly(w, 0.3)
+  check('Frozen, away for a second, back under the beam: still frozen', isHeld(e))
+  fly(w, 1.5)
+  check('...and it stays frozen', isHeld(e))
+}
+{
+  // A tick of beam is continuous damage, not a hit: hits make the enemy
+  // flash white, and ten a second is a strobe.
+  const w = frostWorld()
+  const e = enemy(w, 100, 0)
+  let hits = 0
+  let ticks = 0
+  const stop = gameEvents.on('enemyDamaged', (payload) => {
+    if (payload.enemyId !== e.id) return
+    if (payload.overTime) ticks++
+    else hits++
+  })
+  fly(w, 1)
+  stop()
+  check('Beam damage is continuous, not a strobe of hits', hits === 0 && ticks > 0, `${hits} hits, ${ticks} ticks`)
 }
 
 console.log(failures === 0 ? '\nALL PASS' : `\n${failures} FAILED`)

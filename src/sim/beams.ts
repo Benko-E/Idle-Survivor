@@ -76,12 +76,22 @@ export function castBeam({ world, weapon, caster, stat }: CastContext): boolean 
     pierceBehind(world, caster, target, Math.max(0, Math.round(stat('pierce'))), flashFreeze, state.path)
     forkFrom(world, target, Math.max(0, Math.round(stat('fork'))), state)
 
+    // Continuous damage, like a burn, not a string of hits: a hit makes an
+    // enemy flash white, and ten a second would be a strobe.
     const damage = stat('damage') * elapsed
-    for (const enemy of state.path) damageEnemy(world, enemy, damage, weapon)
-    for (const enemy of state.forks) damageEnemy(world, enemy, damage * config.beam.forkShare, weapon)
+    for (const enemy of state.path) damageEnemy(world, enemy, damage, weapon, true)
+    for (const enemy of state.forks) damageEnemy(world, enemy, damage * config.beam.forkShare, weapon, true)
 
     push(caster, state.path, stat('wintersBreath') * elapsed)
     coldSnap(world, weapon, state, stat('coldSnap'), elapsed)
+
+    // Frozen means frozen while touched, then beam.frozenLinger (spellbook):
+    // whatever froze it — Frostbite, Cold Snap — the beam keeps it frozen.
+    for (const enemy of state.path) {
+      if (enemy.effects.some((effect) => effect.condition === 'frozen' && effect.source === weapon)) {
+        applyCondition(world, enemy, 'frozen', 1, config.beam.frozenLinger + 0.15, weapon)
+      }
+    }
   } else {
     state.lastTick = undefined
   }
