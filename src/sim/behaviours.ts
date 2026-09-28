@@ -8,6 +8,7 @@ import { orbitPositions } from './orbit'
 import { enemiesInRadius, nearestEnemies, nearestEnemy, pickTargets, unburntEnemies } from './targeting'
 import { HIT_SPARK_SECONDS, HIT_SPARK_SIZE, spawnArtLine, spawnRing, spawnSprite } from './vfx'
 import { castBeam } from './beams'
+import { castArc } from './chains'
 import { castWall } from './walls'
 import type { Caster, Enemy, WeaponInstance, World } from './world'
 
@@ -493,4 +494,6 @@ export const BEHAVIOURS: Record<string, Behaviour> = {
   body,
   // A line held on an enemy, ticking: sim/beams.ts.
   beam: castBeam,
+  // The new build's chain: strikes, then jumps from enemy to enemy: sim/chains.ts.
+  arc: castArc,
 }

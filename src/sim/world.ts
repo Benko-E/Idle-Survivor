@@ -8,6 +8,7 @@ import type { BuildBonus } from './buildBonus'
 import type { Summon } from './summons'
 import type { Offer } from './draft'
 import type { BeamState } from './beams'
+import type { Chain } from './chains'
 import type { BoltSpec, Projectile } from './projectiles'
 import type { StatusEffect } from './statusEffects'
 import type { VisitMark } from './trail'
@@ -195,6 +196,8 @@ export interface World {
   summons: Summon[]
   /** Ground a spell has claimed: strikes on their way down, vortices, roots. */
   zones: Zone[]
+  /** Chains still creeping from enemy to enemy (sim/chains.ts). */
+  chains: Chain[]
   /** Ground that hurts him: gas left by a Stinkcap. */
   hazards: Hazard[]
   /** Killed this step and with something to do about it. See resolveDeaths. */
@@ -306,6 +309,7 @@ export function createWorld(seed: number = config.world.seed, starterId?: string
     projectiles: [],
     summons: [],
     zones: [],
+    chains: [],
     hazards: [],
     dying: [],
     vfx: [],

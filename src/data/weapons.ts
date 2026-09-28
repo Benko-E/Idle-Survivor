@@ -374,6 +374,29 @@ export const WEAPON_DEFS: WeaponDef[] = [
     colour: '#8fd8ff',
   },
 
+  {
+    id: 'spell_chain_lightning_01',
+    classId: 'class_wizard',
+    displayName: 'Chain Lightning',
+    description: 'Lightning that leaps from enemy to enemy',
+    enabled: true,
+    tier: 1,
+    build: 'new',
+    tags: ['spell', 'lightning', 'chain'],
+    behaviour: 'arc',
+    // The first target plus `count` jumps, each keeping `falloff` of the last.
+    stats: {
+      cooldown: 1,
+      damage: 8,
+      count: 3,
+      range: 400,
+      jumpRange: 165,
+      falloff: 0.85,
+    },
+    fx: { hit: 'hit_lightning', arc: 'arc' },
+    colour: '#c9a6ff',
+  },
+
   // --- Summon spells ------------------------------------------------------------------
   //
   // Cast by a summon from where it stands (data/summons.ts), never by him. No

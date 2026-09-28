@@ -2,6 +2,7 @@ import { config } from '../config'
 import { updateAuras } from './auras'
 import { resolveDeaths } from './enemyBehaviours'
 import { BEHAVIOURS, ENEMY_CASTABLE } from './behaviours'
+import { updateChains } from './chains'
 import { updateProjectiles } from './projectiles'
 import { updateReactions } from './reactions'
 import { weaponStat } from './stats'
@@ -98,6 +99,7 @@ export function updateCombat(world: World, dt: number): void {
   updateReactions(world)
   castReadySpells(world, world.weapons, dt)
   for (const summoned of world.summons) castReadySpells(world, summoned.weapons, dt)
+  updateChains(world, dt)
   updateProjectiles(world, dt)
   updateZones(world, dt)
   updateStatusEffects(world, dt)
