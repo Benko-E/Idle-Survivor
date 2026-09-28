@@ -154,5 +154,62 @@ const line = (world: World, n: number) => Array.from({ length: n }, (_, k) => en
   check('...ending early, its real last hit gets the double', near(lost(a), 0.5 * base(w)) && near(lost(b), 1.5 * base(w)))
 }
 
+// --- Overload -----------------------------------------------------------------------
+
+/** Let the world run a while: creeping chains, conditions. */
+function fly(world: World, seconds: number): void {
+  for (let i = 0; i < Math.round(seconds / DT); i++) {
+    world.time += DT
+    rebuildEnemyGrid(world)
+    updateCombat(world, DT)
+  }
+}
+{
+  const w = chainWorld()
+  take(w, 'up_cl_overload')
+  const eight = line(w, 8)
+  for (let n = 0; n < 4; n++) cast(w)
+  check('Overload: casts 1-4 are ordinary', eight.slice(0, 4).every((e) => lost(e) > 0) && eight.slice(4).every((e) => lost(e) === 0))
+  cast(w)
+  check('...the 5th creeps: one hit at once', eight.slice(4).every((e) => lost(e) === 0))
+  fly(w, 0.7)
+  check('...then twice the jumps, one after another', eight.slice(4, 7).every((e) => lost(e) > 0) && lost(eight[7]) === 0 && w.chains.length === 0)
+}
+{
+  const w = chainWorld()
+  take(w, 'up_cl_overload')
+  const [a, b] = line(w, 3)
+  const alt = enemy(w, 130, 80)
+  for (let n = 0; n < 4; n++) cast(w)
+  const before = lost(alt)
+  cast(w)
+  b.hp = 0
+  fly(w, 0.5)
+  check('...its next target dying mid-creep: it jumps on from where it is', lost(a) > 0 && lost(alt) > before && w.chains.length === 0)
+}
+
+// --- Static Discharge --------------------------------------------------------------
+
+{
+  const w = chainWorld()
+  take(w, 'up_cl_static')
+  w.weapons[0].cooldownRemaining = 99
+  const ring = Array.from({ length: 8 }, (_, k) => enemy(w, Math.cos(k) * 60, Math.sin(k) * 60))
+  const far = enemy(w, 300, 0)
+  w.lastHurtAt = w.time
+  fly(w, DT)
+  const hit = ring.filter((e) => lost(e) > 0)
+  check('Static Discharge: hurt, and lightning arcs into 6 around him', hit.length === 6 && hit.every((e) => near(lost(e), base(w))) && lost(far) === 0, `${hit.length} arcs`)
+  fly(w, 2)
+  w.lastHurtAt = w.time
+  const total = ring.reduce((sum, e) => sum + lost(e), 0)
+  fly(w, DT)
+  check('...then not again for a while', ring.reduce((sum, e) => sum + lost(e), 0) === total)
+  fly(w, 3.2)
+  w.lastHurtAt = w.time
+  fly(w, DT)
+  check('...until its wait is over', ring.reduce((sum, e) => sum + lost(e), 0) > total)
+}
+
 console.log(failures === 0 ? '\nALL PASS' : `\n${failures} FAILED`)
 if (failures > 0) process.exitCode = 1

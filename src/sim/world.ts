@@ -145,6 +145,8 @@ export interface WeaponInstance {
   backdraftReady?: number
   /** World time Cold Shoulder can next go off. */
   coldShoulderReady?: number
+  /** World time Static Discharge can next go off. */
+  staticReady?: number
   /**
    * A beam's state between ticks (sim/beams.ts): the enemy it holds, what it's
    * touching, its forks, each enemy's cold, and Cold Snap's timer.

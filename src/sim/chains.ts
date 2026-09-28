@@ -23,6 +23,7 @@ import type { Enemy, WeaponInstance, World } from './world'
  *   shock       its hits leave enemies shocked: +this damage taken from everything
  *   conduction  a jump onto a shocked enemy doesn't use up a jump
  *   crescendo   hits grow instead of weakening, the last one doubled
+ *   overload    every Nth cast: twice the jumps, creeping (chain.creepSeconds a jump), white
  */
 
 export interface Chain {
@@ -50,6 +51,8 @@ export interface Chain {
   conduction: boolean
   crescendo: boolean
   branch: boolean
+  /** Overload's cast: drawn white. */
+  overloaded: boolean
 }
 
 const scratch: Enemy[] = []
@@ -73,26 +76,45 @@ function nearestUnstruck(world: World, x: number, y: number, range: number, stru
 export function castArc({ world, weapon, caster, stat }: CastContext): boolean {
   const first = nearestUnstruck(world, caster.x, caster.y, stat('range'), new Set())
   if (!first) return false
+
+  // Overload: every Nth cast has twice the jumps and creeps.
+  const overloadEvery = Math.round(stat('overload'))
+  let overloaded = false
+  if (overloadEvery > 0) {
+    weapon.streak = (weapon.streak ?? 0) + 1
+    if (weapon.streak >= overloadEvery) {
+      weapon.streak = 0
+      overloaded = true
+    }
+  }
+  const jumps = Math.max(0, Math.round(stat('count'))) * (overloaded ? 2 : 1)
   const chain: Chain = {
     weapon,
     x: caster.x,
     y: caster.y,
     current: first,
     struck: new Set(),
-    jumpsLeft: Math.max(0, Math.round(stat('count'))),
+    jumpsLeft: jumps,
     hop: 0,
     damage: stat('damage'),
     falloff: stat('falloff', 1),
     jumpRange: stat('jumpRange'),
-    delay: 0,
+    delay: overloaded ? config.chain.creepSeconds : 0,
     timer: 0,
     shock: Math.max(0, stat('shock')),
     conduction: stat('conduction') > 0,
     crescendo: stat('crescendo') > 0,
     branch: stat('branch') > 0,
+    overloaded,
   }
-  if (chain.delay <= 0) runChain(world, chain)
-  else world.chains.push(chain)
+  if (chain.delay <= 0) {
+    runChain(world, chain)
+  } else {
+    // Creeping: the first hit now, the rest one at a time.
+    hopOnce(world, chain)
+    chain.timer = chain.delay
+    if (chain.current) world.chains.push(chain)
+  }
   return true
 }
 
@@ -107,6 +129,9 @@ function runChain(world: World, chain: Chain): void {
  * strike the current enemy, draw the link, move on.
  */
 function hopOnce(world: World, chain: Chain): void {
+  // The enemy it was heading for died while it crept there: it jumps on to
+  // the nearest one it hasn't struck from where it is, or ends.
+  if (chain.current && chain.current.hp <= 0) chain.current = nearestUnstruck(world, chain.x, chain.y, chain.jumpRange, chain.struck)
   const enemy = chain.current
   if (!enemy) return
   chain.struck.add(enemy.id)
@@ -126,7 +151,7 @@ function hopOnce(world: World, chain: Chain): void {
   const def = chain.weapon.def
   damageEnemy(world, enemy, chain.damage * scale, chain.weapon)
   if (chain.shock > 0 && enemy.hp > 0) applyCondition(world, enemy, 'shocked', chain.shock, config.chain.shockSeconds, chain.weapon)
-  spawnArtLine(world, chain.x, chain.y, enemy.x, enemy.y, def.colour, config.combat.lineVfxSeconds, def.fx?.arc)
+  spawnArtLine(world, chain.x, chain.y, enemy.x, enemy.y, chain.overloaded ? '#ffffff' : def.colour, config.combat.lineVfxSeconds, def.fx?.arc)
   if (def.fx?.hit) spawnSprite(world, def.fx.hit, enemy.x, enemy.y, HIT_SPARK_SIZE, HIT_SPARK_SECONDS, false)
 
   chain.x = enemy.x

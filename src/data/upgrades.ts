@@ -420,6 +420,32 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     maxStacks: 1,
     weight: 55,
   },
+  {
+    id: 'up_cl_overload',
+    spellId: 'spell_chain_lightning_01',
+    kind: 'mutation',
+    displayName: 'Overload',
+    description: 'Every 5th cast jumps twice as many times',
+    details: 'Every fifth cast comes out overloaded: bright white, jumping twice as many times, and creeping visibly from enemy to enemy through the pack.',
+    tags: ['offence', 'lightning'],
+    // Every Nth cast; each jump then takes chain.creepSeconds.
+    modifiers: [{ target: 'overload', op: 'add', value: 5 }],
+    maxStacks: 1,
+    weight: 55,
+  },
+  {
+    id: 'up_cl_static',
+    spellId: 'spell_chain_lightning_01',
+    kind: 'mutation',
+    displayName: 'Static Discharge',
+    description: "When he's hit, lightning bursts out of him",
+    details: 'When an enemy hits him, lightning bursts out of his body and arcs into the enemies around him. It needs a few seconds before it can happen again.',
+    // The comfort pick: plain arcs into this many enemies, chain.staticCooldown between.
+    tags: ['defence', 'lightning'],
+    modifiers: [{ target: 'staticDischarge', op: 'add', value: 6 }],
+    maxStacks: 1,
+    weight: 45,
+  },
 
   // --- Firebolt ------------------------------------------------------------------
   //
