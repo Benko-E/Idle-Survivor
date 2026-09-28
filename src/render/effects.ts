@@ -45,6 +45,7 @@ export function drawEffects(renderer: Renderer, world: World): void {
   drawSalvoStacks(renderer, world, loudness)
   drawBeams(renderer, world, loudness)
   drawWebs(renderer, world, loudness)
+  drawSparks(renderer, world, loudness)
   drawOrbits(renderer, world, loudness)
   drawSummons(renderer, world, loudness, false)
 
@@ -530,6 +531,25 @@ function drawWebs(renderer: Renderer, world: World, loudness: number): void {
       renderer.strokeLiftedLine(a.x, a.y, beamLift(a, world.time), b.x, b.y, beamLift(b, world.time), colour, 4, 0.35 * fade * loudness)
       renderer.strokeLiftedLine(a.x, a.y, beamLift(a, world.time), b.x, b.y, beamLift(b, world.time), '#f4ecff', 1.5, 0.9 * fade * flicker * loudness)
     }
+  }
+}
+
+/**
+ * Wandering Spark: a glowing spark travelling from where the chain last was
+ * (his hands, then each enemy) to the enemy it's hopping to, over the hop.
+ */
+function drawSparks(renderer: Renderer, world: World, loudness: number): void {
+  if (world.state !== 'running') return
+  for (const chain of world.chains) {
+    const to = chain.current
+    if (!chain.spark || !to) continue
+    const t = Math.max(0, Math.min(1, 1 - chain.timer / Math.max(0.001, chain.delay)))
+    const fromLift = chain.hop === 0 ? FLIGHT_HEIGHT : BEAM_BODY_LIFT
+    const x = chain.x + (to.x - chain.x) * t
+    const y = chain.y + (to.y - chain.y) * t
+    const lift = fromLift + (beamLift(to, world.time) - fromLift) * t
+    renderer.drawWorldOrb(x, y, 9, lift, chain.weapon.def.colour, 0.45 * loudness)
+    renderer.drawWorldOrb(x, y, 4, lift, '#f4ecff', loudness)
   }
 }
 

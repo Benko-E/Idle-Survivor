@@ -273,6 +273,62 @@ const webWorld = (...ids: string[]) => {
   check('...and leaves a giant web behind', w.webs.length === 1 && w.webs[0].nodes.length === 7, `${w.webs[0]?.nodes.length} enemies in it`)
 }
 
+// --- Wandering Spark -----------------------------------------------------------------
+
+const sparkWorld = (...ids: string[]) => {
+  const w = chainWorld()
+  w.level = 20
+  for (const id of ['up_cl_spark', ...ids]) take(w, id)
+  return w
+}
+const struckCount = (enemies: Enemy[]) => enemies.filter((e) => lost(e) > 0).length
+{
+  const w = chainWorld()
+  w.level = 20
+  check('Wandering Spark is an evolution, offered at 20', up('up_cl_spark').kind === 'evolution' && eligible(w, 'up_cl_spark'))
+  take(w, 'up_cl_spark')
+  check('...and rules out Storm Web', !eligible(w, 'up_cl_web'))
+  const five = line(w, 5)
+  cast(w)
+  check('...the spark sets off from his hands: nothing hit yet', struckCount(five) === 0)
+  fly(w, 0.3)
+  const early = struckCount(five)
+  fly(w, 0.3)
+  check('...then hops from enemy to enemy, one at a time', early === 2 && struckCount(five) === 4 && lost(five[4]) === 0, `${early} by 0.3s, ${struckCount(five)} by 0.6s`)
+}
+{
+  const w = sparkWorld()
+  const six = line(w, 6)
+  for (const e of six.slice(0, 3)) e.hp = 1
+  cast(w)
+  fly(w, 1.2)
+  check('...every kill gives it another hop', six.slice(3).every((e) => lost(e) > 0), `${six.filter((e) => e.hp <= 0 || lost(e) > 0).length} of 6 reached`)
+}
+{
+  const w = sparkWorld()
+  const [a, b] = line(w, 2)
+  cast(w)
+  fly(w, 1)
+  check('...never the same enemy twice', near(lost(a), base(w)) && lost(b) > 0 && w.chains.length === 0)
+}
+{
+  const w = sparkWorld()
+  const lone = enemy(w, 100, 0)
+  cast(w)
+  fly(w, 0.5)
+  check('...nothing more in reach: it fizzles out', lost(lone) > 0 && w.chains.length === 0)
+}
+{
+  const w = sparkWorld()
+  const [a, b] = line(w, 3)
+  const alt = enemy(w, 130, 80)
+  cast(w)
+  fly(w, 0.15)
+  b.hp = 0
+  fly(w, 0.6)
+  check('...its next enemy dying mid-flight: it finds another', lost(a) > 0 && lost(alt) > 0 && w.chains.length === 0)
+}
+
 // --- Found in Phase 5's review -----------------------------------------------------------
 
 {

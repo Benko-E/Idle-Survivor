@@ -25,6 +25,8 @@ import type { Enemy, WeaponInstance, World } from './world'
  *   crescendo   hits grow instead of weakening, the last one doubled
  *   overload    every Nth cast: twice the jumps, creeping (chain.creepSeconds a jump), white
  *   web         Storm Web: when it ends, its links linger and zap its enemies (chain.web*)
+ *   spark       Wandering Spark: a visible spark hopping chain.sparkHopSeconds a hop,
+ *               from his hands on; every enemy it kills gives it another hop
  */
 
 export interface Chain {
@@ -58,6 +60,8 @@ export interface Chain {
   nodes: { enemy: Enemy; hit: number }[]
   /** Storm Web: leave a web when it ends. */
   web: boolean
+  /** Wandering Spark: a travelling spark, fed by its kills. */
+  spark: boolean
 }
 
 /**
@@ -133,8 +137,15 @@ export function castArc({ world, weapon, caster, stat }: CastContext): boolean {
     overloaded,
     nodes: [],
     web: stat('web') > 0,
+    spark: stat('spark') > 0,
   }
-  if (chain.delay <= 0) {
+  if (chain.spark) {
+    // Wandering Spark: it sets off from his hands and reaches its first enemy
+    // a hop later, like every hop after.
+    chain.delay = config.chain.sparkHopSeconds
+    chain.timer = chain.delay
+    world.chains.push(chain)
+  } else if (chain.delay <= 0) {
     runChain(world, chain)
   } else {
     // Creeping: the first hit now, the rest one at a time.
@@ -168,8 +179,8 @@ function hopOnce(world: World, chain: Chain): void {
   // Where it goes next: the nearest enemy it hasn't struck — if it has a jump
   // left, or (Conduction) that enemy is shocked, which costs no jump.
   const candidate = nearestUnstruck(world, enemy.x, enemy.y, chain.jumpRange, chain.struck)
-  const free = candidate !== undefined && chain.conduction && hasCondition(candidate, 'shocked')
-  const next = candidate && (chain.jumpsLeft > 0 || free) ? candidate : undefined
+  let free = candidate !== undefined && chain.conduction && hasCondition(candidate, 'shocked')
+  let next = candidate && (chain.jumpsLeft > 0 || free) ? candidate : undefined
 
   // Branching: its first jump also throws a plain branch at another enemy.
   const first = chain.hop === 0
@@ -183,6 +194,15 @@ function hopOnce(world: World, chain: Chain): void {
   chain.nodes.push({ enemy, hit })
   damageEnemy(world, enemy, hit, chain.weapon)
   if (chain.shock > 0 && enemy.hp > 0) applyCondition(world, enemy, 'shocked', chain.shock, config.chain.shockSeconds, chain.weapon)
+  // Wandering Spark: a kill gives it one more hop. Crescendo already judged
+  // this hit its last (or not) before the kill; the kill still earns a hop.
+  if (chain.spark && enemy.hp <= 0) {
+    chain.jumpsLeft++
+    if (!next && candidate) {
+      next = candidate
+      free = chain.conduction && hasCondition(candidate, 'shocked')
+    }
+  }
   spawnArtLine(world, chain.x, chain.y, enemy.x, enemy.y, chain.overloaded ? '#ffffff' : def.colour, config.combat.lineVfxSeconds, def.fx?.arc)
   if (def.fx?.hit) spawnSprite(world, def.fx.hit, enemy.x, enemy.y, HIT_SPARK_SIZE, HIT_SPARK_SECONDS, false)
 
