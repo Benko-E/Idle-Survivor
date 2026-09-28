@@ -99,6 +99,14 @@ Balance is **not** in these phases (it gets its own day). Numbers are the spellb
 
 ---
 
+## Playtest fixes waiting (user, after step-30) — do these at the start of Phase 4
+
+1. **Pinwheel's spiral lasts at least twice as long.** Today the spiral uses the rest of a normal bolt's flight. Give the spiral part at least double that (the whole flight gets longer; check the screen budget).
+2. **The beam starts higher:** from his hands, not the ground. Draw it lifted (like bolts at `FLIGHT_HEIGHT`, around hand height).
+3. **The beam ends slightly higher on enemies:** a little off the ground, at their body, not their feet.
+4. **The beam ends higher still on flying enemies:** today it aims at their ground position; it should end at their drawn height (`render.flightHeight` plus the bob).
+5. **With max Pierce, the pierced beams switch targets erratically** while the main beam stays on its target. Likely cause: Pierce re-picks, every tick, whichever enemies happen to be inside a narrow strip behind the target (`beam.width` 10 plus their size, up to `pierceReach` 140), so enemies drifting in and out of that strip swap constantly. Likely fix: keep the enemies it pierced last tick while they're still roughly behind the target (a looser strip for keeping than for picking up), and only fill empty places with new ones. Check with a test that the pierced set stays stable while enemies jostle.
+
 ## 5. Things the fresh look turned up, and the user's answers (2026-09-28)
 
 1. **Split Shot's pick count:** 3 bolts at most, so **2 picks**. (The spellbook's Picks field saying 3 was a wording slip.)
