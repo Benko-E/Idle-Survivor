@@ -282,6 +282,72 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
   // spell_ray_of_frost_01: the generic beam list, then its own mutations.
 
   ...beamUpgrades('spell_ray_of_frost_01', 'up_ray'),
+  {
+    id: 'up_ray_frostbite',
+    spellId: 'spell_ray_of_frost_01',
+    kind: 'mutation',
+    displayName: 'Frostbite',
+    description: 'The beam chills enemies until they freeze',
+    details: 'Everything the beam touches gets colder every second, slowing down more and more until it freezes solid. Frozen enemies thaw a couple of seconds after the beam leaves them.',
+    tags: ['offence', 'frost'],
+    // Frozen at beam.freezeSeconds; the chill fades over beam.chillFadeSeconds once it leaves.
+    modifiers: [{ target: 'frostbite', op: 'add', value: 1 }],
+    grantsTags: ['chilling'],
+    maxStacks: 1,
+    weight: 60,
+  },
+  {
+    id: 'up_ray_flashfreeze',
+    spellId: 'spell_ray_of_frost_01',
+    kind: 'mutation',
+    displayName: 'Flash Freeze',
+    description: 'The beam moves on once its target freezes',
+    details: "Frozen enemies no longer hold the beam. When its target freezes, it moves on to the nearest enemy that isn't frozen yet.",
+    tags: ['offence', 'frost'],
+    modifiers: [{ target: 'flashFreeze', op: 'add', value: 1 }],
+    requires: ['up_ray_frostbite'],
+    maxStacks: 1,
+    weight: 55,
+  },
+  {
+    id: 'up_ray_wintersbreath',
+    spellId: 'spell_ray_of_frost_01',
+    kind: 'mutation',
+    displayName: "Winter's Breath",
+    description: 'The beam gently pushes enemies away',
+    details: 'Everything the beam touches is slowly pushed away from him, until it freezes.',
+    tags: ['offence', 'frost'],
+    // World units a second: a gentle shove, never a knockback.
+    modifiers: [{ target: 'wintersBreath', op: 'add', value: 20 }],
+    maxStacks: 1,
+    weight: 55,
+  },
+  {
+    id: 'up_ray_coldsnap',
+    spellId: 'spell_ray_of_frost_01',
+    kind: 'mutation',
+    displayName: 'Cold Snap',
+    description: 'Now and then the beam flashes and freezes',
+    details: "Every few seconds the beam flashes bright white, and everything it's touching freezes on the spot.",
+    tags: ['offence', 'frost'],
+    // Seconds between snaps.
+    modifiers: [{ target: 'coldSnap', op: 'add', value: 6 }],
+    maxStacks: 1,
+    weight: 55,
+  },
+  {
+    id: 'up_ray_coldshoulder',
+    spellId: 'spell_ray_of_frost_01',
+    kind: 'mutation',
+    displayName: 'Cold Shoulder',
+    description: 'Enemies that hit him freeze for a moment',
+    details: 'When an enemy hits him, every enemy touching him freezes for a moment. It needs a while before it can happen again.',
+    // The comfort pick: seconds frozen, then beam.coldShoulderCooldown.
+    tags: ['defence', 'frost'],
+    modifiers: [{ target: 'coldShoulder', op: 'add', value: 1.5 }],
+    maxStacks: 1,
+    weight: 45,
+  },
 
   // --- Firebolt ------------------------------------------------------------------
   //

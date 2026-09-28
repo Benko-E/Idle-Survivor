@@ -142,6 +142,8 @@ export interface WeaponInstance {
   streak?: number
   /** World time Backdraft can next go off. */
   backdraftReady?: number
+  /** World time Cold Shoulder can next go off. */
+  coldShoulderReady?: number
   /**
    * A beam's state between ticks (sim/beams.ts): the enemy it holds, what it's
    * touching, its forks, each enemy's cold, and Cold Snap's timer.

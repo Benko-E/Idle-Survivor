@@ -95,6 +95,33 @@ export function applyCondition(
   enemy.effects.push({ condition: id, def, magnitude, remaining: duration, source })
 }
 
+/**
+ * Set a condition from one spell to exactly this strength, up or down —
+ * unlike applyCondition, which keeps the stronger of old and new. For a spell
+ * that manages a condition itself, like a beam's chill that fades as the
+ * enemy warms up. Zero or less takes it off. Immunity still applies.
+ */
+export function setCondition(
+  world: World,
+  enemy: Enemy,
+  id: string,
+  magnitude: number,
+  duration: number,
+  source: WeaponInstance | null,
+): void {
+  const index = enemy.effects.findIndex((effect) => effect.condition === id && effect.source === source)
+  if (magnitude <= 0 || duration <= 0) {
+    if (index >= 0) enemy.effects.splice(index, 1)
+    return
+  }
+  if (index >= 0) {
+    enemy.effects[index].magnitude = magnitude
+    enemy.effects[index].remaining = duration
+    return
+  }
+  applyCondition(world, enemy, id, magnitude, duration, source)
+}
+
 export function hasCondition(enemy: Enemy, id: string): boolean {
   for (const effect of enemy.effects) if (effect.condition === id) return true
   return false

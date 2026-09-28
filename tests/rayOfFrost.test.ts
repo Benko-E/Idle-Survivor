@@ -8,7 +8,7 @@ import { updateCombat } from '@game/sim/combat'
 import { rebuildEnemyGrid } from '@game/sim/enemyGrid'
 import { spellsOfTier } from '@game/sim/spellTiers'
 import { weaponStat } from '@game/sim/stats'
-import { slowMultiplier } from '@game/sim/statusEffects'
+import { applyCondition, isHeld, slowMultiplier } from '@game/sim/statusEffects'
 import { createWorld, type Enemy, type World } from '@game/sim/world'
 
 const RAY = 'spell_ray_of_frost_01'
@@ -102,6 +102,124 @@ check('The new build offers the Ray at the start', spellsOfTier(DEFAULT_CLASS, 1
   fly(w, 1)
   const share = lost(side) / lost(target)
   check('Fork: a second beam off its target, at half the damage', Math.abs(share - 0.5) < 0.08, `${lost(side).toFixed(1)} vs ${lost(target).toFixed(1)}`)
+}
+
+// --- Frostbite ----------------------------------------------------------------------
+
+const chillOf = (e: Enemy) => 1 - slowMultiplier(e)
+{
+  const w = frostWorld()
+  take(w, 'up_ray_frostbite')
+  const e = enemy(w, 100, 0)
+  fly(w, 1.5)
+  check('Frostbite: the held enemy gets colder', Math.abs(chillOf(e) - 0.35) < 0.06, `slow ${chillOf(e).toFixed(2)} at 1.5s`)
+  fly(w, 1.6)
+  check('...frozen at 3 seconds', isHeld(e))
+  fly(w, 1.9)
+  check('...and stays frozen while held', isHeld(e))
+  e.x = 900
+  fly(w, 1.5)
+  check('...still frozen 1.5s after the beam leaves', isHeld(e))
+  fly(w, 0.8)
+  check('...thawed by 2.3s', !isHeld(e))
+}
+{
+  const w = frostWorld()
+  take(w, 'up_ray_frostbite')
+  const e = enemy(w, 100, 0)
+  fly(w, 1.5)
+  e.x = 900
+  fly(w, 1)
+  const halfway = chillOf(e)
+  fly(w, 1.2)
+  check('...its chill fades over about 2s once it leaves', halfway > 0 && halfway < 0.3 && chillOf(e) === 0, `${halfway.toFixed(2)} after 1s, ${chillOf(e).toFixed(2)} after 2.2s`)
+}
+
+// --- Flash Freeze -----------------------------------------------------------------
+
+{
+  const w = frostWorld()
+  check('Flash Freeze needs Frostbite first', !eligible(w, 'up_ray_flashfreeze'))
+  take(w, 'up_ray_frostbite')
+  check('...offered once it is in', eligible(w, 'up_ray_flashfreeze'))
+  take(w, 'up_ray_flashfreeze')
+  const first = enemy(w, 80, 0)
+  const second = enemy(w, 0, 130)
+  fly(w, 3.3)
+  check('...once its target freezes, the beam moves on', isHeld(first) && w.weapons[0].beam?.target === second)
+}
+{
+  const w = frostWorld()
+  take(w, 'up_ray_frostbite')
+  take(w, 'up_ray_flashfreeze')
+  const a = enemy(w, 80, 0)
+  const b = enemy(w, 0, 130)
+  applyCondition(w, a, 'frozen', 1, 10, null)
+  applyCondition(w, b, 'frozen', 1, 10, null)
+  fly(w, 0.2)
+  const held = w.weapons[0].beam?.target
+  let steady = held !== undefined
+  for (let i = 0; i < 10; i++) {
+    fly(w, 0.1)
+    if (w.weapons[0].beam?.target !== held) steady = false
+  }
+  check('...everything frozen: it stays put, no flicker', steady)
+}
+
+// --- Winter's Breath --------------------------------------------------------------
+
+{
+  const w = frostWorld()
+  take(w, 'up_ray_wintersbreath')
+  const e = enemy(w, 100, 0)
+  fly(w, 1)
+  check("Winter's Breath: pushed away about 20 a second", Math.abs(e.x - 120) < 3, `x ${e.x.toFixed(1)}`)
+}
+{
+  const w = frostWorld()
+  take(w, 'up_ray_frostbite')
+  take(w, 'up_ray_wintersbreath')
+  const e = enemy(w, 100, 0)
+  fly(w, 3.2)
+  const x = e.x
+  fly(w, 1)
+  check('...and stops pushing once frozen', isHeld(e) && Math.abs(e.x - x) < 0.01, `moved ${(e.x - x).toFixed(2)} while frozen`)
+}
+
+// --- Cold Snap ----------------------------------------------------------------------
+
+{
+  const w = frostWorld()
+  take(w, 'up_ray_coldsnap')
+  const e = enemy(w, 100, 0)
+  fly(w, 5.8)
+  check('Cold Snap: nothing before its time', !isHeld(e))
+  fly(w, 0.4)
+  check('...then it freezes its target, no Frostbite needed', isHeld(e) && (w.weapons[0].beam?.flashUntil ?? 0) > 0)
+}
+
+// --- Cold Shoulder ------------------------------------------------------------------
+
+{
+  const w = frostWorld()
+  take(w, 'up_ray_coldshoulder')
+  const touching = w.character.radius + ENEMY_DEFS[0].radius * 0.5
+  const a = enemy(w, touching, 0)
+  const b = enemy(w, -touching, 0)
+  const far = enemy(w, 200, 0)
+  w.lastHurtAt = w.time
+  fly(w, DT)
+  check('Cold Shoulder: hit, and the enemies touching him freeze', isHeld(a) && isHeld(b) && !isHeld(far))
+  fly(w, 1.7)
+  check('...for about 1.5s', !isHeld(a))
+  const fresh = enemy(w, 0, touching)
+  w.lastHurtAt = w.time
+  fly(w, DT)
+  check('...then not again for a while', !isHeld(fresh))
+  fly(w, 10)
+  w.lastHurtAt = w.time
+  fly(w, DT)
+  check('...until its wait is over', isHeld(fresh))
 }
 
 console.log(failures === 0 ? '\nALL PASS' : `\n${failures} FAILED`)
