@@ -164,14 +164,16 @@ function hopOnce(world: World, chain: Chain): void {
 /**
  * Branching: a plain arc from the first enemy to the nearest other one within
  * chain.branchRange — not the one the chain jumps to next. It's a spawn:
- * chain.branchShare of the first hit, and nothing else (no Shock).
+ * chain.branchShare of the first hit, and nothing else (no Shock). "Never the
+ * same enemy twice" is the chain's own rule, so the branch's enemy isn't
+ * marked struck: the chain may still reach it, and Branching can never make
+ * the chain do less.
  */
 function branchFrom(world: World, chain: Chain, from: Enemy, next: Enemy | undefined): void {
   const skip = new Set(chain.struck)
   if (next) skip.add(next.id)
   const target = nearestUnstruck(world, from.x, from.y, config.chain.branchRange, skip)
   if (!target) return
-  chain.struck.add(target.id)
   damageEnemy(world, target, chain.damage * config.chain.branchShare, chain.weapon)
   const def = chain.weapon.def
   spawnArtLine(world, from.x, from.y, target.x, target.y, def.colour, config.combat.lineVfxSeconds, def.fx?.arc)

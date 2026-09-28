@@ -54,7 +54,7 @@ const SPELL_STATS: Record<string, StatInfo> = {
   range: { label: 'range', format: 'plain' },
   area: { label: 'area', format: 'plain' },
   count: {
-    label: (weapon) => (weapon.def.behaviour === 'chain' ? 'chain jumps' : weapon.def.behaviour === 'projectile' ? 'bolts' : 'count'),
+    label: (weapon) => (weapon.def.behaviour === 'chain' || weapon.def.behaviour === 'arc' ? 'chain jumps' : weapon.def.behaviour === 'projectile' ? 'bolts' : 'count'),
     format: 'count',
   },
   pierce: { label: 'enemies pierced', format: 'count' },

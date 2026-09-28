@@ -7,6 +7,7 @@ import { config } from '@game/config'
 import { damageEnemy } from '@game/sim/damageEnemy'
 import { applyUpgrade, upgradeIsEligible } from '@game/sim/draft'
 import { applyCondition } from '@game/sim/statusEffects'
+import { upgradeChanges } from '@game/sim/upgradeInfo'
 import { updateCombat } from '@game/sim/combat'
 import { rebuildEnemyGrid } from '@game/sim/enemyGrid'
 import { spellsOfTier } from '@game/sim/spellTiers'
@@ -90,9 +91,11 @@ const line = (world: World, n: number) => Array.from({ length: n }, (_, k) => en
 {
   const w = chainWorld()
   take(w, 'up_cl_branch')
-  const first = enemy(w, 100, 0)
+  // The side enemy is in the branch's reach of the first, but out of the
+  // chain's jump from the second, so only the branch touches it.
+  const first = enemy(w, 90, 0)
   enemy(w, 170, 0)
-  const side = enemy(w, 100, 90)
+  const side = enemy(w, 20, 100)
   cast(w)
   check('Branching: the first jump splits off to another enemy', near(lost(side), lost(first) * config.chain.branchShare), `${lost(side).toFixed(2)} vs ${lost(first).toFixed(2)}`)
   check('...plain: nothing but the damage', side.effects.length === 0)
@@ -209,6 +212,41 @@ function fly(world: World, seconds: number): void {
   w.lastHurtAt = w.time
   fly(w, DT)
   check('...until its wait is over', ring.reduce((sum, e) => sum + lost(e), 0) > total)
+}
+
+// --- Found in Phase 5's review -----------------------------------------------------------
+
+{
+  // Hurt from afar (an enemy's bolt) with nobody close: it shouldn't waste its wait.
+  const w = chainWorld()
+  take(w, 'up_cl_static')
+  w.weapons[0].cooldownRemaining = 99
+  w.lastHurtAt = w.time
+  fly(w, DT)
+  fly(w, 1)
+  const close = enemy(w, 40, 0)
+  w.lastHurtAt = w.time
+  fly(w, DT)
+  check('Static Discharge: hurt with nobody close, it keeps its charge', lost(close) > 0)
+}
+{
+  const w = chainWorld()
+  take(w, 'up_cl_jump')
+  const change = upgradeChanges(w, up('up_cl_jump')).find((entry) => entry.stat === 'count')
+  check("+1 Jump's card reads as chain jumps", change?.label === 'chain jumps', change?.label ?? 'none')
+}
+{
+  // Four in a tight group: Branching must never make the chain reach less.
+  const total = (branching: boolean) => {
+    const w = chainWorld()
+    if (branching) take(w, 'up_cl_branch')
+    const group = [enemy(w, 100, 0), enemy(w, 150, 30), enemy(w, 150, -30), enemy(w, 200, 0)]
+    cast(w)
+    return { damage: group.reduce((sum, e) => sum + lost(e), 0), struck: group.filter((e) => lost(e) > 0).length }
+  }
+  const plain = total(false)
+  const branched = total(true)
+  check('Branching never makes the chain do less', branched.damage >= plain.damage - 1e-9 && branched.struck >= plain.struck, `${plain.damage.toFixed(2)} → ${branched.damage.toFixed(2)}`)
 }
 
 console.log(failures === 0 ? '\nALL PASS' : `\n${failures} FAILED`)

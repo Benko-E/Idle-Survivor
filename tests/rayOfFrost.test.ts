@@ -537,5 +537,19 @@ function crossings(world: World, e: Enemy, seconds: number): number {
   check('Beam damage is continuous, not a strobe of hits', hits === 0 && ticks > 0, `${hits} hits, ${ticks} ticks`)
 }
 
+{
+  // Found in Phase 5's review (same as Static Discharge): hurt with nobody
+  // touching him, Cold Shoulder shouldn't waste its wait.
+  const w = frostWorld()
+  take(w, 'up_ray_coldshoulder')
+  w.lastHurtAt = w.time
+  fly(w, DT)
+  fly(w, 1)
+  const touching = enemy(w, w.character.radius + ENEMY_DEFS[0].radius * 0.5, 0)
+  w.lastHurtAt = w.time
+  fly(w, DT)
+  check('Cold Shoulder: hurt with nobody touching, it keeps its charge', isHeld(touching))
+}
+
 console.log(failures === 0 ? '\nALL PASS' : `\n${failures} FAILED`)
 if (failures > 0) process.exitCode = 1
