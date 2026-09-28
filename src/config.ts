@@ -307,6 +307,17 @@ export const config = {
     accelerateDamageLead: 0.2,
     /** Stoked: the most extra damage heat can add, as a share (1.2 = +120%). */
     stokedMax: 1.2,
+    /**
+     * Pinwheel: a bolt that hits nothing starts its spiral after this share of
+     * its flight, so the spiral still has time and the bolt ends on time. The
+     * spiral starts this wide and opens this many world units a second.
+     */
+    pinwheelStraight: 0.6,
+    pinwheelStart: 10,
+    pinwheelOpen: 90,
+    /** Salvo: how many bolts gather over his head before they all fly, and the charge a caught returning bolt adds. */
+    salvoStack: 5,
+    salvoCatch: 0.5,
     /** Phoenix Bolt's trail: a patch every this far, this big, lasting this long, burning this long after. */
     trailSpacing: 26,
     trailRadius: 22,

@@ -3,7 +3,8 @@
 import { ENEMY_DEFS } from '@game/data/enemies'
 import { UPGRADE_DEFS } from '@game/data/upgrades'
 import { updateCombat } from '@game/sim/combat'
-import { applyUpgrade, upgradeIsEligible } from '@game/sim/draft'
+import { applyUpgrade, currentOffers, upgradeIsEligible } from '@game/sim/draft'
+import { grantXp, xpForLevel } from '@game/sim/progression'
 import { rebuildEnemyGrid } from '@game/sim/enemyGrid'
 import { createWorld, type Enemy, type World } from '@game/sim/world'
 import { config } from '@game/config'
@@ -347,6 +348,146 @@ function forkDamage(ids: string[], casts = 1): number {
     }
   }
   check('Only the first hit forks, not again on the way back', forks === 1, `${forks} fork(s)`)
+}
+
+// --- Running dry before level 20 --------------------------------------------------
+
+{
+  const w = fireWorld()
+  // Every ordinary upgrade there is for the new Firebolt.
+  for (const def of UPGRADE_DEFS) {
+    if (def.spellId !== FIREBOLT || def.kind === 'evolution' || def.id === 'up_firebolt_accelerating') continue
+    for (let i = 0; i < def.maxStacks; i++) applyUpgrade(w, def)
+  }
+  while (w.level < 20) grantXp(w, xpForLevel(w.level))
+  const offered = currentOffers(w).map((offer) => offer.id)
+  check('Ran dry: levels with nothing to pick are not saved up', w.pendingLevelUps === 1, `${w.pendingLevelUps} waiting`)
+  check('...so level 20 still deals the evolutions', offered.includes('up_firebolt_pinwheel') && offered.includes('up_firebolt_salvo'), offered.join(', '))
+}
+
+// --- Pinwheel ---------------------------------------------------------------------
+
+{
+  const w = fireWorld()
+  w.level = 20
+  check('Pinwheel is an evolution, offered at 20', up('up_firebolt_pinwheel').kind === 'evolution' && eligible(w, 'up_firebolt_pinwheel'))
+  take(w, 'up_firebolt_pinwheel')
+  check('...and rules out Salvo', !eligible(w, 'up_firebolt_salvo'))
+  const target = enemy(w, 100, 0)
+  // Round the far side of the target, where the spiral passes but the bolt's
+  // straight flight in doesn't.
+  const ring = [-1.5, -0.75, 0, 0.75, 1.5].map((a) => enemy(w, 100 + Math.cos(a) * 30, Math.sin(a) * 30))
+  cast(w)
+  const bolt = w.projectiles[0]
+  let spiralled = false
+  let spreadOut = 0
+  for (let i = 0; i < 120 && w.projectiles.includes(bolt); i++) {
+    fly(w, DT)
+    if (bolt.spiral) {
+      spiralled = true
+      spreadOut = Math.max(spreadOut, Math.hypot(bolt.x - bolt.spiral.x, bolt.y - bolt.spiral.y))
+    }
+  }
+  const hits = [target, ...ring].filter((e) => lost(e) > 0).length
+  check('...the first hit is free and starts a spiral', spiralled && lost(target) > 0)
+  check('...no Pierce: one more enemy, then gone', hits === 2 && !w.projectiles.includes(bolt), `${hits} hit`)
+  check('...and the spiral opens outward', spreadOut > config.combat.pinwheelStart, spreadOut.toFixed(1))
+}
+{
+  const w = fireWorld()
+  w.level = 20
+  take(w, 'up_firebolt_pinwheel')
+  enemy(w, 500, 0)
+  cast(w)
+  const bolt = w.projectiles[0]
+  const life = bolt.life
+  let spiralAt = -1
+  let steps = 0
+  for (; steps < 400 && w.projectiles.includes(bolt); steps++) {
+    fly(w, DT)
+    if (bolt.spiral && spiralAt < 0) spiralAt = steps * DT
+  }
+  check('Pinwheel missing everything: spirals where the straight part ends', near(spiralAt, life * config.combat.pinwheelStraight, 0.05), `${spiralAt.toFixed(2)}s of ${life.toFixed(2)}s`)
+  check('...and still ends on time', near(steps * DT, life, 0.05), `${(steps * DT).toFixed(2)}s`)
+}
+{
+  const w = fireWorld()
+  w.level = 20
+  take(w, 'up_firebolt_pinwheel')
+  take(w, 'up_firebolt_return')
+  enemy(w, 100, 0)
+  enemy(w, 130, 0)
+  cast(w)
+  const bolt = w.projectiles[0]
+  let home = false
+  let spiralWhileReturning = false
+  for (let i = 0; i < 300; i++) {
+    fly(w, DT)
+    if (bolt.returning && bolt.spiral) spiralWhileReturning = true
+    if (!w.projectiles.includes(bolt)) {
+      home = true
+      break
+    }
+  }
+  check('Pinwheel + Return: flies straight home after the spiral', home && !spiralWhileReturning)
+}
+
+// --- Salvo --------------------------------------------------------------------------
+
+{
+  const w = fireWorld()
+  w.level = 20
+  take(w, 'up_firebolt_salvo')
+  const pack = [0, 1, 2, 3, 4].map((k) => enemy(w, 120, -80 + k * 40))
+  for (let n = 0; n < 4; n++) cast(w)
+  check('Salvo: casts gather over his head, none fly yet', w.projectiles.length === 0 && w.weapons[0].salvo?.bolts.length === 4, `${w.weapons[0].salvo?.bolts.length} gathered`)
+  cast(w)
+  const targets = new Set(w.projectiles.map((b) => b.targetId))
+  check('...at 5 they all fly out at once', w.projectiles.length === 5 && w.weapons[0].salvo?.bolts.length === 0)
+  check('...each at its own enemy', targets.size === 5 && pack.every((e) => targets.has(e.id)))
+  check('...same damage per bolt as ever', w.projectiles.every((b) => near(b.damage, damageOf(w))))
+}
+{
+  const w = fireWorld()
+  w.level = 20
+  take(w, 'up_firebolt_salvo')
+  for (let n = 0; n < 8; n++) cast(w)
+  check('Salvo, nothing in range: fills to 5 and waits', w.projectiles.length === 0 && w.weapons[0].salvo?.bolts.length === 5)
+  enemy(w, 150, 0)
+  cast(w)
+  check('...and lets go once something turns up', w.projectiles.length === 5)
+}
+{
+  const w = fireWorld()
+  w.level = 20
+  take(w, 'up_firebolt_salvo')
+  take(w, 'up_firebolt_split', 2)
+  enemy(w, 150, 0)
+  cast(w)
+  check('Salvo + Split Shot: a cast adds 3 weaker bolts', w.weapons[0].salvo?.bolts.length === 3 && w.projectiles.length === 0)
+  cast(w)
+  check('...never more than 5 a release, the extra waits', w.projectiles.length === 5 && w.weapons[0].salvo?.bolts.length === 1)
+  check('...one main bolt per cast', w.projectiles.filter((b) => (b.mutations?.fork ?? 0) > 0 || (b.mutations?.returns ?? 0) > 0).length <= 2)
+}
+{
+  const w = fireWorld()
+  w.level = 20
+  take(w, 'up_firebolt_salvo')
+  take(w, 'up_firebolt_hotstreak')
+  enemy(w, 150, 0)
+  for (let n = 0; n < 5; n++) cast(w)
+  check('Salvo + Hot Streak: one white-hot bolt a volley', w.projectiles.filter((b) => b.whiteHot).length === 1)
+}
+{
+  const w = fireWorld()
+  w.level = 20
+  take(w, 'up_firebolt_salvo')
+  take(w, 'up_firebolt_return')
+  enemy(w, 120, 0)
+  for (let n = 0; n < 5; n++) cast(w)
+  fly(w, 4)
+  const salvo = w.weapons[0].salvo!
+  check('Salvo + Return: each caught bolt is half a charge', near(salvo.bolts.length + salvo.partial, 5 * config.combat.salvoCatch), `${salvo.bolts.length} + ${salvo.partial}`)
 }
 
 console.log(failures === 0 ? '\nALL PASS' : `\n${failures} FAILED`)

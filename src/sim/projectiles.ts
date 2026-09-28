@@ -46,6 +46,20 @@ export interface BoltMutations {
   accelerate: boolean
   /** Stoked: extra damage for each enemy it has passed through, as a share (0.15 = +15%). */
   stoked: number
+  /** Pinwheel: its first hit is free and starts a spiral outward from there. */
+  pinwheel: boolean
+}
+
+/**
+ * One bolt a cast will throw, before it's thrown: what it hits for, whether
+ * it's white-hot, whether it's a main bolt (the one that forks and returns),
+ * and its plain hit for its forks. Salvo keeps a stack of these.
+ */
+export interface BoltSpec {
+  damage: number
+  white: boolean
+  main: boolean
+  plain: number
 }
 
 export interface Projectile {
@@ -106,6 +120,8 @@ export interface Projectile {
    * for a share of this, since spawns get none of the upgrades (spellbook).
    */
   plainDamage?: number
+  /** Pinwheel's spiral once it has started: its centre, where round it the bolt is, how wide, how fast. */
+  spiral?: { x: number; y: number; angle: number; radius: number; speed: number }
 }
 
 /**
@@ -249,6 +265,8 @@ function turnBack(projectile: Projectile): void {
   if (!projectile.mutations) return
   projectile.mutations.returns--
   projectile.returning = true
+  // Home in a straight line: Pinwheel's spiral is over.
+  projectile.spiral = undefined
   projectile.hits.clear()
   // The new build forks on its first hit only (spellbook); the old build
   // forked again on the way back.
@@ -279,9 +297,25 @@ function boltDamageNow(projectile: Projectile): number {
   return damage
 }
 
-/** One hit on one enemy: damage, sparks, conditions, and everything the bolt's upgrades add. */
-function hit(world: World, projectile: Projectile, enemy: Enemy): void {
+/** Pinwheel: start spiralling outward round (x, y), from wherever the bolt is now. */
+function startSpiral(projectile: Projectile, x: number, y: number): void {
+  projectile.spiral = {
+    x,
+    y,
+    angle: Math.atan2(projectile.y - y, projectile.x - x),
+    radius: config.combat.pinwheelStart,
+    speed: Math.hypot(projectile.vx, projectile.vy),
+  }
+}
+
+/**
+ * One hit on one enemy: damage, sparks, conditions, and everything the bolt's
+ * upgrades add. True when the hit was free: Pinwheel's first hit, which
+ * starts its spiral and doesn't count against its pierce.
+ */
+function hit(world: World, projectile: Projectile, enemy: Enemy): boolean {
   const mutations = projectile.mutations
+  const startsSpiral = mutations?.pinwheel === true && !projectile.spiral && !projectile.returning
   projectile.hits.add(enemy.id)
   // Checked before this hit's own burn lands: Combustion detonates the
   // burn that was already there, then Ignite lights a fresh one.
@@ -315,6 +349,9 @@ function hit(world: World, projectile: Projectile, enemy: Enemy): void {
     projectile.heat = (projectile.heat ?? 0) + 1
     projectile.damage = boltDamageNow(projectile)
   }
+
+  if (startsSpiral) startSpiral(projectile, enemy.x, enemy.y)
+  return startsSpiral
 }
 
 const kilnScratch: Zone[] = []
@@ -334,6 +371,7 @@ export function updateProjectiles(world: World, dt: number): void {
       const distance = Math.hypot(dx, dy)
       const speed = Math.hypot(projectile.vx, projectile.vy)
       if (distance < (c === world.character ? world.character.radius : RETURN_CATCH) + projectile.radius) {
+        catchForSalvo(projectile)
         world.projectiles[i] = world.projectiles[world.projectiles.length - 1]
         world.projectiles.pop()
         continue
@@ -352,10 +390,27 @@ export function updateProjectiles(world: World, dt: number): void {
       projectile.damage = boltDamageNow(projectile)
     }
 
+    // Pinwheel with nothing hit yet: the straight part is over, so it spirals from here.
+    if (mutations?.pinwheel && !projectile.spiral && !projectile.returning && projectile.life <= (projectile.outLife ?? 0) * (1 - config.combat.pinwheelStraight)) {
+      startSpiral(projectile, projectile.x, projectile.y)
+    }
+
     const fromX = projectile.x
     const fromY = projectile.y
-    projectile.x += projectile.vx * dt
-    projectile.y += projectile.vy * dt
+    const spiral = projectile.spiral
+    if (spiral) {
+      // Round and outward at the bolt's own speed (Accelerating's, if it has it).
+      const speed = mutations?.accelerate ? Math.hypot(projectile.vx, projectile.vy) : spiral.speed
+      spiral.radius += config.combat.pinwheelOpen * dt
+      spiral.angle += (speed * dt) / spiral.radius
+      projectile.x = spiral.x + Math.cos(spiral.angle) * spiral.radius
+      projectile.y = spiral.y + Math.sin(spiral.angle) * spiral.radius
+      projectile.vx = (projectile.x - fromX) / dt
+      projectile.vy = (projectile.y - fromY) / dt
+    } else {
+      projectile.x += projectile.vx * dt
+      projectile.y += projectile.vy * dt
+    }
     projectile.life -= dt
     if (kilns.length > 0 && !projectile.side) kilnPass(world, projectile, kilns, fromX, fromY)
     if (mutations && mutations.trail > 0) layTrail(world, projectile, mutations.trail, Math.hypot(projectile.vx, projectile.vy) * dt)
@@ -381,7 +436,8 @@ export function updateProjectiles(world: World, dt: number): void {
         const hitRange = enemy.def.radius + reach
         if (dx * dx + dy * dy > hitRange * hitRange) return
 
-        hit(world, projectile, enemy)
+        // Pinwheel's first hit is free: it starts the spiral and carries on.
+        if (hit(world, projectile, enemy)) return
         if (projectile.pierce > 0) projectile.pierce--
         else if (mutations && mutations.returns > 0 && !projectile.returning) {
           // It bounces off the enemy that stopped it — and that bounce is its
@@ -400,6 +456,22 @@ export function updateProjectiles(world: World, dt: number): void {
 
     world.projectiles[i] = world.projectiles[world.projectiles.length - 1]
     world.projectiles.pop()
+  }
+}
+
+/**
+ * Salvo: a bolt caught coming home is half a charge. Two halves make one more
+ * bolt in the stack: an ordinary one, never white-hot, and not a main bolt, so
+ * it can't start a return loop of its own.
+ */
+function catchForSalvo(projectile: Projectile): void {
+  const salvo = projectile.source.salvo
+  if (!salvo) return
+  salvo.partial += config.combat.salvoCatch
+  const base = (projectile.baseDamage ?? projectile.damage) / (projectile.whiteHot ? config.combat.whiteHotDamage : 1)
+  while (salvo.partial >= 1 - 1e-9) {
+    salvo.partial -= 1
+    salvo.bolts.push({ damage: base, white: false, main: false, plain: projectile.plainDamage ?? base })
   }
 }
 

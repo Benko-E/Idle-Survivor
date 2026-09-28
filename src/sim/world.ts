@@ -7,7 +7,7 @@ import type { ClassDef, EnemyDef, PickupDef, WeaponDef } from '../data/types'
 import type { BuildBonus } from './buildBonus'
 import type { Summon } from './summons'
 import type { Offer } from './draft'
-import type { Projectile } from './projectiles'
+import type { BoltSpec, Projectile } from './projectiles'
 import type { StatusEffect } from './statusEffects'
 import type { VisitMark } from './trail'
 import type { Vfx } from './vfx'
@@ -141,6 +141,8 @@ export interface WeaponInstance {
   streak?: number
   /** World time Backdraft can next go off. */
   backdraftReady?: number
+  /** Salvo: the bolts gathered over his head, and the half charges caught bolts have added. */
+  salvo?: { bolts: BoltSpec[]; partial: number }
   /** An aura's pyre, put out by low health until he's healed. See sim/auras.ts. */
   pyreOut?: boolean
   /** What kills inside an aura have fed it: target and eased current radius bonus, and time left. */

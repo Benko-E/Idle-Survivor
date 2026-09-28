@@ -164,7 +164,7 @@ const toHim = (w: World, c: { x: number; y: number }) => Math.hypot(c.x - w.char
   const pet = summon(w, elemental, { x: 300, y: 300 })
   const bolt = spawnPlainBolt(w, pet.weapons[0], 500, 300, 0, 5, 400)
   bolt.returning = true
-  bolt.mutations = { fork: 0, forkEveryHit: false, returns: 0, explode: 0, ignite: 0, combust: false, trail: 0, accelerate: false, stoked: 0 }
+  bolt.mutations = { fork: 0, forkEveryHit: false, returns: 0, explode: 0, ignite: 0, combust: false, trail: 0, accelerate: false, stoked: 0, pinwheel: false }
   updateProjectiles(w, DT)
   check('A returning bolt flies home to its caster', bolt.vx < 0 && Math.abs(bolt.vy) < 1e-6, `heading ${bolt.vx.toFixed(0)},${bolt.vy.toFixed(0)}`)
 }

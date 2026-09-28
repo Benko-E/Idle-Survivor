@@ -2,7 +2,7 @@ import { config } from '../config'
 import type { WeaponDef } from '../data/types'
 import { damageEnemy } from './damageEnemy'
 import { auraBurn, auraRadius } from './auras'
-import { type BoltMutations } from './projectiles'
+import { type BoltMutations, type BoltSpec } from './projectiles'
 import { applyCondition } from './statusEffects'
 import { orbitPositions } from './orbit'
 import { enemiesInRadius, nearestEnemies, nearestEnemy, pickTargets, unburntEnemies } from './targeting'
@@ -69,12 +69,22 @@ const projectile: Behaviour = ({ world, weapon, caster, def, stat }) => {
   // His side aims at the nearest enemies (with Kindling, the nearest unburnt
   // ones); the enemies' side aims at him.
   const foe = caster.side === 'enemy'
-  const targets: readonly { x: number; y: number; id?: number }[] = foe
-    ? aimAtHim(world, caster, range)
-    : stat('kindling') > 0
-      ? unburntEnemies(world, caster.x, caster.y, range, volley, takenBy(world, weapon), scratchTargets)
-      : nearestEnemies(world, caster.x, caster.y, range, volley, scratchTargets)
-  if (targets.length === 0) return false
+  const aim = (wanted: number): readonly { x: number; y: number; id?: number }[] =>
+    foe
+      ? aimAtHim(world, caster, range)
+      : stat('kindling') > 0
+        ? unburntEnemies(world, caster.x, caster.y, range, wanted, takenBy(world, weapon), scratchTargets)
+        : nearestEnemies(world, caster.x, caster.y, range, wanted, scratchTargets)
+
+  // Salvo: casts gather their bolts over his head, and at salvoStack they all
+  // fly at once. Charging needs no target; letting go does. A full stack
+  // waiting for a target isn't a cast, so it doesn't count toward Hot Streak.
+  const salvoSize = !foe && stat('salvo') > 0 ? Math.max(1, Math.round(config.combat.salvoStack)) : 0
+  const stack = salvoSize > 0 ? (weapon.salvo ??= { bolts: [], partial: 0 }) : undefined
+  const charging = stack !== undefined && stack.bolts.length < salvoSize
+  let targets = charging ? [] : aim(stack ? salvoSize : volley)
+  if (!charging && targets.length === 0) return false
+  const casting = !stack || charging
 
   // Evolutions reshape the bolt through these three, not through its damage
   // and speed themselves, so the plain bolts it forks into stay plain.
@@ -95,28 +105,39 @@ const projectile: Behaviour = ({ world, weapon, caster, def, stat }) => {
     trail: Math.max(0, stat('flameTrail')),
     accelerate: stat('accelerate') > 0,
     stoked: Math.max(0, stat('stoked')),
+    pinwheel: stat('pinwheel') > 0,
   }
   const mutated =
-    mutations.fork > 0 || mutations.returns > 0 || mutations.explode > 0 || mutations.ignite > 0 || mutations.combust || mutations.trail > 0 || mutations.accelerate || mutations.stoked > 0
+    mutations.fork > 0 ||
+    mutations.returns > 0 ||
+    mutations.explode > 0 ||
+    mutations.ignite > 0 ||
+    mutations.combust ||
+    mutations.trail > 0 ||
+    mutations.accelerate ||
+    mutations.stoked > 0 ||
+    mutations.pinwheel
 
-  // Hot Streak (old build): every Nth cast, the first bolt is an empowered one.
-  const streakEvery = Math.round(stat('hotStreak'))
   let empowered = false
-  if (streakEvery > 0) {
-    weapon.streak = (weapon.streak ?? 0) + 1
-    if (weapon.streak >= streakEvery) {
-      weapon.streak = 0
-      empowered = true
-    }
-  }
-  // Hot Streak (new build): every Nth cast is white-hot, every bolt of it.
-  const whiteEvery = Math.round(stat('whiteHot'))
   let white = false
-  if (whiteEvery > 0) {
-    weapon.streak = (weapon.streak ?? 0) + 1
-    if (weapon.streak >= whiteEvery) {
-      weapon.streak = 0
-      white = true
+  if (casting) {
+    // Hot Streak (old build): every Nth cast, the first bolt is an empowered one.
+    const streakEvery = Math.round(stat('hotStreak'))
+    if (streakEvery > 0) {
+      weapon.streak = (weapon.streak ?? 0) + 1
+      if (weapon.streak >= streakEvery) {
+        weapon.streak = 0
+        empowered = true
+      }
+    }
+    // Hot Streak (new build): every Nth cast is white-hot, every bolt of it.
+    const whiteEvery = Math.round(stat('whiteHot'))
+    if (whiteEvery > 0) {
+      weapon.streak = (weapon.streak ?? 0) + 1
+      if (weapon.streak >= whiteEvery) {
+        weapon.streak = 0
+        white = true
+      }
     }
   }
 
@@ -139,9 +160,28 @@ const projectile: Behaviour = ({ world, weapon, caster, def, stat }) => {
   const { accelerateStart, accelerateEnd } = config.combat
   const cruise = mutations.accelerate ? speed * ((accelerateStart + accelerateEnd) / 2) : speed
   const launch = mutations.accelerate ? speed * accelerateStart : speed
-  const shared = (damage / (1 + split)) * (white ? config.combat.whiteHotDamage : 1)
 
-  for (let i = 0; i < volley; i++) {
+  // This cast's bolts. The first `count` are the main ones: Split Shot's
+  // extras leave forking and returning to them.
+  const shared = (damage / (1 + split)) * (white ? config.combat.whiteHotDamage : 1)
+  const plain = stat('damage') / (1 + split)
+  const thisCast: BoltSpec[] = []
+  if (casting) for (let i = 0; i < volley; i++) thisCast.push({ damage: shared, white, main: i < count, plain })
+
+  let specs = thisCast
+  if (stack) {
+    stack.bolts.push(...thisCast)
+    if (stack.bolts.length < salvoSize) return true
+    if (charging) {
+      targets = aim(salvoSize)
+      // Full now, and nothing to throw them at: they wait over his head.
+      if (targets.length === 0) return true
+    }
+    specs = stack.bolts.splice(0, salvoSize)
+  }
+
+  for (let i = 0; i < specs.length; i++) {
+    const spec = specs[i]
     const target = targets[i % targets.length]
     // Bolts beyond the number of targets go round again, fanned out either
     // side of the line: +spread, -spread, +2 spread...
@@ -155,10 +195,7 @@ const projectile: Behaviour = ({ world, weapon, caster, def, stat }) => {
     const reach = hot ? config.combat.hotStreakRange : range
     const life = cruise > 0 ? reach / cruise : 0
     const boltPierce = hot ? 999 : pierce
-    // The first `count` bolts are the main ones: Split Shot's extras leave
-    // forking and returning to them.
-    const main = i < count
-    const hit = hot ? shared * config.combat.hotStreakDamage : shared
+    const hit = hot ? spec.damage * config.combat.hotStreakDamage : spec.damage
     world.projectiles.push({
       x: caster.x,
       y: caster.y,
@@ -180,13 +217,13 @@ const projectile: Behaviour = ({ world, weapon, caster, def, stat }) => {
       side: foe ? 'enemy' : undefined,
       mutations:
         mutated || hot
-          ? { ...mutations, fork: hot ? Math.max(1, mutations.fork) : main ? mutations.fork : 0, returns: main ? mutations.returns : 0, forkEveryHit: hot }
+          ? { ...mutations, fork: hot ? Math.max(1, mutations.fork) : spec.main ? mutations.fork : 0, returns: spec.main ? mutations.returns : 0, forkEveryHit: hot }
           : undefined,
       empowered: hot,
-      whiteHot: white || undefined,
+      whiteHot: spec.white || undefined,
       targetId: foe ? undefined : target.id,
       // New build: its forks hit for a share of this, never its upgrades.
-      plainDamage: def.build === 'new' ? stat('damage') / (1 + split) : undefined,
+      plainDamage: def.build === 'new' ? spec.plain : undefined,
       outLife: life,
     })
   }

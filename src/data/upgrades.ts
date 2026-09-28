@@ -250,6 +250,32 @@ export const UPGRADE_DEFS: UpgradeDef[] = [
     maxStacks: 1,
     weight: 45,
   },
+  {
+    id: 'up_firebolt_pinwheel',
+    spellId: 'spell_firebolt_01',
+    kind: 'evolution',
+    displayName: 'Pinwheel',
+    description: 'After its first hit, the bolt spirals out',
+    details: 'The bolt flies straight at its target as usual. After its first hit it spirals outward from that spot, sweeping through the crowd around it. Pierce decides how many more enemies it can pass through.',
+    tags: ['offence', 'fire'],
+    // The first hit is free and starts the spiral; same flight time as ever (combat.pinwheel*).
+    modifiers: [{ target: 'pinwheel', op: 'add', value: 1 }],
+    maxStacks: 1,
+    weight: 400,
+  },
+  {
+    id: 'up_firebolt_salvo',
+    spellId: 'spell_firebolt_01',
+    kind: 'evolution',
+    displayName: 'Salvo',
+    description: 'Bolts gather overhead, then fly out at once',
+    details: 'Instead of flying out one by one, bolts gather above his head. When five are ready they all fly out at once, each at its own target.',
+    tags: ['offence', 'fire'],
+    // combat.salvoStack at once; the stack counts bolts; a caught returning bolt adds combat.salvoCatch.
+    modifiers: [{ target: 'salvo', op: 'add', value: 1 }],
+    maxStacks: 1,
+    weight: 400,
+  },
 
   // --- Firebolt ------------------------------------------------------------------
   //
